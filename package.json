@@ -1,0 +1,16 @@
+{
+  "name": "next-arctravern",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:client": "bun run --filter @arctravern/client dev",
+    "dev:server": "bun run --filter @arctravern/server dev",
+    "build": "bun run --filter '*' build",
+    "build:client": "bun run --filter @arctravern/client build",
+    "build:server": "bun run --filter @arctravern/server build"
+  }
+}

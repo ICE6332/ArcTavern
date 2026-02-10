@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+
+# Build outputs
+client/.next/
+client/out/
+server/dist/
+
+# Database
+server/data/*.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+*.pem
+.vercel
