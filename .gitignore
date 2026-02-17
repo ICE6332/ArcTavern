@@ -39,3 +39,12 @@ yarn-error.log*
 # Misc
 *.pem
 .vercel
+
+# Local agent/runtime artifacts
+.agent/
+.agents/
+.claude/
+skills/
+data/
+X-2.0.json
+nul
