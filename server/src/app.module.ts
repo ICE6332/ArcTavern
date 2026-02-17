@@ -8,6 +8,11 @@ import { SecretModule } from './modules/secret/secret.module';
 import { PresetModule } from './modules/preset/preset.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AiProviderModule } from './modules/ai-provider/ai-provider.module';
+import { TagModule } from './modules/tag/tag.module';
+import { PersonaModule } from './modules/persona/persona.module';
+import { WorldInfoModule } from './modules/world-info/world-info.module';
+import { GroupModule } from './modules/group/group.module';
+import { RagModule } from './modules/rag/rag.module';
 
 @Module({
   imports: [
@@ -19,6 +24,11 @@ import { AiProviderModule } from './modules/ai-provider/ai-provider.module';
     PresetModule,
     SettingsModule,
     AiProviderModule,
+    TagModule,
+    PersonaModule,
+    WorldInfoModule,
+    GroupModule,
+    RagModule,
   ],
   controllers: [HealthController],
 })

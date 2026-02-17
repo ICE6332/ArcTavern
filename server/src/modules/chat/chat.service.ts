@@ -18,6 +18,8 @@ export interface MessageRow {
   is_hidden: number;
   swipe_id: number;
   swipes: string;
+  gen_started: string | null;
+  gen_finished: string | null;
   extra: string;
   created_at: string;
 }
@@ -58,17 +60,34 @@ export class ChatService {
     );
   }
 
+  async findMessageById(id: number): Promise<MessageRow | null> {
+    return this.db.get<MessageRow>('SELECT * FROM messages WHERE id = ?', [id]);
+  }
+
   async addMessage(data: {
     chatId: number;
     role: string;
     name?: string;
     content: string;
+    swipeId?: number;
     swipes?: string;
+    genStarted?: string | null;
+    genFinished?: string | null;
     extra?: string;
   }): Promise<MessageRow> {
     const { lastId } = this.db.run(
-      'INSERT INTO messages (chat_id, role, name, content, swipes, extra) VALUES (?, ?, ?, ?, ?, ?)',
-      [data.chatId, data.role, data.name ?? '', data.content, data.swipes ?? '[]', data.extra ?? '{}'],
+      'INSERT INTO messages (chat_id, role, name, content, swipe_id, swipes, gen_started, gen_finished, extra) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        data.chatId,
+        data.role,
+        data.name ?? '',
+        data.content,
+        data.swipeId ?? 0,
+        data.swipes ?? '[]',
+        data.genStarted ?? null,
+        data.genFinished ?? null,
+        data.extra ?? '{}',
+      ],
     );
     this.db.run("UPDATE chats SET updated_at = datetime('now') WHERE id = ?", [data.chatId]);
     return this.db.get<MessageRow>('SELECT * FROM messages WHERE id = ?', [lastId])!;
@@ -77,7 +96,8 @@ export class ChatService {
   async updateMessage(id: number, data: Record<string, unknown>): Promise<MessageRow | null> {
     const fieldMap: Record<string, string> = {
       content: 'content', name: 'name', isHidden: 'is_hidden',
-      swipeId: 'swipe_id', swipes: 'swipes', extra: 'extra',
+      swipeId: 'swipe_id', swipes: 'swipes', genStarted: 'gen_started',
+      genFinished: 'gen_finished', extra: 'extra',
     };
     const sets: string[] = [];
     const values: unknown[] = [];

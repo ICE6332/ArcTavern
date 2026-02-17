@@ -1,6 +1,6 @@
 declare module 'sql.js' {
   interface Database {
-    run(sql: string, params?: any[]): void;
+    run(sql: string, params?: unknown[]): void;
     prepare(sql: string): Statement;
     getRowsModified(): number;
     export(): Uint8Array;
@@ -8,7 +8,7 @@ declare module 'sql.js' {
   }
 
   interface Statement {
-    bind(params?: any[]): boolean;
+    bind(params?: unknown[]): boolean;
     step(): boolean;
     getAsObject(): Record<string, unknown>;
     free(): void;

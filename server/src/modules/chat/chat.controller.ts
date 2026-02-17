@@ -11,10 +11,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import { CharacterService } from '../character/character.service';
 
 @Controller('chats')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly characterService: CharacterService,
+  ) {}
 
   @Get()
   async findByCharacter(@Query('characterId', ParseIntPipe) characterId: number) {
@@ -30,7 +34,20 @@ export class ChatController {
 
   @Post()
   async create(@Body() body: { characterId: number; name?: string }) {
-    return this.chatService.create(body.characterId, body.name);
+    const chat = await this.chatService.create(body.characterId, body.name);
+
+    // Persist the character's greeting as the first message
+    const character = await this.characterService.findOne(body.characterId);
+    if (character?.first_mes) {
+      await this.chatService.addMessage({
+        chatId: chat.id,
+        role: 'assistant',
+        name: character.name,
+        content: character.first_mes,
+      });
+    }
+
+    return chat;
   }
 
   @Delete(':id')

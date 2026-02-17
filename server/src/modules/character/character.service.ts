@@ -12,12 +12,15 @@ export interface CharacterRow {
   scenario: string;
   system_prompt: string;
   post_history_instructions: string;
+  alternate_greetings: string;
   creator: string;
   creator_notes: string;
+  character_version: string;
   tags: string;
   spec: string;
   spec_version: string;
   extensions: string;
+  character_book: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,14 +47,20 @@ export class CharacterService {
     scenario?: string;
     systemPrompt?: string;
     postHistoryInstructions?: string;
+    alternateGreetings?: string;
     creator?: string;
     creatorNotes?: string;
+    characterVersion?: string;
     tags?: string;
     extensions?: string;
+    characterBook?: string | null;
   }): Promise<CharacterRow> {
     const { lastId } = this.db.run(
-      `INSERT INTO characters (name, avatar, description, personality, first_mes, mes_example, scenario, system_prompt, post_history_instructions, creator, creator_notes, tags, extensions)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO characters (
+        name, avatar, description, personality, first_mes, mes_example, scenario,
+        system_prompt, post_history_instructions, alternate_greetings, creator,
+        creator_notes, character_version, tags, extensions, character_book
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.name,
         data.avatar ?? null,
@@ -62,10 +71,13 @@ export class CharacterService {
         data.scenario ?? '',
         data.systemPrompt ?? '',
         data.postHistoryInstructions ?? '',
+        data.alternateGreetings ?? '[]',
         data.creator ?? '',
         data.creatorNotes ?? '',
+        data.characterVersion ?? '',
         data.tags ?? '[]',
         data.extensions ?? '{}',
+        data.characterBook ?? null,
       ],
     );
     return (await this.findOne(lastId))!;
@@ -77,8 +89,10 @@ export class CharacterService {
       personality: 'personality', firstMes: 'first_mes', mesExample: 'mes_example',
       scenario: 'scenario', systemPrompt: 'system_prompt',
       postHistoryInstructions: 'post_history_instructions',
+      alternateGreetings: 'alternate_greetings',
       creator: 'creator', creatorNotes: 'creator_notes',
-      tags: 'tags', extensions: 'extensions',
+      characterVersion: 'character_version',
+      tags: 'tags', extensions: 'extensions', characterBook: 'character_book',
     };
     const sets: string[] = [];
     const values: unknown[] = [];

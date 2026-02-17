@@ -6,28 +6,40 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "start:prod": "node dist/main.js"
+    "start:prod": "node dist/main.js",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.44",
+    "@ai-sdk/google": "^3.0.29",
+    "@ai-sdk/mistral": "^3.0.20",
+    "@ai-sdk/openai": "^3.0.29",
+    "@ai-sdk/openai-compatible": "^2.0.30",
+    "@lancedb/lancedb": "^0.26.2",
     "@nestjs/common": "^11.1.3",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.3",
     "@nestjs/platform-express": "^11.1.3",
     "@nestjs/platform-ws": "^11.1.3",
     "@nestjs/websockets": "^11.1.3",
-    "@nestjs/config": "^4.0.2",
-    "sql.js": "^1.12.0",
+    "ai": "^6.0.86",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
     "helmet": "^8.1.0",
+    "png-chunk-text": "^1.0.0",
+    "png-chunks-encode": "^1.0.0",
+    "png-chunks-extract": "^1.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "yaml": "^2.8.1",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1"
+    "sql.js": "^1.12.0",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
     "@nestjs/schematics": "^11.0.5",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }
