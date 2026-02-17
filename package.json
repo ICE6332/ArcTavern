@@ -6,11 +6,14 @@
     "server"
   ],
   "scripts": {
-    "dev": "bun run --filter '*' dev",
+    "dev:clean-ports": "powershell -ExecutionPolicy Bypass -File ./scripts/kill-dev-ports.ps1 -StartPort 3000 -EndPort 3999",
+    "dev": "bun run dev:clean-ports && bun run --filter '*' dev",
     "dev:client": "bun run --filter @arctravern/client dev",
     "dev:server": "bun run --filter @arctravern/server dev",
     "build": "bun run --filter '*' build",
     "build:client": "bun run --filter @arctravern/client build",
-    "build:server": "bun run --filter @arctravern/server build"
+    "build:server": "bun run --filter @arctravern/server build",
+    "test:phase1": "bun run --filter @arctravern/server test",
+    "test": "bun run test:phase1"
   }
 }
