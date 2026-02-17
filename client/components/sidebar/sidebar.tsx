@@ -1,100 +1,198 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCharacterStore } from "@/stores/character-store";
 import { useChatStore } from "@/stores/chat-store";
+import { useGroupStore } from "@/stores/group-store";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { CharacterCard } from "@/components/character/character-card";
+import { CharacterList } from "@/components/character/character-list";
+import { CharacterImport } from "@/components/character/character-import";
+import { CharacterEditor } from "@/components/character/character-editor";
+import { CharacterExport } from "@/components/character/character-export";
+import { TagFilter } from "@/components/tags/tag-filter";
+import { GroupList } from "@/components/group/group-list";
+import { useTranslation } from "@/lib/i18n";
+
+type SidebarTab = "characters" | "chats" | "groups";
 
 export function Sidebar() {
-  const { characters, selectedId, selectCharacter, loading } = useCharacterStore();
-  const { chats, fetchChats, selectChat, createChat, currentChatId } = useChatStore();
-  const [search, setSearch] = useState("");
+  const { t } = useTranslation();
+  const {
+    characters,
+    selectedId,
+    selectCharacter,
+    loading,
+    createCharacter,
+    deleteCharacter,
+    duplicateCharacter,
+    exportCharacter,
+  } = useCharacterStore();
+  const { chats, fetchChats, selectChat, createChat, deleteChat, currentChatId } = useChatStore();
+  const { createGroup, selectGroup } = useGroupStore();
+  const [tab, setTab] = useState<SidebarTab>("characters");
 
-  const filtered = characters.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()),
+  const selectedCharacter = useMemo(
+    () => characters.find((c) => c.id === selectedId) ?? null,
+    [characters, selectedId],
   );
 
   const handleSelectCharacter = async (id: number) => {
     selectCharacter(id);
     await fetchChats(id);
+    // Auto-select latest chat or create one
+    const chatState = useChatStore.getState();
+    if (chatState.chats.length > 0) {
+      await selectChat(chatState.chats[0].id);
+    } else {
+      await createChat(id);
+    }
+  };
+
+  const handleNewCharacter = async () => {
+    const created = await createCharacter({
+      name: `Character ${characters.length + 1}`,
+      description: "",
+    });
+    await handleSelectCharacter(created.id);
   };
 
   const handleNewChat = async () => {
     if (!selectedId) return;
     const chat = await createChat(selectedId);
     await selectChat(chat.id);
+    setTab("chats");
+  };
+
+  const handleDeleteChat = async (chatId: number) => {
+    if (!selectedId) return;
+    const chat = chats.find((item) => item.id === chatId);
+    const chatName = chat?.name || `${t("sidebar.chatDefault")} #${chatId}`;
+    const confirmed = window.confirm(`Delete chat "${chatName}"?`);
+    if (!confirmed) return;
+
+    const wasCurrentChat = currentChatId === chatId;
+    await deleteChat(chatId);
+
+    if (!wasCurrentChat) return;
+
+    const nextChats = useChatStore.getState().chats;
+    if (nextChats.length > 0) {
+      await selectChat(nextChats[0].id);
+      return;
+    }
+
+    const created = await createChat(selectedId);
+    await selectChat(created.id);
   };
 
   return (
-    <aside className="flex h-full w-72 flex-col border-r border-border bg-sidebar">
-      {/* Search */}
-      <div className="p-3">
-        <Input
-          placeholder="Search characters..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-9"
-        />
+    <aside className="flex h-full w-[340px] flex-col border-r border-border bg-sidebar">
+      <div className="border-b border-border p-2">
+        <div className="mb-2 flex gap-1">
+          <Button
+            variant={tab === "characters" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setTab("characters")}
+          >
+            {t("sidebar.characters")}
+          </Button>
+          <Button
+            variant={tab === "chats" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setTab("chats")}
+            disabled={!selectedId}
+          >
+            {t("sidebar.chats")}
+          </Button>
+          <Button
+            variant={tab === "groups" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setTab("groups")}
+          >
+            {t("sidebar.groups")}
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-1">
+          <Button size="sm" className="h-7 text-xs" onClick={handleNewCharacter}>
+            {t("sidebar.newCharacter")}
+          </Button>
+          <CharacterImport />
+          {selectedId && <CharacterExport characterId={selectedId} />}
+        </div>
       </div>
 
-      <Separator />
-
-      {/* Character list */}
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
-          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-            Loading...
+          <div className="py-8 text-center text-sm text-muted-foreground">{t("sidebar.loading")}</div>
+        ) : tab === "characters" ? (
+          <div className="flex flex-col gap-2">
+            <TagFilter />
+            <CharacterList
+              characters={characters}
+              selectedId={selectedId}
+              onSelect={handleSelectCharacter}
+              onDuplicate={(id) => void duplicateCharacter(id)}
+              onDelete={(id) => void deleteCharacter(id)}
+              onExport={(id) => void exportCharacter(id, "png")}
+            />
+            <CharacterEditor character={selectedCharacter} />
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-            <p>No characters yet</p>
-            <p className="text-xs">Create one to get started</p>
-          </div>
+        ) : tab === "groups" ? (
+          <GroupList
+            onSelectGroup={(id) => selectGroup(id)}
+            onCreateGroup={async () => {
+              await createGroup({ name: `Group ${Date.now()}` });
+            }}
+          />
         ) : (
           <div className="flex flex-col gap-1">
-            {filtered.map((char) => (
-              <CharacterCard
-                key={char.id}
-                character={char}
-                isSelected={char.id === selectedId}
-                onClick={() => handleSelectCharacter(char.id)}
-              />
-            ))}
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">{t("sidebar.chats")}</span>
+              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleNewChat}>
+                {t("sidebar.newChat")}
+              </Button>
+            </div>
+            {chats.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                {t("sidebar.noChats")}
+              </div>
+            ) : (
+              chats.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`flex items-start gap-1 rounded-md px-2 py-1.5 transition-colors ${
+                    chat.id === currentChatId
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  <button
+                    onClick={() => selectChat(chat.id)}
+                    className="min-w-0 flex-1 text-left text-sm"
+                  >
+                    <p className="truncate">{chat.name || `${t("sidebar.chatDefault")} #${chat.id}`}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {chat.updatedAt ? new Date(chat.updatedAt).toLocaleString() : ""}
+                    </p>
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-1 text-[10px] text-muted-foreground hover:text-destructive"
+                    onClick={() => void handleDeleteChat(chat.id)}
+                  >
+                    {t("actions.delete")}
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
-
-      <Separator />
-
-      {/* Chat list for selected character */}
-      {selectedId && (
-        <div className="flex flex-col gap-1 p-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-medium text-muted-foreground">Chats</span>
-            <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleNewChat}>
-              + New
-            </Button>
-          </div>
-          <div className="max-h-40 overflow-y-auto">
-            {chats.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => selectChat(chat.id)}
-                className={`w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                  chat.id === currentChatId
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/50"
-                }`}
-              >
-                {chat.name || `Chat #${chat.id}`}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </aside>
   );
 }

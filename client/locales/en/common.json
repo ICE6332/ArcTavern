@@ -1,0 +1,155 @@
+{
+  "sidebar": {
+    "characters": "Characters",
+    "chats": "Chats",
+    "groups": "Groups",
+    "newCharacter": "New Character",
+    "loading": "Loading...",
+    "newChat": "+ New",
+    "noChats": "No chats for this character",
+    "chatDefault": "Chat"
+  },
+  "chat": {
+    "welcome": "Welcome to Arctravern",
+    "selectCharacter": "Select a character to start chatting",
+    "selectChat": "Select or create a chat to begin",
+    "generating": "Generating...",
+    "placeholder": "Type a message... (Enter to send, Shift+Enter for newline)",
+    "defaultTitle": "Chat"
+  },
+  "settings": {
+    "connection": "Connection",
+    "prompts": "Prompts",
+    "provider": "Provider",
+    "model": "Model",
+    "apiKey": "API Key",
+    "language": "Language",
+    "configured": "(configured)",
+    "notSet": "(not set)",
+    "enterApiKey": "Enter API key...",
+    "customEndpoint": "Custom Endpoint",
+    "endpointPlaceholder": "https://... (optional)",
+    "testConnection": "Test Connection",
+    "sampling": "Sampling",
+    "temperature": "Temperature",
+    "maxTokens": "Max Tokens",
+    "topP": "Top P",
+    "topK": "Top K",
+    "freqPenalty": "Freq. Penalty",
+    "presPenalty": "Pres. Penalty",
+    "presets": "Presets",
+    "presetName": "Preset name",
+    "noPresets": "No presets saved for this provider.",
+    "openSettings": "Open settings",
+    "modelName": "Model name",
+    "testing": "Testing...",
+    "connectionSuccess": "Connection successful",
+    "connectionFailed": "Connection failed",
+    "apiKeySaved": "API key saved",
+    "invalidPreset": "Invalid preset data"
+  },
+  "character": {
+    "toggleFavorite": "Toggle favorite",
+    "noCreator": "No creator",
+    "notApplicable": "N/A",
+    "by": "by",
+    "searchPlaceholder": "Search characters...",
+    "viewList": "List",
+    "viewGrid": "Grid",
+    "sortRecent": "Recent",
+    "sortCreated": "Created",
+    "sortName": "Name",
+    "noCharacters": "No characters",
+    "selectToEdit": "Select a character to edit",
+    "tabBasic": "Basic",
+    "tabAdvanced": "Advanced",
+    "tabBook": "Book",
+    "name": "Name",
+    "description": "Description",
+    "personality": "Personality",
+    "scenario": "Scenario",
+    "firstMessage": "First message",
+    "messageExamples": "Message examples",
+    "avatar": "Avatar",
+    "systemPrompt": "System prompt",
+    "postHistoryInstructions": "Post history instructions",
+    "alternateGreetings": "Alternate greetings (one per line)",
+    "creator": "Creator",
+    "creatorNotes": "Creator notes",
+    "characterVersion": "Character version",
+    "tags": "Tags (comma separated)",
+    "characterBook": "Character book JSON"
+  },
+  "persona": {
+    "label": "Persona:",
+    "none": "No persona",
+    "default": "(default)"
+  },
+  "group": {
+    "title": "Groups",
+    "noGroups": "No groups yet"
+  },
+  "tags": {
+    "clear": "Clear"
+  },
+  "promptManager": {
+    "title": "Prompt Order",
+    "custom": "+ Custom",
+    "reset": "Reset",
+    "customPrompt": "Custom Prompt"
+  },
+  "promptComponents": {
+    "roles": {
+      "system": "System",
+      "user": "User",
+      "assistant": "Assistant"
+    },
+    "names": {
+      "main": "Main Prompt",
+      "worldInfoBefore": "World Info (Before)",
+      "charDescription": "Character Description",
+      "charPersonality": "Character Personality",
+      "scenario": "Scenario",
+      "enhanceDefinitions": "Enhance Definitions",
+      "nsfw": "NSFW Prompt",
+      "worldInfoAfter": "World Info (After)",
+      "personaDescription": "Persona Description",
+      "dialogueExamples": "Chat Examples",
+      "chatHistory": "Chat History",
+      "jailbreak": "Post-History Instructions"
+    }
+  },
+  "actions": {
+    "save": "Save",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "load": "Load",
+    "send": "Send",
+    "stop": "Stop",
+    "continue": "Continue",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "export": "Export",
+    "import": "Import",
+    "duplicate": "Duplicate",
+    "impersonate": "Impersonate",
+    "exportJson": "Export JSON",
+    "exportPng": "Export PNG",
+    "new": "New"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "importing": "Importing...",
+    "success": "Success",
+    "failed": "Failed"
+  },
+  "providers": {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google": "Google",
+    "openrouter": "OpenRouter",
+    "mistral": "Mistral",
+    "custom": "Custom"
+  }
+}

@@ -1,0 +1,117 @@
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useGroupStore } from "@/stores/group-store";
+import { useCharacterStore } from "@/stores/character-store";
+import { useConnectionStore } from "@/stores/connection-store";
+import { groupApi } from "@/lib/api";
+import { MemberSelector } from "./member-selector";
+
+interface GroupChatPanelProps {
+  groupId: string;
+  chatId: number;
+  messages: Array<{ id: number; role: string; name: string; content: string }>;
+  onNewMessage: () => void;
+}
+
+export function GroupChatPanel({ groupId, chatId, messages, onNewMessage }: GroupChatPanelProps) {
+  const [input, setInput] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [streamContent, setStreamContent] = useState("");
+  const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
+  const [manualCharId, setManualCharId] = useState<number | undefined>();
+  const abortRef = useRef<AbortController | null>(null);
+
+  const { groups } = useGroupStore();
+  const { characters } = useCharacterStore();
+  const connection = useConnectionStore();
+  const group = groups.find((g) => g.id === groupId);
+  const isManualMode = group?.activationStrategy === 2;
+
+  const handleGenerate = useCallback(async () => {
+    setIsGenerating(true);
+    setStreamContent("");
+    setCurrentSpeaker(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      for await (const chunk of groupApi.generate(
+        groupId,
+        {
+          chatId,
+          message: input.trim() || undefined,
+          provider: connection.provider,
+          model: connection.model,
+          temperature: connection.temperature,
+          maxTokens: connection.maxTokens,
+          topP: connection.topP,
+          topK: connection.topK,
+          frequencyPenalty: connection.frequencyPenalty,
+          presencePenalty: connection.presencePenalty,
+          userName: "User",
+          characterId: manualCharId,
+        },
+        controller.signal,
+      )) {
+        if (chunk.error) break;
+        if (chunk.speaker) {
+          setCurrentSpeaker(chunk.speaker);
+        }
+        if (chunk.content) {
+          setStreamContent((prev) => prev + chunk.content);
+        }
+      }
+      setInput("");
+      onNewMessage();
+    } catch {
+      // Aborted or error
+    } finally {
+      setIsGenerating(false);
+      setStreamContent("");
+      setCurrentSpeaker(null);
+      abortRef.current = null;
+    }
+  }, [groupId, chatId, input, connection, manualCharId, onNewMessage]);
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {isManualMode && (
+        <MemberSelector groupId={groupId} onSelect={(id) => setManualCharId(id)} />
+      )}
+
+      {isGenerating && currentSpeaker && (
+        <div className="text-xs text-muted-foreground">
+          {currentSpeaker} is typing...
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+          className="h-9 text-sm"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
+              e.preventDefault();
+              handleGenerate();
+            }
+          }}
+          disabled={isGenerating}
+        />
+        {isGenerating ? (
+          <Button size="sm" variant="destructive" onClick={handleStop}>Stop</Button>
+        ) : (
+          <Button size="sm" onClick={handleGenerate}>Send</Button>
+        )}
+      </div>
+    </div>
+  );
+}

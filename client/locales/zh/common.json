@@ -1,0 +1,155 @@
+{
+  "sidebar": {
+    "characters": "角色",
+    "chats": "聊天",
+    "groups": "群组",
+    "newCharacter": "新建角色",
+    "loading": "加载中...",
+    "newChat": "+ 新建",
+    "noChats": "该角色暂无聊天记录",
+    "chatDefault": "聊天"
+  },
+  "chat": {
+    "welcome": "欢迎使用 Arctravern",
+    "selectCharacter": "选择一个角色开始聊天",
+    "selectChat": "选择或创建聊天以开始",
+    "generating": "生成中...",
+    "placeholder": "输入消息... (Enter 发送, Shift+Enter 换行)",
+    "defaultTitle": "聊天"
+  },
+  "settings": {
+    "connection": "连接",
+    "prompts": "提示词",
+    "provider": "提供商",
+    "model": "模型",
+    "apiKey": "API 密钥",
+    "language": "语言",
+    "configured": "(已配置)",
+    "notSet": "(未设置)",
+    "enterApiKey": "输入 API 密钥...",
+    "customEndpoint": "自定义端点",
+    "endpointPlaceholder": "https://... (可选)",
+    "testConnection": "测试连接",
+    "sampling": "采样参数",
+    "temperature": "温度",
+    "maxTokens": "最大令牌数",
+    "topP": "Top P",
+    "topK": "Top K",
+    "freqPenalty": "频率惩罚",
+    "presPenalty": "存在惩罚",
+    "presets": "预设",
+    "presetName": "预设名称",
+    "noPresets": "该提供商暂无保存的预设。",
+    "openSettings": "打开设置",
+    "modelName": "模型名称",
+    "testing": "测试中...",
+    "connectionSuccess": "连接成功",
+    "connectionFailed": "连接失败",
+    "apiKeySaved": "API 密钥已保存",
+    "invalidPreset": "无效的预设数据"
+  },
+  "character": {
+    "toggleFavorite": "切换收藏",
+    "noCreator": "无创建者",
+    "notApplicable": "不适用",
+    "by": "作者",
+    "searchPlaceholder": "搜索角色...",
+    "viewList": "列表",
+    "viewGrid": "网格",
+    "sortRecent": "最近",
+    "sortCreated": "创建时间",
+    "sortName": "名称",
+    "noCharacters": "暂无角色",
+    "selectToEdit": "选择一个角色进行编辑",
+    "tabBasic": "基础",
+    "tabAdvanced": "高级",
+    "tabBook": "角色书",
+    "name": "名称",
+    "description": "描述",
+    "personality": "性格",
+    "scenario": "场景",
+    "firstMessage": "首条消息",
+    "messageExamples": "消息示例",
+    "avatar": "头像",
+    "systemPrompt": "系统提示词",
+    "postHistoryInstructions": "历史后指令",
+    "alternateGreetings": "备用问候语 (每行一条)",
+    "creator": "创建者",
+    "creatorNotes": "创建者备注",
+    "characterVersion": "角色版本",
+    "tags": "标签 (逗号分隔)",
+    "characterBook": "角色书 JSON"
+  },
+  "persona": {
+    "label": "人设：",
+    "none": "无人设",
+    "default": "(默认)"
+  },
+  "group": {
+    "title": "群组",
+    "noGroups": "暂无群组"
+  },
+  "tags": {
+    "clear": "清除"
+  },
+  "promptManager": {
+    "title": "提示词顺序",
+    "custom": "+ 自定义",
+    "reset": "重置",
+    "customPrompt": "自定义提示词"
+  },
+  "promptComponents": {
+    "roles": {
+      "system": "系统",
+      "user": "用户",
+      "assistant": "助手"
+    },
+    "names": {
+      "main": "主提示词",
+      "worldInfoBefore": "世界书（前置）",
+      "charDescription": "角色描述",
+      "charPersonality": "角色性格",
+      "scenario": "场景",
+      "enhanceDefinitions": "增强定义",
+      "nsfw": "NSFW 提示词",
+      "worldInfoAfter": "世界书（后置）",
+      "personaDescription": "人格描述",
+      "dialogueExamples": "聊天示例",
+      "chatHistory": "聊天历史",
+      "jailbreak": "历史后指令"
+    }
+  },
+  "actions": {
+    "save": "保存",
+    "delete": "删除",
+    "cancel": "取消",
+    "load": "加载",
+    "send": "发送",
+    "stop": "停止",
+    "continue": "继续",
+    "regenerate": "重新生成",
+    "copy": "复制",
+    "export": "导出",
+    "import": "导入",
+    "duplicate": "复制",
+    "impersonate": "模拟",
+    "exportJson": "导出 JSON",
+    "exportPng": "导出 PNG",
+    "new": "新建"
+  },
+  "messages": {
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "importing": "导入中...",
+    "success": "成功",
+    "failed": "失败"
+  },
+  "providers": {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google": "Google",
+    "openrouter": "OpenRouter",
+    "mistral": "Mistral",
+    "custom": "自定义"
+  }
+}

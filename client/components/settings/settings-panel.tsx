@@ -1,20 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { useConnectionStore, DEFAULT_MODELS, type Provider } from "@/stores/connection-store";
-import { secretApi } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import {
+  aiApi,
+  secretApi,
+  type Provider,
+} from "@/lib/api";
+import {
+  DEFAULT_MODELS,
+  useConnectionStore,
+} from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from "@/components/ui/combobox";
+import { PromptManager } from "./prompt-manager";
+import { PresetSelector } from "./preset-selector";
+import { useTranslation } from "@/lib/i18n";
+import { useLanguageStore, type Language } from "@/stores/language-store";
+import { useRagStore } from "@/stores/rag-store";
+
+type SettingsTab = "connection" | "prompts" | "memory";
 
 const PROVIDERS: { value: Provider; label: string }[] = [
-  { value: "openai", label: "OpenAI" },
-  { value: "anthropic", label: "Anthropic" },
-  { value: "google", label: "Google" },
-  { value: "openrouter", label: "OpenRouter" },
-  { value: "mistral", label: "Mistral" },
-  { value: "custom", label: "Custom" },
+  { value: "openai", label: "providers.openai" },
+  { value: "anthropic", label: "providers.anthropic" },
+  { value: "google", label: "providers.google" },
+  { value: "openrouter", label: "providers.openrouter" },
+  { value: "mistral", label: "providers.mistral" },
+  { value: "custom", label: "providers.custom" },
 ];
 
 const SECRET_KEY_MAP: Record<Provider, string> = {
@@ -26,24 +55,135 @@ const SECRET_KEY_MAP: Record<Provider, string> = {
   custom: "api_key_custom",
 };
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
+
 export function SettingsPanel() {
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguageStore();
   const conn = useConnectionStore();
   const [collapsed, setCollapsed] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("connection");
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<string>("");
 
-  const models = DEFAULT_MODELS[conn.provider] ?? [];
+  const models = useMemo(() => DEFAULT_MODELS[conn.provider] ?? [], [conn.provider]);
+  const hasCustomApiKey = Boolean(apiKey.trim() || conn.apiKeyConfigured.custom);
+  const canDetectCustom = Boolean(conn.reverseProxy.trim()) && hasCustomApiKey;
+  const customReadyForTest =
+    conn.customModels.length > 0 && Boolean(conn.model.trim());
+
+  useEffect(() => {
+    secretApi
+      .listKeys()
+      .then((keys) => {
+        for (const provider of Object.keys(SECRET_KEY_MAP) as Provider[]) {
+          conn.setApiKeyConfigured(provider, keys.includes(SECRET_KEY_MAP[provider]));
+        }
+      })
+      .catch(() => undefined);
+  }, [conn]);
 
   const handleSaveKey = async () => {
     if (!apiKey.trim()) return;
     setSaving(true);
     try {
       await secretApi.set(SECRET_KEY_MAP[conn.provider], apiKey.trim());
+      conn.setApiKeyConfigured(conn.provider, true);
+      conn.setConnectionStatus("idle", t("settings.apiKeySaved"));
       setApiKey("");
-    } catch (e) {
-      console.error("Failed to save API key:", e);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (conn.provider === "custom") {
+      if (!conn.reverseProxy.trim()) {
+        conn.setConnectionStatus("error", "Please enter custom API endpoint first");
+        return;
+      }
+      if (!customReadyForTest) {
+        conn.setConnectionStatus(
+          "error",
+          "Please detect connection and models first",
+        );
+        return;
+      }
+    }
+
+    conn.setConnectionStatus("testing", t("settings.testing"));
+    try {
+      await aiApi.complete({
+        provider: conn.provider,
+        model: conn.model,
+        messages: [{ role: "user", content: "Say OK." }],
+        temperature: 0.1,
+        maxTokens: 16,
+        topP: 1,
+        topK: conn.topK,
+        frequencyPenalty: conn.frequencyPenalty,
+        presencePenalty: conn.presencePenalty,
+        reverseProxy: conn.reverseProxy || undefined,
+      });
+      conn.setConnectionStatus("ok", t("settings.connectionSuccess"));
+    } catch (error: unknown) {
+      conn.setConnectionStatus(
+        "error",
+        getErrorMessage(error, t("settings.connectionFailed")),
+      );
+    }
+  };
+
+  const handleDetectCustomProvider = async () => {
+    const baseUrl = conn.reverseProxy.trim();
+    const keyInput = apiKey.trim();
+
+    if (!baseUrl) {
+      setDetectionResult("Please enter API endpoint");
+      return;
+    }
+    if (!keyInput && !conn.apiKeyConfigured.custom) {
+      setDetectionResult("Please enter API key and save it first");
+      return;
+    }
+
+    setDetecting(true);
+    setDetectionResult("Detecting...");
+
+    try {
+      const result = await aiApi.healthCheck({
+        provider: "custom",
+        apiKey: keyInput || undefined,
+        baseUrl,
+      });
+
+      if (result.status === "ok") {
+        const modelIds = (result.models ?? [])
+          .map((m) => m.id)
+          .filter((id): id is string => Boolean(id));
+        conn.setCustomModels(modelIds);
+
+        if (modelIds.length > 0) {
+          if (!conn.model || !modelIds.includes(conn.model)) {
+            conn.setModel(modelIds[0]);
+          }
+          setDetectionResult(`[OK] ${result.message} (${modelIds.length} models)`);
+        } else {
+          conn.setModel("");
+          setDetectionResult(`[OK] ${result.message} (no models returned)`);
+        }
+      } else {
+        conn.setCustomModels([]);
+        setDetectionResult(`[ERROR] ${result.message}`);
+      }
+    } catch (error: unknown) {
+      conn.setCustomModels([]);
+      setDetectionResult(`[ERROR] ${getErrorMessage(error, "Connection failed")}`);
+    } finally {
+      setDetecting(false);
     }
   };
 
@@ -53,78 +193,139 @@ export function SettingsPanel() {
         <button
           onClick={() => setCollapsed(false)}
           className="text-muted-foreground hover:text-foreground"
-          title="Open settings"
+          title={t("settings.openSettings")}
         >
-          ⚙
+          {">"}
         </button>
       </aside>
     );
   }
 
   return (
-    <aside className="flex h-full w-72 flex-col border-l border-border bg-sidebar">
+    <aside className="flex h-full w-[320px] flex-col border-l border-border bg-sidebar">
       <div className="flex h-12 items-center justify-between border-b border-border px-4">
-        <span className="text-sm font-medium">Settings</span>
+        <div className="flex gap-1">
+          <Button
+            variant={settingsTab === "connection" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setSettingsTab("connection")}
+          >
+            Connection
+          </Button>
+          <Button
+            variant={settingsTab === "prompts" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setSettingsTab("prompts")}
+          >
+            Prompts
+          </Button>
+          <Button
+            variant={settingsTab === "memory" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setSettingsTab("memory")}
+          >
+            Memory
+          </Button>
+        </div>
         <button
           onClick={() => setCollapsed(true)}
           className="text-xs text-muted-foreground hover:text-foreground"
         >
-          ✕
+          {"X"}
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
+        {settingsTab === "prompts" ? (
+          <div className="flex flex-col gap-4">
+            <PromptManager />
+
+            <Separator />
+
+            <p className="text-xs font-medium text-muted-foreground">System Prompt Preset</p>
+            <PresetSelector apiType="sysprompt" />
+
+            <Separator />
+
+            <p className="text-xs font-medium text-muted-foreground">Context Template</p>
+            <PresetSelector apiType="context" />
+          </div>
+        ) : settingsTab === "memory" ? (
+          <MemorySettings />
+        ) : (
         <div className="flex flex-col gap-4">
-          {/* Provider */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Provider</Label>
-            <select
-              value={conn.provider}
-              onChange={(e) => conn.setProvider(e.target.value as Provider)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {PROVIDERS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+            <Label className="text-xs">{t("settings.provider")}</Label>
+            <Select value={conn.provider} onValueChange={(v) => conn.setProvider(v as Provider)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PROVIDERS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {t(p.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Model */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Model</Label>
-            {models.length > 0 ? (
-              <select
-                value={conn.model}
-                onChange={(e) => conn.setModel(e.target.value)}
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {models.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+            <Label className="text-xs">{t("settings.model")}</Label>
+            {conn.provider === "custom" && conn.customModels.length > 0 ? (
+              <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
+                <ComboboxInput placeholder="Search models..." />
+                <ComboboxContent>
+                  <ComboboxEmpty>No models found.</ComboboxEmpty>
+                  <ComboboxList>
+                    {conn.customModels.map((m) => (
+                      <ComboboxItem key={m} value={m}>{m}</ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            ) : models.length > 0 ? (
+              <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
+                <ComboboxInput placeholder="Search models..." />
+                <ComboboxContent>
+                  <ComboboxEmpty>No models found.</ComboboxEmpty>
+                  <ComboboxList>
+                    {models.map((m) => (
+                      <ComboboxItem key={m} value={m}>{m}</ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             ) : (
               <Input
                 value={conn.model}
                 onChange={(e) => conn.setModel(e.target.value)}
-                placeholder="Model name"
+                placeholder={
+                  conn.provider === "custom"
+                    ? "Detect connection to load model list"
+                    : t("settings.modelName")
+                }
                 className="h-9"
               />
             )}
+            {conn.provider === "custom" && conn.customModels.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Step 1: Detect connection & models. Step 2: Test connection.
+              </p>
+            )}
           </div>
 
-          {/* API Key */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">API Key</Label>
+            <Label className="text-xs">
+              API Key {conn.apiKeyConfigured[conn.provider] ? t("settings.configured") : t("settings.notSet")}
+            </Label>
             <div className="flex gap-1.5">
               <Input
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter API key..."
+                placeholder={t("settings.enterApiKey")}
                 className="h-9"
               />
               <Button size="sm" className="h-9 shrink-0" onClick={handleSaveKey} disabled={saving}>
@@ -133,48 +334,264 @@ export function SettingsPanel() {
             </div>
           </div>
 
-          {/* Reverse Proxy */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">{t("settings.customEndpoint")}</Label>
+            <Input
+              value={conn.reverseProxy}
+              onChange={(e) => conn.setReverseProxy(e.target.value)}
+              placeholder={t("settings.endpointPlaceholder")}
+              className="h-9"
+            />
+          </div>
+
           {conn.provider === "custom" && (
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Reverse Proxy URL</Label>
-              <Input
-                value={conn.reverseProxy}
-                onChange={(e) => conn.setReverseProxy(e.target.value)}
-                placeholder="https://..."
-                className="h-9"
-              />
-            </div>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={handleDetectCustomProvider}
+                disabled={detecting || !canDetectCustom}
+              >
+                {detecting ? "Detecting..." : "Detect Connection & Models"}
+              </Button>
+              {detectionResult && (
+                <p
+                  className={`text-xs ${
+                    detectionResult.startsWith("[OK]")
+                      ? "text-green-600"
+                      : detectionResult.startsWith("[ERROR]")
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {detectionResult}
+                </p>
+              )}
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={handleTestConnection}
+            disabled={conn.provider === "custom" && !customReadyForTest}
+          >
+            Test Connection
+          </Button>
+          {conn.connectionMessage && (
+            <p
+              className={`text-xs ${
+                conn.connectionStatus === "error" ? "text-destructive" : "text-muted-foreground"
+              }`}
+            >
+              {conn.connectionMessage}
+            </p>
           )}
 
           <Separator />
 
-          {/* Sampling Parameters */}
-          <p className="text-xs font-medium text-muted-foreground">Sampling</p>
+          <p className="text-xs font-medium text-muted-foreground">Completion Preset</p>
+          <PresetSelector apiType="openai" />
 
-          <SliderField label="Temperature" value={conn.temperature} onChange={conn.setTemperature} min={0} max={2} step={0.05} />
-          <SliderField label="Max Tokens" value={conn.maxTokens} onChange={conn.setMaxTokens} min={1} max={32768} step={1} isInt />
-          <SliderField label="Top P" value={conn.topP} onChange={conn.setTopP} min={0} max={1} step={0.05} />
-          <SliderField label="Top K" value={conn.topK} onChange={conn.setTopK} min={0} max={500} step={1} isInt />
-          <SliderField label="Freq. Penalty" value={conn.frequencyPenalty} onChange={conn.setFrequencyPenalty} min={-2} max={2} step={0.05} />
-          <SliderField label="Pres. Penalty" value={conn.presencePenalty} onChange={conn.setPresencePenalty} min={-2} max={2} step={0.05} />
+          <Separator />
+
+          <p className="text-xs font-medium text-muted-foreground">{t("settings.sampling")}</p>
+          <SliderField label={t("settings.temperature")} value={conn.temperature} onChange={conn.setTemperature} min={0} max={2} step={0.05} />
+          <SliderField label={t("settings.maxTokens")} value={conn.maxTokens} onChange={conn.setMaxTokens} min={1} max={32768} step={1} isInt />
+          <SliderField label={t("settings.topP")} value={conn.topP} onChange={conn.setTopP} min={0} max={1} step={0.05} />
+          <SliderField label={t("settings.topK")} value={conn.topK} onChange={conn.setTopK} min={0} max={500} step={1} isInt />
+          <SliderField label={t("settings.freqPenalty")} value={conn.frequencyPenalty} onChange={conn.setFrequencyPenalty} min={-2} max={2} step={0.05} />
+          <SliderField label={t("settings.presPenalty")} value={conn.presencePenalty} onChange={conn.setPresencePenalty} min={-2} max={2} step={0.05} />
+          <SliderField label="Top A" value={conn.topA} onChange={conn.setTopA} min={0} max={1} step={0.01} />
+          <SliderField label="Min P" value={conn.minP} onChange={conn.setMinP} min={0} max={1} step={0.01} />
+          <SliderField label="Rep. Penalty" value={conn.repetitionPenalty} onChange={conn.setRepetitionPenalty} min={1} max={3} step={0.05} />
+          <SliderField label="Max Context" value={conn.maxContext} onChange={conn.setMaxContext} min={512} max={200000} step={512} isInt />
+          <SliderField label="Seed (-1=random)" value={conn.seed} onChange={conn.setSeed} min={-1} max={99999} step={1} isInt />
+
+          <Separator />
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">{t("settings.language")}</Label>
+            <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="zh">中文</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        )}
       </div>
     </aside>
   );
 }
 
+const EMBEDDING_PROVIDERS = [
+  { value: "", label: "Auto (use chat provider)" },
+  { value: "openai", label: "OpenAI" },
+  { value: "google", label: "Google" },
+  { value: "mistral", label: "Mistral" },
+  { value: "openrouter", label: "OpenRouter" },
+];
+
+const INSERTION_POSITIONS = [
+  { value: "before_char", label: "Before Character" },
+  { value: "after_char", label: "After Character" },
+  { value: "at_depth", label: "At Depth" },
+];
+
+function MemorySettings() {
+  const rag = useRagStore();
+
+  useEffect(() => {
+    rag.fetchSettings();
+  }, []);
+
+  if (rag.loading || !rag.settings) {
+    return <div className="text-xs text-muted-foreground">Loading...</div>;
+  }
+
+  const s = rag.settings;
+  const update = rag.updateSettings;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">Enable RAG Memory</Label>
+        <input
+          type="checkbox"
+          checked={s.enabled}
+          onChange={(e) => update({ enabled: e.target.checked })}
+          className="h-4 w-4 accent-primary"
+        />
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Embedding Provider</Label>
+        <Select value={s.embeddingProvider} onValueChange={(v) => update({ embeddingProvider: v ?? '' })} disabled={!s.enabled}>
+          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {EMBEDDING_PROVIDERS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Embedding Model (blank = default)</Label>
+        <Input
+          value={s.embeddingModel}
+          onChange={(e) => update({ embeddingModel: e.target.value })}
+          placeholder="e.g. text-embedding-3-small"
+          disabled={!s.enabled}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Memory Scope</Label>
+        <Select value={s.scope} onValueChange={(v) => update({ scope: v as "chat" | "character" })} disabled={!s.enabled}>
+          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="chat">Current Chat Only</SelectItem>
+            <SelectItem value="character">All Chats (per character)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Separator />
+
+      <SliderField
+        label="Max Results"
+        value={s.maxResults}
+        onChange={(v) => update({ maxResults: v })}
+        min={1} max={50} step={1} isInt
+      />
+
+      <SliderField
+        label="Min Similarity"
+        value={s.minScore}
+        onChange={(v) => update({ minScore: v })}
+        min={0} max={1} step={0.05}
+      />
+
+      <SliderField
+        label="Token Budget"
+        value={s.maxTokenBudget}
+        onChange={(v) => update({ maxTokenBudget: v })}
+        min={128} max={4096} step={128} isInt
+      />
+
+      <Separator />
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Insertion Position</Label>
+        <Select value={s.insertionPosition} onValueChange={(v) => update({ insertionPosition: v as "before_char" | "after_char" | "at_depth" })} disabled={!s.enabled}>
+          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {INSERTION_POSITIONS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {s.insertionPosition === "at_depth" && (
+        <SliderField
+          label="Insertion Depth"
+          value={s.insertionDepth}
+          onChange={(v) => update({ insertionDepth: v })}
+          min={1} max={20} step={1} isInt
+        />
+      )}
+
+      <Separator />
+
+      <SliderField
+        label="Chunk Size"
+        value={s.chunkSize}
+        onChange={(v) => update({ chunkSize: v })}
+        min={200} max={4000} step={100} isInt
+      />
+
+      <SliderField
+        label="Chunk Overlap"
+        value={s.chunkOverlap}
+        onChange={(v) => update({ chunkOverlap: v })}
+        min={0} max={1000} step={50} isInt
+      />
+    </div>
+  );
+}
+
 function SliderField({
-  label, value, onChange, min, max, step, isInt,
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step,
+  isInt,
 }: {
-  label: string; value: number; onChange: (v: number) => void;
-  min: number; max: number; step: number; isInt?: boolean;
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  isInt?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <Label className="text-xs">{label}</Label>
         <span className="text-xs tabular-nums text-muted-foreground">
-          {isInt ? value : value.toFixed(2)}
+          {isInt ? Math.round(value) : value.toFixed(2)}
         </span>
       </div>
       <input

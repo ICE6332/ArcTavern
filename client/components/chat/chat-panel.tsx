@@ -1,40 +1,64 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { useConnectionStore } from "@/stores/connection-store";
+import { usePromptManagerStore } from "@/stores/prompt-manager-store";
+import { chatDebug } from "@/lib/chat-debug";
 import { ChatInput } from "./chat-input";
 import { MessageBubble } from "./message-bubble";
+import { useTranslation } from "@/lib/i18n";
 
 export function ChatPanel() {
-  const { messages, isGenerating, streamingContent, currentChatId, sendMessage } =
-    useChatStore();
+  const { t } = useTranslation();
+  const {
+    messages,
+    isGenerating,
+    streamingContent,
+    currentChatId,
+    sendMessage,
+    stopGeneration,
+    regenerate,
+    continueMessage,
+    impersonate,
+    swipe,
+    deleteMessage,
+  } = useChatStore();
   const selectedId = useCharacterStore((s) => s.selectedId);
   const characters = useCharacterStore((s) => s.characters);
   const connection = useConnectionStore();
+  const promptComponents = usePromptManagerStore((s) => s.components);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
 
   const selectedChar = characters.find((c) => c.id === selectedId);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, streamingContent]);
+  // Build prompt order and custom prompts from the prompt manager
+  const promptOrder = useMemo(
+    () =>
+      [...promptComponents]
+        .sort((a, b) => a.position - b.position)
+        .map((c) => ({ identifier: c.id, enabled: c.enabled })),
+    [promptComponents],
+  );
 
-  const handleSend = async (content: string) => {
-    if (!currentChatId || !content.trim()) return;
+  const customPrompts = useMemo(
+    () =>
+      promptComponents
+        .filter((c) => c.enabled && c.content !== undefined && c.content.trim() !== "")
+        .map((c) => ({
+          identifier: c.id,
+          role: c.role,
+          content: c.content!,
+        })),
+    [promptComponents],
+  );
 
-    const systemMessages: { role: string; content: string }[] = [];
-    if (selectedChar?.systemPrompt) {
-      systemMessages.push({ role: "system", content: selectedChar.systemPrompt });
-    }
-
-    await sendMessage(content, {
+  const generationConfig = useMemo(
+    () => ({
       provider: connection.provider,
       model: connection.model,
-      messages: systemMessages,
       temperature: connection.temperature,
       maxTokens: connection.maxTokens,
       topP: connection.topP,
@@ -42,15 +66,60 @@ export function ChatPanel() {
       frequencyPenalty: connection.frequencyPenalty,
       presencePenalty: connection.presencePenalty,
       reverseProxy: connection.reverseProxy || undefined,
+      maxContext: connection.maxContext,
+      promptOrder,
+      customPrompts,
+    }),
+    [connection, promptOrder, customPrompts],
+  );
+
+  useEffect(() => {
+    if (!scrollRef.current || !shouldAutoScrollRef.current) return;
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, streamingContent]);
+
+  useEffect(() => {
+    chatDebug("panel.state", {
+      currentChatId,
+      selectedCharacterId: selectedId,
+      messageCount: messages.length,
+      isGenerating,
+      streamingLength: streamingContent.length,
     });
+  }, [
+    currentChatId,
+    selectedId,
+    messages.length,
+    isGenerating,
+    streamingContent.length,
+  ]);
+
+  useEffect(() => {
+    shouldAutoScrollRef.current = true;
+  }, [currentChatId]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom < 80;
+  };
+
+  const handleSend = async (content: string) => {
+    if (!currentChatId || !content.trim()) return;
+    chatDebug("panel.send", {
+      currentChatId,
+      contentLength: content.trim().length,
+    });
+    await sendMessage(content, generationConfig);
   };
 
   if (!selectedId) {
     return (
       <main className="flex flex-1 items-center justify-center">
         <div className="text-center text-muted-foreground">
-          <p className="text-lg font-medium">Welcome to Arctravern</p>
-          <p className="mt-1 text-sm">Select a character to start chatting</p>
+          <p className="text-lg font-medium">{t("chat.welcome")}</p>
+          <p className="mt-1 text-sm">{t("chat.selectCharacter")}</p>
         </div>
       </main>
     );
@@ -60,37 +129,38 @@ export function ChatPanel() {
     return (
       <main className="flex flex-1 items-center justify-center">
         <div className="text-center text-muted-foreground">
-          <p className="text-sm">Select or create a chat to begin</p>
+          <p className="text-sm">{t("chat.selectChat")}</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
       <div className="flex h-12 items-center border-b border-border px-4">
-        <span className="text-sm font-medium">{selectedChar?.name ?? "Chat"}</span>
+        <span className="text-sm font-medium">{selectedChar?.name ?? t("chat.defaultTitle")}</span>
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 overflow-y-auto p-4"
+      >
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
-          {/* First message from character */}
-          {messages.length === 0 && selectedChar?.firstMes && (
-            <MessageBubble
-              role="assistant"
-              name={selectedChar.name}
-              content={selectedChar.firstMes}
-            />
-          )}
-
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
+              messageId={msg.id}
               role={msg.role}
               name={msg.name || (msg.role === "assistant" ? selectedChar?.name : undefined)}
               content={msg.content}
+              swipeId={msg.swipeId}
+              swipes={msg.swipes}
+              onSwipe={swipe}
+              onDelete={deleteMessage}
+              onRegenerate={msg.role === "assistant" ? () => regenerate(generationConfig) : undefined}
             />
           ))}
 
@@ -114,7 +184,15 @@ export function ChatPanel() {
       </div>
 
       {/* Input */}
-      <ChatInput onSend={handleSend} disabled={isGenerating} />
+      <ChatInput
+        onSend={handleSend}
+        onStop={stopGeneration}
+        onContinue={() => continueMessage(generationConfig)}
+        onImpersonate={() => impersonate(generationConfig)}
+        onRegenerate={() => regenerate(generationConfig)}
+        isGenerating={isGenerating}
+        disabled={false}
+      />
     </main>
   );
 }
