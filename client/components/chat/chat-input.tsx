@@ -11,6 +11,9 @@ interface ChatInputProps {
   onContinue: () => Promise<void>;
   onImpersonate: () => Promise<void>;
   onRegenerate: () => Promise<void>;
+  canContinue?: boolean;
+  canRegenerate?: boolean;
+  canImpersonate?: boolean;
   isGenerating?: boolean;
   disabled?: boolean;
 }
@@ -21,6 +24,9 @@ export function ChatInput({
   onContinue,
   onImpersonate,
   onRegenerate,
+  canContinue = true,
+  canRegenerate = true,
+  canImpersonate = true,
   isGenerating,
   disabled,
 }: ChatInputProps) {
@@ -86,7 +92,7 @@ export function ChatInput({
             size="sm"
             className="h-7 px-2 text-xs"
             onClick={onContinue}
-            disabled={Boolean(isGenerating)}
+            disabled={Boolean(isGenerating) || !canContinue}
           >
             Continue
           </Button>
@@ -95,7 +101,7 @@ export function ChatInput({
             size="sm"
             className="h-7 px-2 text-xs"
             onClick={onImpersonate}
-            disabled={Boolean(isGenerating)}
+            disabled={Boolean(isGenerating) || !canImpersonate}
           >
             Impersonate
           </Button>
@@ -104,7 +110,7 @@ export function ChatInput({
             size="sm"
             className="h-7 px-2 text-xs"
             onClick={onRegenerate}
-            disabled={Boolean(isGenerating)}
+            disabled={Boolean(isGenerating) || !canRegenerate}
           >
             Regenerate
           </Button>

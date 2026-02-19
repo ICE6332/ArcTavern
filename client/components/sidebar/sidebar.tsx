@@ -12,6 +12,20 @@ import { CharacterExport } from "@/components/character/character-export";
 import { TagFilter } from "@/components/tags/tag-filter";
 import { GroupList } from "@/components/group/group-list";
 import { useTranslation } from "@/lib/i18n";
+import { toast } from "@/lib/toast";
+import {
+  Sidebar as SidebarPrimitive,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { UserIcon, MessageMultiple01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 
 type SidebarTab = "characters" | "chats" | "groups";
 
@@ -39,7 +53,6 @@ export function Sidebar() {
   const handleSelectCharacter = async (id: number) => {
     selectCharacter(id);
     await fetchChats(id);
-    // Auto-select latest chat or create one
     const chatState = useChatStore.getState();
     if (chatState.chats.length > 0) {
       await selectChat(chatState.chats[0].id);
@@ -71,7 +84,13 @@ export function Sidebar() {
     if (!confirmed) return;
 
     const wasCurrentChat = currentChatId === chatId;
-    await deleteChat(chatId);
+    try {
+      await deleteChat(chatId);
+      toast.success({ title: t("sidebar.chatDeleted") ?? "Chat deleted" });
+    } catch {
+      toast.error({ title: t("sidebar.chatDeleteFailed") ?? "Failed to delete chat" });
+      return;
+    }
 
     if (!wasCurrentChat) return;
 
@@ -86,113 +105,137 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-full w-[340px] flex-col border-r border-border bg-sidebar">
-      <div className="border-b border-border p-2">
-        <div className="mb-2 flex gap-1">
-          <Button
-            variant={tab === "characters" ? "default" : "ghost"}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setTab("characters")}
-          >
-            {t("sidebar.characters")}
-          </Button>
-          <Button
-            variant={tab === "chats" ? "default" : "ghost"}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setTab("chats")}
-            disabled={!selectedId}
-          >
-            {t("sidebar.chats")}
-          </Button>
-          <Button
-            variant={tab === "groups" ? "default" : "ghost"}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setTab("groups")}
-          >
-            {t("sidebar.groups")}
-          </Button>
-        </div>
+    <SidebarPrimitive collapsible="icon">
+      {/* Tab nav: row when expanded, column when icon-collapsed */}
+      <SidebarHeader className="border-b border-border p-1.5">
+        <SidebarMenu className="flex-row gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-px group-data-[collapsible=icon]:items-center">
+          <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:flex-none">
+            <SidebarMenuButton
+              size="sm"
+              isActive={tab === "characters"}
+              onClick={() => setTab("characters")}
+              tooltip={t("sidebar.characters")}
+            >
+              <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
+              <span>{t("sidebar.characters")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:flex-none">
+            <SidebarMenuButton
+              size="sm"
+              isActive={tab === "chats"}
+              onClick={() => setTab("chats")}
+              tooltip={t("sidebar.chats")}
+              disabled={!selectedId}
+            >
+              <HugeiconsIcon icon={MessageMultiple01Icon} strokeWidth={2} />
+              <span>{t("sidebar.chats")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:flex-none">
+            <SidebarMenuButton
+              size="sm"
+              isActive={tab === "groups"}
+              onClick={() => setTab("groups")}
+              tooltip={t("sidebar.groups")}
+            >
+              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
+              <span>{t("sidebar.groups")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
+      <SidebarContent>
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden flex-1 overflow-y-auto scrollbar-hide p-1.5">
+          {loading ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">{t("sidebar.loading")}</div>
+          ) : tab === "characters" ? (
+            <div className="flex flex-col gap-2">
+              <TagFilter />
+              <CharacterList
+                characters={characters}
+                selectedId={selectedId}
+                onSelect={handleSelectCharacter}
+                onDuplicate={(id) => void duplicateCharacter(id)}
+                onDelete={async (id) => {
+                  try {
+                    await deleteCharacter(id);
+                    toast.success({ title: t("sidebar.characterDeleted") ?? "Character deleted" });
+                  } catch {
+                    toast.error({ title: t("sidebar.characterDeleteFailed") ?? "Failed to delete character" });
+                  }
+                }}
+                onExport={(id) => void exportCharacter(id, "png")}
+              />
+              <CharacterEditor character={selectedCharacter} />
+            </div>
+          ) : tab === "groups" ? (
+            <GroupList
+              onSelectGroup={(id) => selectGroup(id)}
+              onCreateGroup={async () => {
+                await createGroup({ name: `Group ${Date.now()}` });
+              }}
+            />
+          ) : (
+            <div className="flex flex-col gap-1">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{t("sidebar.chats")}</span>
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleNewChat}>
+                  {t("sidebar.newChat")}
+                </Button>
+              </div>
+              {chats.length === 0 ? (
+                <div className="py-6 text-center text-xs text-muted-foreground">
+                  {t("sidebar.noChats")}
+                </div>
+              ) : (
+                chats.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={`flex items-start gap-1 rounded-md px-2 py-1.5 transition-colors ${
+                      chat.id === currentChatId
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <button
+                      onClick={() => void selectChat(chat.id)}
+                      className="min-w-0 flex-1 text-left text-sm"
+                    >
+                      <p className="truncate">{chat.name || `${t("sidebar.chatDefault")} #${chat.id}`}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {chat.updatedAt ? new Date(chat.updatedAt).toLocaleString() : ""}
+                      </p>
+                    </button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-1 text-[10px] text-muted-foreground hover:text-destructive"
+                      onClick={() => void handleDeleteChat(chat.id)}
+                    >
+                      {t("actions.delete")}
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </SidebarGroup>
+      </SidebarContent>
+
+      {/* Footer: horizontal action buttons, hidden when icon-collapsed */}
+      <SidebarFooter className="group-data-[collapsible=icon]:hidden border-t border-border p-1.5">
         <div className="flex flex-wrap gap-1">
-          <Button size="sm" className="h-7 text-xs" onClick={handleNewCharacter}>
+          <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => void handleNewCharacter()}>
             {t("sidebar.newCharacter")}
           </Button>
           <CharacterImport />
           {selectedId && <CharacterExport characterId={selectedId} />}
         </div>
-      </div>
+      </SidebarFooter>
 
-      <div className="flex-1 overflow-y-auto p-2">
-        {loading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">{t("sidebar.loading")}</div>
-        ) : tab === "characters" ? (
-          <div className="flex flex-col gap-2">
-            <TagFilter />
-            <CharacterList
-              characters={characters}
-              selectedId={selectedId}
-              onSelect={handleSelectCharacter}
-              onDuplicate={(id) => void duplicateCharacter(id)}
-              onDelete={(id) => void deleteCharacter(id)}
-              onExport={(id) => void exportCharacter(id, "png")}
-            />
-            <CharacterEditor character={selectedCharacter} />
-          </div>
-        ) : tab === "groups" ? (
-          <GroupList
-            onSelectGroup={(id) => selectGroup(id)}
-            onCreateGroup={async () => {
-              await createGroup({ name: `Group ${Date.now()}` });
-            }}
-          />
-        ) : (
-          <div className="flex flex-col gap-1">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">{t("sidebar.chats")}</span>
-              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleNewChat}>
-                {t("sidebar.newChat")}
-              </Button>
-            </div>
-            {chats.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                {t("sidebar.noChats")}
-              </div>
-            ) : (
-              chats.map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`flex items-start gap-1 rounded-md px-2 py-1.5 transition-colors ${
-                    chat.id === currentChatId
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:bg-accent/50"
-                  }`}
-                >
-                  <button
-                    onClick={() => selectChat(chat.id)}
-                    className="min-w-0 flex-1 text-left text-sm"
-                  >
-                    <p className="truncate">{chat.name || `${t("sidebar.chatDefault")} #${chat.id}`}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {chat.updatedAt ? new Date(chat.updatedAt).toLocaleString() : ""}
-                    </p>
-                  </button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-1 text-[10px] text-muted-foreground hover:text-destructive"
-                    onClick={() => void handleDeleteChat(chat.id)}
-                  >
-                    {t("actions.delete")}
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </aside>
+      <SidebarRail />
+    </SidebarPrimitive>
   );
 }

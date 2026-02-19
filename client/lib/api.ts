@@ -41,12 +41,13 @@ function fromRaw<T>(value: unknown, fallback: T): T {
   return (value as T | null | undefined) ?? fallback;
 }
 
-type StreamChunk = { content?: string; error?: string };
+type StreamChunk = { content?: string; reasoning?: string; error?: string };
 type GroupStreamChunk = StreamChunk & { speaker?: string; speakerId?: number };
 const streamChunkSchema = jsonSchema<StreamChunk & { speaker?: string; speakerId?: number }>({
   type: "object",
   properties: {
     content: { type: "string" },
+    reasoning: { type: "string" },
     error: { type: "string" },
     speaker: { type: "string" },
     speakerId: { type: "number" },
@@ -133,6 +134,10 @@ function mapChat(rawInput: unknown): Chat {
 
 function mapMessage(rawInput: unknown): Message {
   const raw = toRawRecord(rawInput);
+  const extra = parseJson<Record<string, unknown>>(raw.extra ?? "{}", {});
+  const reasoningSwipes = Array.isArray(extra.reasoningSwipes)
+    ? extra.reasoningSwipes.filter((item): item is string => typeof item === "string")
+    : [];
   return {
     id: Number(raw.id),
     chatId: Number(coalesceRaw(raw, "chat_id", "chatId")),
@@ -144,7 +149,9 @@ function mapMessage(rawInput: unknown): Message {
     swipes: parseJson<string[]>(raw.swipes ?? "[]", []),
     genStarted: fromRaw(coalesceRaw(raw, "gen_started", "genStarted"), null),
     genFinished: fromRaw(coalesceRaw(raw, "gen_finished", "genFinished"), null),
-    extra: parseJson<Record<string, unknown>>(raw.extra ?? "{}", {}),
+    extra,
+    reasoning: typeof extra.reasoning === "string" ? extra.reasoning : undefined,
+    reasoningSwipes: reasoningSwipes.length > 0 ? reasoningSwipes : undefined,
     createdAt: fromRaw(coalesceRaw(raw, "created_at", "createdAt"), ""),
   };
 }
@@ -626,6 +633,8 @@ export interface Message {
   role: "user" | "assistant" | "system" | "tool";
   name: string;
   content: string;
+  reasoning?: string;
+  reasoningSwipes?: string[];
   isHidden: boolean;
   swipeId: number;
   swipes: string[];

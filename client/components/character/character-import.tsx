@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCharacterStore } from "@/stores/character-store";
 import { useChatStore } from "@/stores/chat-store";
+import { toast } from "@/lib/toast";
 
 export function CharacterImport() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -21,6 +22,7 @@ export function CharacterImport() {
     setLoading(true);
     try {
       const character = await importCharacter(file);
+      toast.success({ title: `Imported "${character.name}"` });
       // Auto-create a chat for the imported character
       await fetchChats(character.id);
       const chatState = useChatStore.getState();
@@ -29,6 +31,11 @@ export function CharacterImport() {
       } else {
         await useChatStore.getState().selectChat(chatState.chats[0].id);
       }
+    } catch (err) {
+      toast.error({
+        title: "Import failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     } finally {
       setLoading(false);
       e.target.value = "";

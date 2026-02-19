@@ -34,6 +34,7 @@ import { PresetSelector } from "./preset-selector";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguageStore, type Language } from "@/stores/language-store";
 import { useRagStore } from "@/stores/rag-store";
+import { toast } from "@/lib/toast";
 
 type SettingsTab = "connection" | "prompts" | "memory";
 
@@ -67,7 +68,6 @@ export function SettingsPanel() {
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [detecting, setDetecting] = useState(false);
-  const [detectionResult, setDetectionResult] = useState<string>("");
 
   const models = useMemo(() => DEFAULT_MODELS[conn.provider] ?? [], [conn.provider]);
   const hasCustomApiKey = Boolean(apiKey.trim() || conn.apiKeyConfigured.custom);
@@ -92,8 +92,13 @@ export function SettingsPanel() {
     try {
       await secretApi.set(SECRET_KEY_MAP[conn.provider], apiKey.trim());
       conn.setApiKeyConfigured(conn.provider, true);
-      conn.setConnectionStatus("idle", t("settings.apiKeySaved"));
       setApiKey("");
+      toast.success({ title: t("settings.apiKeySaved") });
+    } catch (err) {
+      toast.error({
+        title: "Failed to save API key",
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setSaving(false);
     }
@@ -102,14 +107,11 @@ export function SettingsPanel() {
   const handleTestConnection = async () => {
     if (conn.provider === "custom") {
       if (!conn.reverseProxy.trim()) {
-        conn.setConnectionStatus("error", "Please enter custom API endpoint first");
+        toast.error({ title: "Please enter custom API endpoint first" });
         return;
       }
       if (!customReadyForTest) {
-        conn.setConnectionStatus(
-          "error",
-          "Please detect connection and models first",
-        );
+        toast.error({ title: "Please detect connection and models first" });
         return;
       }
     }
@@ -129,11 +131,11 @@ export function SettingsPanel() {
         reverseProxy: conn.reverseProxy || undefined,
       });
       conn.setConnectionStatus("ok", t("settings.connectionSuccess"));
+      toast.success({ title: t("settings.connectionSuccess") });
     } catch (error: unknown) {
-      conn.setConnectionStatus(
-        "error",
-        getErrorMessage(error, t("settings.connectionFailed")),
-      );
+      const msg = getErrorMessage(error, t("settings.connectionFailed"));
+      conn.setConnectionStatus("error", msg);
+      toast.error({ title: t("settings.connectionFailed"), description: msg });
     }
   };
 
@@ -142,16 +144,15 @@ export function SettingsPanel() {
     const keyInput = apiKey.trim();
 
     if (!baseUrl) {
-      setDetectionResult("Please enter API endpoint");
+      toast.error({ title: "Please enter API endpoint" });
       return;
     }
     if (!keyInput && !conn.apiKeyConfigured.custom) {
-      setDetectionResult("Please enter API key and save it first");
+      toast.error({ title: "Please enter API key and save it first" });
       return;
     }
 
     setDetecting(true);
-    setDetectionResult("Detecting...");
 
     try {
       const result = await aiApi.healthCheck({
@@ -170,18 +171,27 @@ export function SettingsPanel() {
           if (!conn.model || !modelIds.includes(conn.model)) {
             conn.setModel(modelIds[0]);
           }
-          setDetectionResult(`[OK] ${result.message} (${modelIds.length} models)`);
+          toast.success({
+            title: "Connection detected",
+            description: `${result.message} · ${modelIds.length} models`,
+          });
         } else {
           conn.setModel("");
-          setDetectionResult(`[OK] ${result.message} (no models returned)`);
+          toast.success({
+            title: "Connection detected",
+            description: `${result.message} · no models returned`,
+          });
         }
       } else {
         conn.setCustomModels([]);
-        setDetectionResult(`[ERROR] ${result.message}`);
+        toast.error({ title: "Detection failed", description: result.message });
       }
     } catch (error: unknown) {
       conn.setCustomModels([]);
-      setDetectionResult(`[ERROR] ${getErrorMessage(error, "Connection failed")}`);
+      toast.error({
+        title: "Detection failed",
+        description: getErrorMessage(error, "Connection failed"),
+      });
     } finally {
       setDetecting(false);
     }
@@ -238,7 +248,7 @@ export function SettingsPanel() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
         {settingsTab === "prompts" ? (
           <div className="flex flex-col gap-4">
             <PromptManager />
@@ -355,19 +365,6 @@ export function SettingsPanel() {
               >
                 {detecting ? "Detecting..." : "Detect Connection & Models"}
               </Button>
-              {detectionResult && (
-                <p
-                  className={`text-xs ${
-                    detectionResult.startsWith("[OK]")
-                      ? "text-green-600"
-                      : detectionResult.startsWith("[ERROR]")
-                      ? "text-destructive"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {detectionResult}
-                </p>
-              )}
             </>
           )}
 
@@ -380,15 +377,6 @@ export function SettingsPanel() {
           >
             Test Connection
           </Button>
-          {conn.connectionMessage && (
-            <p
-              className={`text-xs ${
-                conn.connectionStatus === "error" ? "text-destructive" : "text-muted-foreground"
-              }`}
-            >
-              {conn.connectionMessage}
-            </p>
-          )}
 
           <Separator />
 

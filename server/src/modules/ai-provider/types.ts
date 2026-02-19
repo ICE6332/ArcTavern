@@ -71,6 +71,11 @@ export interface CompletionResponse {
   };
 }
 
+export interface CompletionStreamChunk {
+  content?: string;
+  reasoning?: string;
+}
+
 // --- Embedding types ---
 
 export interface EmbeddingRequest {

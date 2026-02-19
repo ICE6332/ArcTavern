@@ -16,6 +16,7 @@ export function ChatPanel() {
     messages,
     isGenerating,
     streamingContent,
+    streamingReasoning,
     currentChatId,
     sendMessage,
     stopGeneration,
@@ -33,6 +34,13 @@ export function ChatPanel() {
   const shouldAutoScrollRef = useRef(true);
 
   const selectedChar = characters.find((c) => c.id === selectedId);
+  const latestAssistantMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].role === "assistant") return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+  const hasAssistantMessage = latestAssistantMessageId !== null;
 
   // Build prompt order and custom prompts from the prompt manager
   const promptOrder = useMemo(
@@ -76,7 +84,7 @@ export function ChatPanel() {
   useEffect(() => {
     if (!scrollRef.current || !shouldAutoScrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, streamingReasoning]);
 
   useEffect(() => {
     chatDebug("panel.state", {
@@ -85,6 +93,7 @@ export function ChatPanel() {
       messageCount: messages.length,
       isGenerating,
       streamingLength: streamingContent.length,
+      reasoningLength: streamingReasoning.length,
     });
   }, [
     currentChatId,
@@ -92,6 +101,7 @@ export function ChatPanel() {
     messages.length,
     isGenerating,
     streamingContent.length,
+    streamingReasoning.length,
   ]);
 
   useEffect(() => {
@@ -146,7 +156,7 @@ export function ChatPanel() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-y-auto p-4"
+        className="min-h-0 flex-1 scrollbar-chat p-4"
       >
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.map((msg) => (
@@ -156,28 +166,39 @@ export function ChatPanel() {
               role={msg.role}
               name={msg.name || (msg.role === "assistant" ? selectedChar?.name : undefined)}
               content={msg.content}
+              reasoning={msg.reasoning}
               swipeId={msg.swipeId}
               swipes={msg.swipes}
               onSwipe={swipe}
               onDelete={deleteMessage}
-              onRegenerate={msg.role === "assistant" ? () => regenerate(generationConfig) : undefined}
+              onRegenerate={
+                msg.role === "assistant" && msg.id === latestAssistantMessageId
+                  ? () => regenerate(generationConfig)
+                  : undefined
+              }
             />
           ))}
 
           {/* Streaming message */}
-          {isGenerating && streamingContent && (
+          {isGenerating && (
             <MessageBubble
               role="assistant"
               name={selectedChar?.name}
               content={streamingContent}
+              reasoning={streamingReasoning}
               isStreaming
             />
           )}
 
+          {/* Generating indicator */}
           {isGenerating && !streamingContent && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
-              Generating...
+            <div className="flex gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground">
+                {selectedChar?.name?.charAt(0)?.toUpperCase() ?? "A"}
+              </div>
+              <div className="rounded-2xl border border-border bg-card px-4 py-2.5 text-sm">
+                <span className="text-shimmer">Generating...</span>
+              </div>
             </div>
           )}
         </div>
@@ -190,6 +211,8 @@ export function ChatPanel() {
         onContinue={() => continueMessage(generationConfig)}
         onImpersonate={() => impersonate(generationConfig)}
         onRegenerate={() => regenerate(generationConfig)}
+        canContinue={hasAssistantMessage}
+        canRegenerate={hasAssistantMessage}
         isGenerating={isGenerating}
         disabled={false}
       />

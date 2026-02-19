@@ -15,5 +15,8 @@
     "build:server": "bun run --filter @arctravern/server build",
     "test:phase1": "bun run --filter @arctravern/server test",
     "test": "bun run test:phase1"
+  },
+  "devDependencies": {
+    "shadcn": "^3.8.5"
   }
 }

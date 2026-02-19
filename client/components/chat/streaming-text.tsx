@@ -23,3 +23,4 @@ export function StreamingText({ content, isStreaming }: StreamingTextProps) {
     </span>
   );
 }
+

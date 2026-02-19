@@ -228,23 +228,41 @@ export class ChatGenerationController {
     };
 
     let fullContent = '';
+    let fullReasoning = '';
     let chunkCount = 0;
+    let reasoningChunkCount = 0;
     try {
       for await (const chunk of this.aiProviderService.streamComplete(
         completionRequest,
         abortController.signal,
       )) {
-        fullContent += chunk;
-        chunkCount += 1;
-        if (chunkCount <= 3 || chunkCount % 20 === 0) {
-          this.chatDebug('generate.chunk', {
-            requestTag,
-            chatId,
-            chunkCount,
-            aggregatedLength: fullContent.length,
-          });
+        if (chunk.content) {
+          fullContent += chunk.content;
+          chunkCount += 1;
+          if (chunkCount <= 3 || chunkCount % 20 === 0) {
+            this.chatDebug('generate.chunk', {
+              requestTag,
+              chatId,
+              chunkCount,
+              aggregatedLength: fullContent.length,
+            });
+          }
+          res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
         }
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+
+        if (chunk.reasoning) {
+          fullReasoning += chunk.reasoning;
+          reasoningChunkCount += 1;
+          if (reasoningChunkCount <= 3 || reasoningChunkCount % 20 === 0) {
+            this.chatDebug('generate.reasoningChunk', {
+              requestTag,
+              chatId,
+              reasoningChunkCount,
+              aggregatedReasoningLength: fullReasoning.length,
+            });
+          }
+          res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
+        }
       }
 
       if (!abortController.signal.aborted) {
@@ -253,6 +271,7 @@ export class ChatGenerationController {
           chatId,
           targetAssistant,
           fullContent,
+          fullReasoning,
           now,
         );
         this.chatDebug('generate.persisted', {
@@ -260,6 +279,7 @@ export class ChatGenerationController {
           chatId,
           generationType,
           finalContentLength: fullContent.length,
+          finalReasoningLength: fullReasoning.length,
         });
 
         // RAG: embed new messages asynchronously (fire-and-forget)
@@ -287,6 +307,8 @@ export class ChatGenerationController {
         chatId,
         chunkCount,
         finalContentLength: fullContent.length,
+        reasoningChunkCount,
+        finalReasoningLength: fullReasoning.length,
       });
     } catch (error: unknown) {
       if (!abortController.signal.aborted) {
@@ -345,10 +367,20 @@ export class ChatGenerationController {
       nextSwipeId = swipes.length - 1;
     }
 
+    const extra = this.parseExtra(message.extra);
+    const reasoningSwipes = this.parseReasoningSwipes(
+      extra,
+      swipes.length,
+      message.swipe_id ?? 0,
+    );
+    const nextReasoning = reasoningSwipes[nextSwipeId] ?? '';
+    const nextExtra = this.stringifyExtra(extra, nextReasoning, reasoningSwipes);
+
     const updated = await this.chatService.updateMessage(messageId, {
       swipeId: nextSwipeId,
       swipes: JSON.stringify(swipes),
       content: swipes[nextSwipeId] ?? message.content,
+      extra: nextExtra,
     });
 
     return updated;
@@ -359,10 +391,14 @@ export class ChatGenerationController {
     chatId: number,
     targetAssistant: MessageRow | null,
     fullContent: string,
+    fullReasoning: string,
     startedAt: string,
   ) {
     const finishedAt = new Date().toISOString();
     if (!fullContent.trim()) return;
+    const messageExtra = fullReasoning
+      ? this.stringifyExtra({}, fullReasoning, [fullReasoning])
+      : '{}';
 
     if (generationType === 'impersonate') {
       await this.chatService.addMessage({
@@ -376,24 +412,53 @@ export class ChatGenerationController {
     }
 
     if (generationType === 'continue' && targetAssistant) {
-      const combined = `${targetAssistant.content}${fullContent}`;
-      await this.chatService.updateMessage(targetAssistant.id, {
-        content: combined,
-        genStarted: targetAssistant.gen_started ?? startedAt,
+      // Continue should create a new assistant message instead of mutating history.
+      await this.chatService.addMessage({
+        chatId,
+        role: 'assistant',
+        name: targetAssistant.name || '',
+        content: fullContent,
+        swipes: JSON.stringify([fullContent]),
+        genStarted: startedAt,
         genFinished: finishedAt,
+        extra: messageExtra,
       });
       return;
     }
 
-    if ((generationType === 'swipe' || generationType === 'regenerate') && targetAssistant) {
+    if (generationType === 'regenerate' && targetAssistant) {
+      // Regenerate should append a new assistant message to preserve history.
+      await this.chatService.addMessage({
+        chatId,
+        role: 'assistant',
+        name: targetAssistant.name || '',
+        content: fullContent,
+        swipes: JSON.stringify([fullContent]),
+        genStarted: startedAt,
+        genFinished: finishedAt,
+        extra: messageExtra,
+      });
+      return;
+    }
+
+    if (generationType === 'swipe' && targetAssistant) {
       const swipes = this.parseSwipes(targetAssistant);
       swipes.push(fullContent);
+      const nextSwipeId = swipes.length - 1;
+      const existingExtra = this.parseExtra(targetAssistant.extra);
+      const reasoningSwipes = this.parseReasoningSwipes(
+        existingExtra,
+        swipes.length,
+        targetAssistant.swipe_id ?? 0,
+      );
+      reasoningSwipes[nextSwipeId] = fullReasoning;
       await this.chatService.updateMessage(targetAssistant.id, {
         content: fullContent,
-        swipeId: swipes.length - 1,
+        swipeId: nextSwipeId,
         swipes: JSON.stringify(swipes),
         genStarted: startedAt,
         genFinished: finishedAt,
+        extra: this.stringifyExtra(existingExtra, fullReasoning, reasoningSwipes),
       });
       return;
     }
@@ -405,6 +470,7 @@ export class ChatGenerationController {
       swipes: JSON.stringify([fullContent]),
       genStarted: startedAt,
       genFinished: finishedAt,
+      extra: messageExtra,
     });
   }
 
@@ -426,6 +492,68 @@ export class ChatGenerationController {
     } catch {
       return base;
     }
+  }
+
+  private parseExtra(extra: string | null | undefined): Record<string, unknown> {
+    if (!extra) return {};
+    try {
+      const parsed = JSON.parse(extra);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return parsed as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+
+  private parseReasoning(extra: Record<string, unknown>): string {
+    return typeof extra.reasoning === 'string' ? extra.reasoning : '';
+  }
+
+  private parseReasoningSwipes(
+    extra: Record<string, unknown>,
+    swipeCount: number,
+    currentSwipeId: number,
+  ): string[] {
+    const normalizedCount = Math.max(0, swipeCount);
+    const parsed =
+      Array.isArray(extra.reasoningSwipes)
+        ? extra.reasoningSwipes.filter((item): item is string => typeof item === 'string')
+        : [];
+
+    if (parsed.length === 0) {
+      const reasoning = this.parseReasoning(extra);
+      if (!reasoning || normalizedCount === 0) return [];
+      const fallback = Array.from({ length: normalizedCount }, () => '');
+      const index = this.clamp(currentSwipeId, 0, normalizedCount - 1);
+      fallback[index] = reasoning;
+      return fallback;
+    }
+
+    if (normalizedCount === 0) return [];
+    const swipes = parsed.slice(0, normalizedCount);
+    while (swipes.length < normalizedCount) {
+      swipes.push('');
+    }
+    return swipes;
+  }
+
+  private stringifyExtra(
+    baseExtra: Record<string, unknown>,
+    reasoning: string,
+    reasoningSwipes: string[],
+  ): string {
+    const nextExtra: Record<string, unknown> = { ...baseExtra };
+    if (reasoning) {
+      nextExtra.reasoning = reasoning;
+    } else {
+      delete nextExtra.reasoning;
+    }
+    if (reasoningSwipes.length > 0) {
+      nextExtra.reasoningSwipes = reasoningSwipes;
+    } else {
+      delete nextExtra.reasoningSwipes;
+    }
+    return JSON.stringify(nextExtra);
   }
 
   private clamp(value: number, min: number, max: number) {

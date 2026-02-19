@@ -3,6 +3,7 @@ import { SecretService } from '../secret/secret.service';
 import {
   CompletionRequest,
   CompletionResponse,
+  CompletionStreamChunk,
   HealthCheckRequest,
   HealthCheckResponse,
   TestRequestPayload,
@@ -184,7 +185,7 @@ export class AiProviderService {
   async *streamComplete(
     req: CompletionRequest,
     signal?: AbortSignal,
-  ): AsyncGenerator<string, void, unknown> {
+  ): AsyncGenerator<CompletionStreamChunk, void, unknown> {
     const apiKey = await this.getApiKey(req.provider);
     const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy);
 
@@ -201,8 +202,25 @@ export class AiProviderService {
       abortSignal: signal,
     });
 
-    for await (const delta of result.textStream) {
-      yield delta;
+    for await (const part of result.fullStream) {
+      const chunk = part as { type?: string; textDelta?: string; text?: string };
+      const deltaText = chunk.textDelta ?? chunk.text;
+
+      if (chunk.type === 'text-delta' && deltaText) {
+        yield { content: deltaText };
+        continue;
+      }
+      if (chunk.type === 'reasoning-delta' && deltaText) {
+        yield { reasoning: deltaText };
+        continue;
+      }
+      if (chunk.type === 'text' && chunk.text) {
+        yield { content: chunk.text };
+        continue;
+      }
+      if (chunk.type === 'reasoning' && chunk.text) {
+        yield { reasoning: chunk.text };
+      }
     }
   }
 

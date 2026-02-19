@@ -80,7 +80,12 @@ export class AiProviderController {
 
     try {
       for await (const chunk of this.aiService.streamComplete(body, abortController.signal)) {
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+        if (chunk.content) {
+          res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
+        }
+        if (chunk.reasoning) {
+          res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
+        }
       }
       res.write('data: [DONE]\n\n');
     } catch (error: unknown) {

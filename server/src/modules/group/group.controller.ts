@@ -191,16 +191,26 @@ export class GroupController {
     };
 
     let fullContent = '';
+    let fullReasoning = '';
     try {
       for await (const chunk of this.aiProviderService.streamComplete(
         completionRequest,
         abortController.signal,
       )) {
-        fullContent += chunk;
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+        if (chunk.content) {
+          fullContent += chunk.content;
+          res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
+        }
+        if (chunk.reasoning) {
+          fullReasoning += chunk.reasoning;
+          res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
+        }
       }
 
       if (!abortController.signal.aborted && fullContent.trim()) {
+        const extra = fullReasoning
+          ? JSON.stringify({ reasoning: fullReasoning, reasoningSwipes: [fullReasoning] })
+          : '{}';
         await this.chatService.addMessage({
           chatId: body.chatId,
           role: 'assistant',
@@ -209,6 +219,7 @@ export class GroupController {
           swipes: JSON.stringify([fullContent]),
           genStarted: new Date().toISOString(),
           genFinished: new Date().toISOString(),
+          extra,
         });
       }
 

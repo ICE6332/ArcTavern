@@ -4,14 +4,19 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { Button } from "@/components/ui/button";
-import { useTranslation } from "@/lib/i18n";
 import { StreamingText } from "./streaming-text";
+import {
+  ChainOfThought,
+  ChainOfThoughtHeader,
+  ChainOfThoughtContent,
+} from "@/components/ai-elements/chain-of-thought";
 
 interface MessageBubbleProps {
   messageId?: number;
   role: "user" | "assistant" | "system" | "tool";
   name?: string;
   content: string;
+  reasoning?: string;
   isStreaming?: boolean;
   swipeId?: number;
   swipes?: string[];
@@ -25,6 +30,7 @@ export function MessageBubble({
   role,
   name,
   content,
+  reasoning,
   isStreaming,
   swipeId = 0,
   swipes = [],
@@ -32,7 +38,6 @@ export function MessageBubble({
   onRegenerate,
   onDelete,
 }: MessageBubbleProps) {
-  const { t } = useTranslation();
   const isUser = role === "user";
 
   const handleCopy = async () => {
@@ -62,6 +67,18 @@ export function MessageBubble({
               : "border border-border bg-card text-card-foreground"
           }`}
         >
+          {reasoning && !isUser && (
+            <ChainOfThought className="mb-3 border-b border-border pb-3">
+              <ChainOfThoughtHeader>Thinking</ChainOfThoughtHeader>
+              <ChainOfThoughtContent>
+                <div className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 whitespace-pre-wrap break-words">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                    {reasoning}
+                  </ReactMarkdown>
+                </div>
+              </ChainOfThoughtContent>
+            </ChainOfThought>
+          )}
           {isStreaming ? (
             <StreamingText content={content} isStreaming />
           ) : (

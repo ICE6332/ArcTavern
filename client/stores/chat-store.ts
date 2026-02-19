@@ -19,6 +19,7 @@ interface ChatState {
   messages: Message[];
   isGenerating: boolean;
   streamingContent: string;
+  streamingReasoning: string;
   error: string | null;
 
   fetchChats: (characterId: number) => Promise<void>;
@@ -49,6 +50,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isGenerating: false,
   streamingContent: "",
+  streamingReasoning: "",
   error: null,
 
   fetchChats: async (characterId) => {
@@ -68,11 +70,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       chatDebug("selectChat.skip.same", { chatId });
       return;
     }
-    chatDebug("selectChat.start", { from: get().currentChatId, to: chatId });
+    const previousChatId = get().currentChatId;
+    chatDebug("selectChat.start", { from: previousChatId, to: chatId });
+
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+      if (previousChatId) {
+        chatApi.stop(previousChatId).catch(() => undefined);
+      }
+    }
+
     set({
       currentChatId: chatId,
       messages: [],
       streamingContent: "",
+      streamingReasoning: "",
       isGenerating: false,
       error: null,
     });
@@ -127,6 +140,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       chatDebug("generate.skip.noCurrentChat", { type });
       return;
     }
+    const generationChatId = currentChatId;
 
     const trimmedMessage = message?.trim();
     if (type === "normal" && !trimmedMessage) {
@@ -136,7 +150,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     chatDebug("generate.start", {
       type,
-      currentChatId,
+      currentChatId: generationChatId,
       provider: config.provider,
       model: config.model,
       messageLength: trimmedMessage?.length ?? 0,
@@ -146,7 +160,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (type === "normal" && trimmedMessage) {
       const optimistic: Message = {
         id: Date.now(),
-        chatId: currentChatId,
+        chatId: generationChatId,
         role: "user",
         name: "",
         content: trimmedMessage,
@@ -160,7 +174,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       };
       set({ messages: [...optimisticMessages, optimistic] });
       chatDebug("generate.optimisticUserMessage", {
-        currentChatId,
+        currentChatId: generationChatId,
         optimisticMessageId: optimistic.id,
         totalMessages: optimisticMessages.length + 1,
       });
@@ -172,6 +186,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       isGenerating: true,
       streamingContent: "",
+      streamingReasoning: "",
       error: null,
     });
 
@@ -189,7 +204,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
       chatDebug("generate.requestPayload", {
         type,
-        currentChatId,
+        currentChatId: generationChatId,
         requestBytes,
         promptOrderCount: Array.isArray((requestPayload as Record<string, unknown>).promptOrder)
           ? ((requestPayload as Record<string, unknown>).promptOrder as unknown[]).length
@@ -200,9 +215,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
 
       let fullContent = "";
+      let fullReasoning = "";
       let chunkCount = 0;
       for await (const chunk of chatApi.generate(
-        currentChatId,
+        generationChatId,
         requestPayload,
         abortController.signal,
       )) {
@@ -215,25 +231,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
           set({ streamingContent: fullContent });
           if (chunkCount <= 3 || chunkCount % 20 === 0) {
             chatDebug("generate.chunk", {
-              currentChatId,
+              generationChatId,
               chunkCount,
               aggregatedLength: fullContent.length,
             });
           }
         }
+        if (chunk.reasoning) {
+          fullReasoning += chunk.reasoning;
+          set({ streamingReasoning: fullReasoning });
+        }
       }
 
       const freshMessages = await chatApi
-        .getMessages(currentChatId)
+        .getMessages(generationChatId)
         .catch(() => get().messages);
+      if (get().currentChatId !== generationChatId) {
+        chatDebug("generate.skipApply.chatChanged", {
+          generationChatId,
+          currentChatId: get().currentChatId,
+        });
+        return;
+      }
       set({
         messages: freshMessages,
         isGenerating: false,
         streamingContent: "",
+        streamingReasoning: "",
       });
       chatDebug("generate.success", {
         type,
-        currentChatId,
+        currentChatId: generationChatId,
         finalContentLength: fullContent.length,
         freshMessageCount: freshMessages.length,
       });
@@ -243,28 +271,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ error: getErrorMessage(error, "Generation failed") });
         chatError("generate.error", error, {
           type,
-          currentChatId,
+          currentChatId: generationChatId,
         });
       } else {
-        chatDebug("generate.aborted", { type, currentChatId });
+        chatDebug("generate.aborted", { type, currentChatId: generationChatId });
       }
       const freshMessages = await chatApi
-        .getMessages(currentChatId)
+        .getMessages(generationChatId)
         .catch(() => get().messages);
+      if (get().currentChatId !== generationChatId) {
+        chatDebug("generate.skipErrorApply.chatChanged", {
+          generationChatId,
+          currentChatId: get().currentChatId,
+        });
+        return;
+      }
       set({
         messages: freshMessages,
         isGenerating: false,
         streamingContent: "",
+        streamingReasoning: "",
       });
       chatDebug("generate.postErrorSync", {
-        currentChatId,
+        currentChatId: generationChatId,
         freshMessageCount: freshMessages.length,
       });
     } finally {
       abortController = null;
       chatDebug("generate.finally", {
         type,
-        currentChatId,
+        currentChatId: generationChatId,
         isGenerating: get().isGenerating,
       });
     }
@@ -275,10 +311,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   regenerate: async (config) => {
+    const hasAssistant = get().messages.some((m) => m.role === "assistant");
+    if (!hasAssistant) {
+      set({ error: "No assistant message to regenerate" });
+      return;
+    }
     await get().generate("regenerate", config);
   },
 
   continueMessage: async (config) => {
+    const hasAssistant = get().messages.some((m) => m.role === "assistant");
+    if (!hasAssistant) {
+      set({ error: "No assistant message to continue" });
+      return;
+    }
     await get().generate("continue", config);
   },
 
@@ -294,7 +340,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (chatId) {
       await chatApi.stop(chatId).catch(() => undefined);
     }
-    set({ isGenerating: false, streamingContent: "" });
+    set({ isGenerating: false, streamingContent: "", streamingReasoning: "" });
     chatDebug("stopGeneration.done", { chatId });
   },
 

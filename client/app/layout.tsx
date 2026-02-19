@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans } from "next/font/google";
+import { Toaster } from "sileo";
 import "./globals.css";
 
 const notoSans = Noto_Sans({ variable: "--font-sans", subsets: ["latin"] });
@@ -30,6 +31,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <Toaster
+          position="top-center"
+          options={{
+            fill: "oklch(0.21 0.006 285.885)",
+            styles: { description: "text-white/70!" },
+          }}
+        />
       </body>
     </html>
   );
