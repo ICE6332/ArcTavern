@@ -7,7 +7,11 @@ interface PersonaState {
   loading: boolean;
 
   fetchPersonas: () => Promise<void>;
-  createPersona: (data: { name: string; description?: string; isDefault?: boolean }) => Promise<Persona>;
+  createPersona: (data: {
+    name: string;
+    description?: string;
+    isDefault?: boolean;
+  }) => Promise<Persona>;
   updatePersona: (id: string, data: Partial<Persona>) => Promise<void>;
   deletePersona: (id: string) => Promise<void>;
   setActivePersona: (id: string | null) => void;

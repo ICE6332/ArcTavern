@@ -108,8 +108,7 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
         );
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
+      const message = error instanceof Error ? error.message : "Unknown error";
       window.alert(`Failed to import preset file: ${message}`);
     }
 
@@ -144,15 +143,13 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
 
   const handleRestore = async () => {
     if (!activePreset?.isDefault) return;
-    const confirmed = window.confirm(
-      `Restore "${activePreset.name}" to its original default?`,
-    );
+    const confirmed = window.confirm(`Restore "${activePreset.name}" to its original default?`);
     if (!confirmed) return;
     await restorePreset(activePreset.id, apiType);
     // Re-apply the restored preset
-    const refreshed = usePresetStore.getState().presets[apiType]?.find(
-      (p) => p.id === activePreset.id,
-    );
+    const refreshed = usePresetStore
+      .getState()
+      .presets[apiType]?.find((p) => p.id === activePreset.id);
     if (refreshed) {
       applyPreset(refreshed);
       onPresetApplied?.();
@@ -162,10 +159,7 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
-        <Select
-          value={currentPresetId?.toString() ?? ""}
-          onValueChange={handleSelect}
-        >
+        <Select value={currentPresetId?.toString() ?? ""} onValueChange={handleSelect}>
           <SelectTrigger className="h-8 flex-1 text-xs">
             <SelectValue>
               {(value) => {
@@ -186,11 +180,21 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
       </div>
 
       <div className="flex flex-wrap gap-1">
-        <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={handleSaveNew}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 px-2 text-[10px]"
+          onClick={handleSaveNew}
+        >
           Save New
         </Button>
         {activePreset && !activePreset.isDefault && (
-          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={handleOverwrite}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={handleOverwrite}
+          >
             Overwrite
           </Button>
         )}
@@ -217,7 +221,12 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
           </Button>
         )}
         {activePreset?.isDefault && (
-          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={handleRestore}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={handleRestore}
+          >
             Restore
           </Button>
         )}

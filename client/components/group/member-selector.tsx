@@ -16,8 +16,9 @@ interface MemberSelectorProps {
 }
 
 export function MemberSelector({ groupId, onSelect }: MemberSelectorProps) {
-  const { members } = useGroupStore();
+  const { groups, members } = useGroupStore();
   const { characters } = useCharacterStore();
+  const group = groups.find((item) => item.id === groupId);
 
   const memberChars = members
     .map((m) => characters.find((c) => c.id === m.characterId))
@@ -29,6 +30,9 @@ export function MemberSelector({ groupId, onSelect }: MemberSelectorProps) {
         <SelectValue placeholder="Select speaker..." />
       </SelectTrigger>
       <SelectContent>
+        {group?.name ? (
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">{group.name}</div>
+        ) : null}
         {memberChars.map((char) => (
           <SelectItem key={char!.id} value={String(char!.id)}>
             {char!.name}

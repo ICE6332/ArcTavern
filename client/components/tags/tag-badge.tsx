@@ -11,9 +11,7 @@ interface TagBadgeProps {
 }
 
 export function TagBadge({ tag, onClick, removable, onRemove }: TagBadgeProps) {
-  const style = tag.color
-    ? { backgroundColor: tag.color, color: tag.color2 ?? "#fff" }
-    : undefined;
+  const style = tag.color ? { backgroundColor: tag.color, color: tag.color2 ?? "#fff" } : undefined;
 
   return (
     <Badge

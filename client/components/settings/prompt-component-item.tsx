@@ -1,8 +1,12 @@
 "use client";
 
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { usePromptManagerStore, type PromptComponent } from "@/stores/prompt-manager-store";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Menu01Icon } from "@hugeicons/core-free-icons";
 
 const BUILT_IN_DEFAULT_NAMES: Record<string, string> = {
   main: "Main Prompt",
@@ -21,40 +25,50 @@ const BUILT_IN_DEFAULT_NAMES: Record<string, string> = {
 
 interface PromptComponentItemProps {
   component: PromptComponent;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onEdit: () => void;
 }
 
-export function PromptComponentItem({ component, onMoveUp, onMoveDown, onEdit }: PromptComponentItemProps) {
+export function PromptComponentItem({ component, onEdit }: PromptComponentItemProps) {
   const { toggleComponent, removeCustomComponent } = usePromptManagerStore();
   const { t } = useTranslation();
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: component.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const nameKey = `promptComponents.names.${component.id}`;
   const roleKey = `promptComponents.roles.${component.role}`;
   const defaultName = BUILT_IN_DEFAULT_NAMES[component.id];
   const shouldTranslateName =
-    component.isBuiltIn &&
-    !!defaultName &&
-    component.name === defaultName;
+    component.isBuiltIn && !!defaultName && component.name === defaultName;
   const translatedName =
     shouldTranslateName && t(nameKey) !== nameKey ? t(nameKey) : component.name;
   const translatedRole = t(roleKey) === roleKey ? component.role : t(roleKey);
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${
-        component.enabled ? "border-border" : "border-border/50 opacity-50"
+        isDragging
+          ? "z-50 border-primary/50 bg-accent shadow-md"
+          : component.enabled
+            ? "border-border"
+            : "border-border/50 opacity-50"
       }`}
     >
-      <div className="flex flex-col gap-0.5">
-        <button className="text-muted-foreground hover:text-foreground" onClick={onMoveUp}>
-          ^
-        </button>
-        <button className="text-muted-foreground hover:text-foreground" onClick={onMoveDown}>
-          v
-        </button>
-      </div>
+      <button
+        className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <HugeiconsIcon icon={Menu01Icon} size={14} strokeWidth={2} />
+      </button>
 
       <label className="flex min-w-0 flex-1 items-center gap-1.5">
         <input

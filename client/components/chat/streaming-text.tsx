@@ -18,9 +18,8 @@ export function StreamingText({ content, isStreaming }: StreamingTextProps) {
     <span className="whitespace-pre-wrap break-words">
       {displayed}
       {isStreaming && (
-        <span className="ml-0.5 inline-block h-4 w-[1px] animate-pulse bg-current align-middle" />
+        <span className="ml-0.5 inline-block h-[1.1em] w-[2px] animate-pulse rounded-full bg-current align-text-bottom" />
       )}
     </span>
   );
 }
-

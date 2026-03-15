@@ -36,7 +36,10 @@ export function CharacterCard({
   const [tags, setTags] = useState<Tag[]>([]);
 
   useEffect(() => {
-    tagApi.getEntityTags("character", String(character.id)).then(setTags).catch(() => {});
+    tagApi
+      .getEntityTags("character", String(character.id))
+      .then(setTags)
+      .catch(() => {});
   }, [character.id]);
 
   return (
@@ -49,8 +52,11 @@ export function CharacterCard({
       <div className={`flex ${compact ? "flex-col gap-1" : "items-center gap-2"}`}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-medium text-primary">
           {character.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={characterApi.avatarUrl(character.id)} alt={character.name} className="h-full w-full object-cover" />
+            <img
+              src={characterApi.avatarUrl(character.id)}
+              alt={character.name}
+              className="h-full w-full object-cover"
+            />
           ) : (
             character.name.charAt(0).toUpperCase()
           )}
@@ -73,7 +79,9 @@ export function CharacterCard({
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
             {character.creator ? `by ${character.creator}` : t("character.noCreator")} ·{" "}
-            {character.updatedAt ? new Date(character.updatedAt).toLocaleDateString() : t("character.notApplicable")}
+            {character.updatedAt
+              ? new Date(character.updatedAt).toLocaleDateString()
+              : t("character.notApplicable")}
           </p>
           {tags.length > 0 && (
             <div className="mt-0.5 flex flex-wrap gap-0.5">

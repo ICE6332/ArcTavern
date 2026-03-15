@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { characterApi, type Character } from '@/lib/api';
+import { create } from "zustand";
+import { characterApi, type Character } from "@/lib/api";
 
 interface CharacterState {
   characters: Character[];
@@ -14,7 +14,7 @@ interface CharacterState {
   updateAvatar: (id: number, file: File) => Promise<void>;
   importCharacter: (file: File) => Promise<Character>;
   duplicateCharacter: (id: number) => Promise<Character>;
-  exportCharacter: (id: number, format: 'json' | 'png') => Promise<void>;
+  exportCharacter: (id: number, format: "json" | "png") => Promise<void>;
   deleteCharacter: (id: number) => Promise<void>;
 }
 
@@ -30,7 +30,7 @@ export const useCharacterStore = create<CharacterState>((set) => ({
       const characters = await characterApi.getAll();
       set({ characters, loading: false });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch characters';
+      const message = error instanceof Error ? error.message : "Failed to fetch characters";
       set({ error: message, loading: false });
     }
   },
@@ -72,7 +72,7 @@ export const useCharacterStore = create<CharacterState>((set) => ({
   exportCharacter: async (id, format) => {
     const blob = await characterApi.export(id, format);
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `character-${id}.${format}`;
     document.body.appendChild(a);

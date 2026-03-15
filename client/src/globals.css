@@ -48,6 +48,9 @@
 }
 
 :root {
+  --font-sans: "Noto Sans Variable", sans-serif;
+  --font-geist-sans: "Geist Variable", sans-serif;
+  --font-geist-mono: "Geist Mono Variable", monospace;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -70,7 +73,7 @@
   --chart-2: oklch(0.73 0.18 350);
   --chart-3: oklch(0.66 0.21 354);
   --chart-4: oklch(0.59 0.22 1);
-  --chart-5: oklch(0.52 0.20 4);
+  --chart-5: oklch(0.52 0.2 4);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
@@ -105,7 +108,7 @@
   --chart-2: oklch(0.73 0.18 350);
   --chart-3: oklch(0.66 0.21 354);
   --chart-4: oklch(0.59 0.22 1);
-  --chart-5: oklch(0.52 0.20 4);
+  --chart-5: oklch(0.52 0.2 4);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.73 0.18 350);
@@ -120,18 +123,63 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans);
   }
 }
 
-/* ── Scrollbar utilities ─────────────────────────────────────────── */
-
-/* Generating shimmer */
-@keyframes shimmer-slide {
-  0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
+@keyframes bounce-dots {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
+
+@keyframes typing {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes loading-dots {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: 150% center;
+  }
+  100% {
+    background-position: -150% center;
+  }
+}
+
+@keyframes shimmer-slide {
+  0% {
+    background-position: 200% center;
+  }
+
+  100% {
+    background-position: -200% center;
+  }
+}
+
 .text-shimmer {
   background: linear-gradient(
     90deg,
@@ -148,32 +196,58 @@
   animation: shimmer-slide 1.5s linear infinite;
 }
 
-/* Hide scrollbar but keep scrollability */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.4 0 0 / 25%) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: oklch(0.4 0 0 / 25%);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.4 0 0 / 40%);
+}
+
 .scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-/* Thin chat scrollbar — 4px, right edge, theme-colored */
 .scrollbar-chat {
   scrollbar-width: thin;
   scrollbar-color: var(--muted-foreground) transparent;
   overflow-y: scroll;
 }
+
 .scrollbar-chat::-webkit-scrollbar {
   width: 4px;
 }
+
 .scrollbar-chat::-webkit-scrollbar-track {
   background: transparent;
   margin-block: 4px;
 }
+
 .scrollbar-chat::-webkit-scrollbar-thumb {
   background-color: var(--muted-foreground);
   border-radius: 9999px;
 }
+
 .scrollbar-chat::-webkit-scrollbar-thumb:hover {
   background-color: var(--foreground);
 }

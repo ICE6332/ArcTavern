@@ -44,8 +44,14 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
 
   const handleSave = async () => {
     await updateEntry(entry.id, {
-      keys: keys.split(",").map((k) => k.trim()).filter(Boolean),
-      secondaryKeys: secondaryKeys.split(",").map((k) => k.trim()).filter(Boolean),
+      keys: keys
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
+      secondaryKeys: secondaryKeys
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
       content,
       comment,
       enabled,
@@ -70,7 +76,11 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
     <div className="max-h-[70vh] space-y-3 overflow-y-auto p-3">
       <div className="space-y-1">
         <Label>Comment / Title</Label>
-        <Input value={comment} onChange={(e) => setComment(e.target.value)} className="h-8 text-xs" />
+        <Input
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="h-8 text-xs"
+        />
       </div>
       <div className="space-y-1">
         <Label>Primary Keys (comma-separated)</Label>
@@ -78,18 +88,34 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
       </div>
       <div className="space-y-1">
         <Label>Content</Label>
-        <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className="text-xs" />
+        <Textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={4}
+          className="text-xs"
+        />
       </div>
 
       <div className="flex flex-wrap gap-3">
         <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Enabled
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />{" "}
+          Enabled
         </label>
         <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" checked={constant} onChange={(e) => setConstant(e.target.checked)} /> Constant
+          <input
+            type="checkbox"
+            checked={constant}
+            onChange={(e) => setConstant(e.target.checked)}
+          />{" "}
+          Constant
         </label>
         <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" checked={selective} onChange={(e) => setSelective(e.target.checked)} /> Selective
+          <input
+            type="checkbox"
+            checked={selective}
+            onChange={(e) => setSelective(e.target.checked)}
+          />{" "}
+          Selective
         </label>
       </div>
 
@@ -97,12 +123,18 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
         <>
           <div className="space-y-1">
             <Label>Secondary Keys</Label>
-            <Input value={secondaryKeys} onChange={(e) => setSecondaryKeys(e.target.value)} className="h-8 text-xs" />
+            <Input
+              value={secondaryKeys}
+              onChange={(e) => setSecondaryKeys(e.target.value)}
+              className="h-8 text-xs"
+            />
           </div>
           <div className="space-y-1">
             <Label>Logic</Label>
             <Select value={String(selectLogic)} onValueChange={(v) => setSelectLogic(Number(v))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">AND ANY</SelectItem>
                 <SelectItem value="1">NOT ALL</SelectItem>
@@ -117,11 +149,10 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label>Position</Label>
-          <Select
-            value={position}
-            onValueChange={(value) => setPosition(value ?? "before_char")}
-          >
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <Select value={position} onValueChange={(value) => setPosition(value ?? "before_char")}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="before_char">Before Char</SelectItem>
               <SelectItem value="after_char">After Char</SelectItem>
@@ -136,7 +167,9 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
         <div className="space-y-1">
           <Label>Role</Label>
           <Select value={String(role)} onValueChange={(v) => setRole(Number(v))}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="0">System</SelectItem>
               <SelectItem value="1">User</SelectItem>
@@ -149,47 +182,90 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
       <div className="grid grid-cols-3 gap-2">
         <div className="space-y-1">
           <Label>Order</Label>
-          <Input type="number" value={insertionOrder} onChange={(e) => setInsertionOrder(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={insertionOrder}
+            onChange={(e) => setInsertionOrder(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
         <div className="space-y-1">
           <Label>Priority</Label>
-          <Input type="number" value={priority} onChange={(e) => setPriority(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
         <div className="space-y-1">
           <Label>Depth</Label>
-          <Input type="number" value={depth} onChange={(e) => setDepth(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={depth}
+            onChange={(e) => setDepth(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <div className="space-y-1">
           <Label>Probability %</Label>
-          <Input type="number" value={probability} onChange={(e) => setProbability(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={probability}
+            onChange={(e) => setProbability(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
         <div className="space-y-1">
           <Label>Sticky</Label>
-          <Input type="number" value={sticky} onChange={(e) => setSticky(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={sticky}
+            onChange={(e) => setSticky(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
         <div className="space-y-1">
           <Label>Cooldown</Label>
-          <Input type="number" value={cooldown} onChange={(e) => setCooldown(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={cooldown}
+            onChange={(e) => setCooldown(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label>Delay</Label>
-          <Input type="number" value={delay} onChange={(e) => setDelay(Number(e.target.value))} className="h-8 text-xs" />
+          <Input
+            type="number"
+            value={delay}
+            onChange={(e) => setDelay(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
         </div>
         <div className="space-y-1">
           <Label>Group</Label>
-          <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} className="h-8 text-xs" />
+          <Input
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            className="h-8 text-xs"
+          />
         </div>
       </div>
 
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>Save</Button>
-        <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+        <Button size="sm" onClick={handleSave}>
+          Save
+        </Button>
+        <Button size="sm" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

@@ -1,14 +1,14 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export type Provider = 'openai' | 'anthropic' | 'google' | 'openrouter' | 'mistral' | 'custom';
+export type Provider = "openai" | "anthropic" | "google" | "openrouter" | "mistral" | "custom";
 
 interface ConnectionState {
   provider: Provider;
   model: string;
   reverseProxy: string;
   apiKeyConfigured: Record<Provider, boolean>;
-  connectionStatus: 'idle' | 'testing' | 'ok' | 'error';
+  connectionStatus: "idle" | "testing" | "ok" | "error";
   connectionMessage: string | null;
   temperature: number;
   maxTokens: number;
@@ -38,7 +38,7 @@ interface ConnectionState {
   setReverseProxy: (url: string) => void;
   setApiKeyConfigured: (provider: Provider, configured: boolean) => void;
   setConnectionStatus: (
-    status: 'idle' | 'testing' | 'ok' | 'error',
+    status: "idle" | "testing" | "ok" | "error",
     message?: string | null,
   ) => void;
   setTemperature: (v: number) => void;
@@ -62,20 +62,25 @@ interface ConnectionState {
 }
 
 export const DEFAULT_MODELS: Record<Provider, string[]> = {
-  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1', 'o1-mini', 'o3-mini'],
-  anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-haiku-4-20250514', 'claude-3-5-sonnet-20241022'],
-  google: ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'],
-  openrouter: ['openai/gpt-4o', 'anthropic/claude-sonnet-4-20250514', 'google/gemini-2.0-flash'],
-  mistral: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'],
+  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1", "o1-mini", "o3-mini"],
+  anthropic: [
+    "claude-sonnet-4-20250514",
+    "claude-opus-4-20250514",
+    "claude-haiku-4-20250514",
+    "claude-3-5-sonnet-20241022",
+  ],
+  google: ["gemini-2.0-flash", "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash"],
+  openrouter: ["openai/gpt-4o", "anthropic/claude-sonnet-4-20250514", "google/gemini-2.0-flash"],
+  mistral: ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
   custom: [],
 };
 
 export const useConnectionStore = create<ConnectionState>()(
   persist(
     (set) => ({
-      provider: 'openai',
-      model: 'gpt-4o',
-      reverseProxy: '',
+      provider: "openai",
+      model: "gpt-4o",
+      reverseProxy: "",
       apiKeyConfigured: {
         openai: false,
         anthropic: false,
@@ -84,7 +89,7 @@ export const useConnectionStore = create<ConnectionState>()(
         mistral: false,
         custom: false,
       },
-      connectionStatus: 'idle',
+      connectionStatus: "idle",
       connectionMessage: null,
       temperature: 0.7,
       maxTokens: 4096,
@@ -101,18 +106,18 @@ export const useConnectionStore = create<ConnectionState>()(
       maxContext: 4096,
       streamEnabled: true,
       seed: -1,
-      assistantPrefill: '',
+      assistantPrefill: "",
       continuePrefill: false,
-      continuePostfix: '',
+      continuePostfix: "",
       namesBehavior: 0,
       squashSystemMessages: false,
 
       setProvider: (provider) => {
-        const defaultModel = DEFAULT_MODELS[provider]?.[0] ?? '';
+        const defaultModel = DEFAULT_MODELS[provider]?.[0] ?? "";
         set({
           provider,
           model: defaultModel,
-          connectionStatus: 'idle',
+          connectionStatus: "idle",
           connectionMessage: null,
         });
       },
@@ -143,6 +148,6 @@ export const useConnectionStore = create<ConnectionState>()(
       setNamesBehavior: (namesBehavior) => set({ namesBehavior }),
       setSquashSystemMessages: (squashSystemMessages) => set({ squashSystemMessages }),
     }),
-    { name: 'st-connection' },
+    { name: "st-connection" },
   ),
 );

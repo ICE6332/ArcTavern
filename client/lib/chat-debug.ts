@@ -1,5 +1,3 @@
-"use client";
-
 const CHAT_DEBUG_KEY = "chat-debug";
 
 function parseBooleanLike(value: string | null | undefined): boolean | null {
@@ -11,21 +9,19 @@ function parseBooleanLike(value: string | null | undefined): boolean | null {
 }
 
 export function isChatDebugEnabled(): boolean {
-  const envValue = parseBooleanLike(process.env.NEXT_PUBLIC_CHAT_DEBUG);
+  const envValue = parseBooleanLike(import.meta.env.VITE_CHAT_DEBUG);
   if (envValue != null) return envValue;
 
   if (typeof window !== "undefined") {
     try {
-      const storageValue = parseBooleanLike(
-        window.localStorage.getItem(CHAT_DEBUG_KEY),
-      );
+      const storageValue = parseBooleanLike(window.localStorage.getItem(CHAT_DEBUG_KEY));
       if (storageValue != null) return storageValue;
     } catch {
       // Ignore storage errors in restricted contexts.
     }
   }
 
-  return process.env.NODE_ENV !== "production";
+  return import.meta.env.MODE !== "production";
 }
 
 function nowLabel() {

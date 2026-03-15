@@ -20,7 +20,9 @@ export function WorldInfoList({ onSelectBook, onCreateBook }: WorldInfoListProps
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Lorebooks</h3>
-        <Button size="sm" variant="outline" onClick={onCreateBook}>+ New</Button>
+        <Button size="sm" variant="outline" onClick={onCreateBook}>
+          + New
+        </Button>
       </div>
       <div className="space-y-1">
         {books.map((book) => (
@@ -43,9 +45,7 @@ export function WorldInfoList({ onSelectBook, onCreateBook }: WorldInfoListProps
             </button>
           </div>
         ))}
-        {books.length === 0 && (
-          <p className="text-xs text-muted-foreground">No lorebooks yet</p>
-        )}
+        {books.length === 0 && <p className="text-xs text-muted-foreground">No lorebooks yet</p>}
       </div>
     </div>
   );

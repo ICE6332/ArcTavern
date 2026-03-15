@@ -45,19 +45,35 @@ export function TagEditor({ editingTagId, onClose }: TagEditorProps) {
       <div className="flex gap-3">
         <div className="space-y-1">
           <Label>Color</Label>
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-8 w-12 cursor-pointer rounded border" />
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="h-8 w-12 cursor-pointer rounded border"
+          />
         </div>
         <div className="space-y-1">
           <Label>Text</Label>
-          <input type="color" value={color2} onChange={(e) => setColor2(e.target.value)} className="h-8 w-12 cursor-pointer rounded border" />
+          <input
+            type="color"
+            value={color2}
+            onChange={(e) => setColor2(e.target.value)}
+            className="h-8 w-12 cursor-pointer rounded border"
+          />
         </div>
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>{existing ? "Update" : "Create"}</Button>
+        <Button size="sm" onClick={handleSave}>
+          {existing ? "Update" : "Create"}
+        </Button>
         {existing && (
-          <Button size="sm" variant="destructive" onClick={handleDelete}>Delete</Button>
+          <Button size="sm" variant="destructive" onClick={handleDelete}>
+            Delete
+          </Button>
         )}
-        <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+        <Button size="sm" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

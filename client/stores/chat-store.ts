@@ -26,11 +26,7 @@ interface ChatState {
   selectChat: (chatId: number | null) => Promise<void>;
   createChat: (characterId: number, name?: string) => Promise<Chat>;
   deleteChat: (chatId: number) => Promise<void>;
-  generate: (
-    type: GenerationType,
-    config: GenerationConfig,
-    message?: string,
-  ) => Promise<void>;
+  generate: (type: GenerationType, config: GenerationConfig, message?: string) => Promise<void>;
   sendMessage: (content: string, config: GenerationConfig) => Promise<void>;
   regenerate: (config: GenerationConfig) => Promise<void>;
   continueMessage: (config: GenerationConfig) => Promise<void>;
@@ -243,9 +239,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }
 
-      const freshMessages = await chatApi
-        .getMessages(generationChatId)
-        .catch(() => get().messages);
+      const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
       if (get().currentChatId !== generationChatId) {
         chatDebug("generate.skipApply.chatChanged", {
           generationChatId,
@@ -276,9 +270,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       } else {
         chatDebug("generate.aborted", { type, currentChatId: generationChatId });
       }
-      const freshMessages = await chatApi
-        .getMessages(generationChatId)
-        .catch(() => get().messages);
+      const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
       if (get().currentChatId !== generationChatId) {
         chatDebug("generate.skipErrorApply.chatChanged", {
           generationChatId,

@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Next-Arctravern: a full-feature rewrite of SillyTavern (v1.15.0). The original Express.js + vanilla JS monolith is restructured into a Bun workspace monorepo with a NestJS 11 backend and Next.js 16 frontend.
+Arctravern: a full-feature rewrite of SillyTavern (v1.15.0). The original Express.js + vanilla JS monolith is restructured into a pnpm workspace monorepo with a NestJS 11 backend and a Vite 8 frontend.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Package Manager | Bun (workspace monorepo) |
-| Frontend | Next.js 16 + React 19 + TypeScript |
+| Package Manager | pnpm + Vite+ |
+| Frontend | Vite 8 + React 19 + TypeScript |
 | UI | shadcn/ui (base-mira style) + Tailwind CSS 4 + hugeicons |
 | Backend | NestJS 11 + TypeScript |
 | AI Integration | Vercel AI SDK v6 (`ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`, `@ai-sdk/openai-compatible`) |
@@ -24,33 +24,36 @@ Next-Arctravern: a full-feature rewrite of SillyTavern (v1.15.0). The original E
 ## Commands
 
 ```bash
-bun install                  # Install all workspace dependencies
-bun dev                      # Start both frontend (:3000) and backend (:3001)
-bun dev:client               # Next.js only
-bun dev:server               # NestJS only
-bun build                    # Build all workspaces
-bun test                     # Run all server tests (vitest)
+pnpm install                 # Install all workspace dependencies
+pnpm dev                     # Start both frontend (:3000) and backend (:3001)
+pnpm dev:client              # Vite frontend only
+pnpm dev:server              # NestJS only
+pnpm check                   # Run workspace checks
+pnpm build                   # Build all workspaces
+pnpm test                    # Run all workspace tests
 
 # Workspace-scoped commands
-bun run --filter @arctravern/client lint     # ESLint frontend
-bun run --filter @arctravern/server build    # Build server only
+pnpm --filter @arctravern/client check       # Vite+ check frontend
+pnpm --filter @arctravern/client build       # Vite+ build frontend
+pnpm --filter @arctravern/server build       # Build server only
+pnpm --filter @arctravern/server check       # Type-check server only
 
 # Run a single test file
-cd server && bunx vitest run src/modules/chat/chat.service.spec.ts
+cd server && pnpm exec vitest run src/modules/chat/chat.service.spec.ts
 
 # Run tests matching a pattern
-cd server && bunx vitest run -t "pattern"
+cd server && pnpm exec vitest run -t "pattern"
 
 # Type check without emitting
-cd server && bunx tsc --noEmit
-cd client && bunx tsc --noEmit
+cd server && pnpm exec tsc --noEmit
+cd client && pnpm exec tsc --noEmit
 ```
 
 ## Architecture
 
 ### Monorepo Layout
 
-- `client/` — Next.js 16 frontend (`@arctravern/client`). App Router, shadcn/ui components, Zustand stores.
+- `client/` — Vite 8 frontend (`@arctravern/client`). React SPA, shadcn/ui components, Zustand stores.
 - `server/` — NestJS 11 backend (`@arctravern/server`). Modular architecture under `src/modules/`.
 - `specs/` — Phase-based implementation specs (phase1 through phase7).
 
@@ -137,7 +140,7 @@ Stores: `character-store`, `chat-store`, `connection-store`, `tag-store`, `perso
 
 Typed fetch wrappers organized by domain: `characterApi`, `chatApi`, `aiApi`, `secretApi`, `presetApi`, `settingsApi`, `tagApi`, `personaApi`, `worldInfoApi`, `groupApi`, `ragApi`. Includes async generator streaming for SSE.
 
-Next.js rewrites `/api/*` to `http://localhost:3001/api/*` in dev (configured in `next.config.ts`).
+Vite dev proxies `/api/*` to `http://localhost:3001/api/*` in dev (configured in `client/vite.config.ts`).
 
 ## Coding Conventions
 
@@ -151,7 +154,7 @@ Next.js rewrites `/api/*` to `http://localhost:3001/api/*` in dev (configured in
 
 ## Testing
 
-Backend tests use Vitest. Specs are colocated as `*.spec.ts` next to the source files. Frontend tests (when added) go as `*.test.tsx` near components.
+Backend tests use Vitest. Frontend tests use Vite+ test/Vitest with jsdom. Specs are colocated as `*.spec.ts` or `*.test.ts(x)` near the source files.
 
 Vitest config: `server/vitest.config.ts` — node environment, globals enabled, clearMocks.
 

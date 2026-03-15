@@ -53,15 +53,25 @@ export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
         />
       </div>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={isDefault}
+          onChange={(e) => setIsDefault(e.target.checked)}
+        />
         Set as default persona
       </label>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>{persona ? "Update" : "Create"}</Button>
+        <Button size="sm" onClick={handleSave}>
+          {persona ? "Update" : "Create"}
+        </Button>
         {persona && (
-          <Button size="sm" variant="destructive" onClick={handleDelete}>Delete</Button>
+          <Button size="sm" variant="destructive" onClick={handleDelete}>
+            Delete
+          </Button>
         )}
-        <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+        <Button size="sm" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

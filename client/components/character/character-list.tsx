@@ -87,15 +87,11 @@ export function CharacterList({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="py-6 text-center text-xs text-muted-foreground">{t("character.noCharacters")}</div>
+        <div className="py-6 text-center text-xs text-muted-foreground">
+          {t("character.noCharacters")}
+        </div>
       ) : (
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-2 gap-1"
-              : "flex flex-col gap-1"
-          }
-        >
+        <div className={viewMode === "grid" ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1"}>
           {filtered.map((character) => (
             <CharacterCard
               key={character.id}

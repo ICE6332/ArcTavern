@@ -4,12 +4,26 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StreamingText } from "./streaming-text";
 import {
   ChainOfThought,
   ChainOfThoughtHeader,
   ChainOfThoughtContent,
 } from "@/components/ai-elements/chain-of-thought";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Copy01Icon,
+  RefreshIcon,
+  ThumbsUpIcon,
+  ThumbsDownIcon,
+  Delete01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+} from "@hugeicons/core-free-icons";
+
+const markdownStyles =
+  "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5";
 
 interface MessageBubbleProps {
   messageId?: number;
@@ -23,6 +37,42 @@ interface MessageBubbleProps {
   onSwipe?: (messageId: number, direction: "left" | "right") => void;
   onRegenerate?: () => void;
   onDelete?: (messageId: number) => void;
+}
+
+function ActionButton({
+  icon,
+  label,
+  onClick,
+  variant = "ghost",
+}: {
+  icon: typeof Copy01Icon;
+  label: string;
+  onClick: () => void;
+  variant?: "ghost" | "destructive";
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className={`h-7 w-7 text-muted-foreground ${
+              variant === "destructive"
+                ? "hover:text-destructive"
+                : "hover:text-foreground"
+            }`}
+            onClick={onClick}
+          />
+        }
+      >
+        <HugeiconsIcon icon={icon} size={15} strokeWidth={1.5} />
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function MessageBubble({
@@ -44,103 +94,96 @@ export function MessageBubble({
     await navigator.clipboard.writeText(content);
   };
 
-  return (
-    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-secondary text-secondary-foreground"
-        }`}
-      >
-        {isUser ? "U" : (name?.charAt(0)?.toUpperCase() ?? "A")}
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[80%] rounded-2xl bg-secondary px-4 py-2.5 text-sm leading-relaxed text-secondary-foreground">
+          <div className={markdownStyles}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+              {content}
+            </ReactMarkdown>
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      <div className={`max-w-[88%] ${isUser ? "text-right" : ""}`}>
-        {name && !isUser && (
-          <p className="mb-1 text-xs font-medium text-muted-foreground">{name}</p>
-        )}
-        <div
-          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-            isUser
-              ? "bg-primary text-primary-foreground"
-              : "border border-border bg-card text-card-foreground"
-          }`}
-        >
-          {reasoning && !isUser && (
-            <ChainOfThought className="mb-3 border-b border-border pb-3">
-              <ChainOfThoughtHeader>Thinking</ChainOfThoughtHeader>
-              <ChainOfThoughtContent>
-                <div className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 whitespace-pre-wrap break-words">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                    {reasoning}
-                  </ReactMarkdown>
-                </div>
-              </ChainOfThoughtContent>
-            </ChainOfThought>
-          )}
-          {isStreaming ? (
-            <StreamingText content={content} isStreaming />
-          ) : (
-            <div className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2">
+  return (
+    <div className="group/message">
+      {name && (
+        <p className="mb-1 text-xs font-medium text-muted-foreground">{name}</p>
+      )}
+
+      {reasoning && (
+        <ChainOfThought className="mb-2">
+          <ChainOfThoughtHeader>Reasoning</ChainOfThoughtHeader>
+          <ChainOfThoughtContent>
+            <div className={`${markdownStyles} whitespace-pre-wrap break-words text-muted-foreground`}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                {content}
+                {reasoning}
               </ReactMarkdown>
             </div>
-          )}
-        </div>
+          </ChainOfThoughtContent>
+        </ChainOfThought>
+      )}
 
-        {!isUser && !isStreaming && (
-          <div className="mt-1 flex flex-wrap items-center gap-1">
-            {messageId && swipes.length > 1 && onSwipe && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => onSwipe(messageId, "left")}
-                >
-                  {"<"}
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  {swipeId + 1}/{swipes.length}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => onSwipe(messageId, "right")}
-                >
-                  {">"}
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleCopy}>
-              Copy
-            </Button>
-            {onRegenerate && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={onRegenerate}
-              >
-                Regenerate
-              </Button>
-            )}
-            {messageId && onDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs text-destructive"
-                onClick={() => onDelete(messageId)}
-              >
-                Delete
-              </Button>
-            )}
+      <div className="text-sm leading-relaxed">
+        {isStreaming ? (
+          <StreamingText content={content} isStreaming />
+        ) : (
+          <div className={markdownStyles}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+              {content}
+            </ReactMarkdown>
           </div>
         )}
       </div>
+
+      {!isStreaming && (
+        <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100 has-[:focus-visible]:opacity-100">
+          <ActionButton icon={Copy01Icon} label="Copy" onClick={handleCopy} />
+
+          {onRegenerate && (
+            <ActionButton icon={RefreshIcon} label="Regenerate" onClick={onRegenerate} />
+          )}
+
+          <ActionButton icon={ThumbsUpIcon} label="Good" onClick={() => {}} />
+          <ActionButton icon={ThumbsDownIcon} label="Bad" onClick={() => {}} />
+
+          {messageId && swipes.length > 1 && onSwipe && (
+            <div className="ml-1 flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => onSwipe(messageId, "left")}
+              >
+                <HugeiconsIcon icon={ArrowLeft01Icon} size={15} strokeWidth={1.5} />
+              </Button>
+              <span className="min-w-[2rem] text-center text-xs tabular-nums text-muted-foreground">
+                {swipeId + 1}/{swipes.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => onSwipe(messageId, "right")}
+              >
+                <HugeiconsIcon icon={ArrowRight01Icon} size={15} strokeWidth={1.5} />
+              </Button>
+            </div>
+          )}
+
+          {messageId && onDelete && (
+            <ActionButton
+              icon={Delete01Icon}
+              label="Delete"
+              onClick={() => onDelete(messageId)}
+              variant="destructive"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

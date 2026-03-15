@@ -1,29 +1,37 @@
-# Next-Arctravern
+# Arctravern
 
 A modern rewrite of [SillyTavern](https://github.com/SillyTavern/SillyTavern) with a clean architecture.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16 + React 19 + TypeScript + shadcn/ui + Tailwind CSS 4
+- **Frontend**: Vite 8 + React 19 + TypeScript + shadcn/ui + Tailwind CSS 4
 - **Backend**: NestJS 11 + TypeScript
 - **Database**: SQLite (sql.js)
-- **Package Manager**: Bun (monorepo)
+- **Tooling**: Vite+ (`vp`) + pnpm workspace monorepo
 
 ## Quick Start
 
 ```bash
-bun install
-bun dev
+pnpm install
+pnpm dev
 ```
 
 Frontend runs on `http://localhost:3000`, backend on `http://localhost:3001`.
 
+## Validation
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
+
 ## Project Structure
 
-```
-├── client/     # Next.js frontend (@arctravern/client)
-├── server/     # NestJS backend (@arctravern/server)
-└── specs/      # Implementation specs
+```text
+client/     # Vite frontend (@arctravern/client)
+server/     # NestJS backend (@arctravern/server)
+specs/      # Implementation specs
 ```
 
 ## License

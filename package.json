@@ -1,22 +1,27 @@
 {
-  "name": "next-arctravern",
+  "name": "arctravern",
   "private": true,
+  "packageManager": "pnpm@10.25.0",
   "workspaces": [
     "client",
     "server"
   ],
   "scripts": {
     "dev:clean-ports": "powershell -ExecutionPolicy Bypass -File ./scripts/kill-dev-ports.ps1 -StartPort 3000 -EndPort 3999",
-    "dev": "bun run dev:clean-ports && bun run --filter '*' dev",
-    "dev:client": "bun run --filter @arctravern/client dev",
-    "dev:server": "bun run --filter @arctravern/server dev",
-    "build": "bun run --filter '*' build",
-    "build:client": "bun run --filter @arctravern/client build",
-    "build:server": "bun run --filter @arctravern/server build",
-    "test:phase1": "bun run --filter @arctravern/server test",
-    "test": "bun run test:phase1"
+    "dev": "pnpm dev:clean-ports && pnpm --parallel --filter @arctravern/client --filter @arctravern/server dev",
+    "dev:client": "pnpm --filter @arctravern/client dev",
+    "dev:server": "pnpm --filter @arctravern/server dev",
+    "check": "vp run check -r",
+    "build": "vp run build -r",
+    "build:client": "pnpm --filter @arctravern/client build",
+    "build:server": "pnpm --filter @arctravern/server build",
+    "test": "vp run test -r",
+    "test:client": "pnpm --filter @arctravern/client test",
+    "test:server": "pnpm --filter @arctravern/server test",
+    "ready": "pnpm check && pnpm test && pnpm build"
   },
   "devDependencies": {
-    "shadcn": "^3.8.5"
+    "shadcn": "^3.8.5",
+    "vite-plus": "0.1.11"
   }
 }

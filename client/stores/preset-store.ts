@@ -27,7 +27,11 @@ interface PresetState {
   deletePreset: (id: number, apiType: string) => Promise<void>;
 
   /** Import a preset from JSON */
-  importPreset: (name: string, apiType: string, jsonData: Record<string, unknown>) => Promise<Preset>;
+  importPreset: (
+    name: string,
+    apiType: string,
+    jsonData: Record<string, unknown>,
+  ) => Promise<Preset>;
 
   /** Restore a default preset to its original state */
   restorePreset: (id: number, apiType: string) => Promise<void>;
@@ -115,21 +119,29 @@ export const usePresetStore = create<PresetState>()(
           if (typeof data.openai_max_tokens === "number") conn.setMaxTokens(data.openai_max_tokens);
           if (typeof data.top_p === "number") conn.setTopP(data.top_p);
           if (typeof data.top_k === "number") conn.setTopK(data.top_k);
-          if (typeof data.frequency_penalty === "number") conn.setFrequencyPenalty(data.frequency_penalty);
-          if (typeof data.presence_penalty === "number") conn.setPresencePenalty(data.presence_penalty);
+          if (typeof data.frequency_penalty === "number")
+            conn.setFrequencyPenalty(data.frequency_penalty);
+          if (typeof data.presence_penalty === "number")
+            conn.setPresencePenalty(data.presence_penalty);
           if (typeof data.top_a === "number") conn.setTopA(data.top_a);
           if (typeof data.min_p === "number") conn.setMinP(data.min_p);
-          if (typeof data.repetition_penalty === "number") conn.setRepetitionPenalty(data.repetition_penalty);
-          if (typeof data.openai_max_context === "number") conn.setMaxContext(data.openai_max_context);
+          if (typeof data.repetition_penalty === "number")
+            conn.setRepetitionPenalty(data.repetition_penalty);
+          if (typeof data.openai_max_context === "number")
+            conn.setMaxContext(data.openai_max_context);
           if (typeof data.stream_openai === "boolean") conn.setStreamEnabled(data.stream_openai);
           if (typeof data.seed === "number") conn.setSeed(data.seed);
 
           // Prompt behavior
-          if (typeof data.assistant_prefill === "string") conn.setAssistantPrefill(data.assistant_prefill);
-          if (typeof data.continue_prefill === "boolean") conn.setContinuePrefill(data.continue_prefill);
-          if (typeof data.continue_postfix === "string") conn.setContinuePostfix(data.continue_postfix);
+          if (typeof data.assistant_prefill === "string")
+            conn.setAssistantPrefill(data.assistant_prefill);
+          if (typeof data.continue_prefill === "boolean")
+            conn.setContinuePrefill(data.continue_prefill);
+          if (typeof data.continue_postfix === "string")
+            conn.setContinuePostfix(data.continue_postfix);
           if (typeof data.names_behavior === "number") conn.setNamesBehavior(data.names_behavior);
-          if (typeof data.squash_system_messages === "boolean") conn.setSquashSystemMessages(data.squash_system_messages);
+          if (typeof data.squash_system_messages === "boolean")
+            conn.setSquashSystemMessages(data.squash_system_messages);
 
           // Reverse proxy
           if (typeof data.reverse_proxy === "string") conn.setReverseProxy(data.reverse_proxy);
@@ -137,8 +149,17 @@ export const usePresetStore = create<PresetState>()(
           // Prompt order
           if (Array.isArray(data.prompts) && Array.isArray(data.prompt_order)) {
             promptMgr.loadFromPreset(
-              data.prompts as Array<{ identifier: string; name: string; role?: string; content?: string; marker?: boolean }>,
-              data.prompt_order as Array<{ character_id: number; order: Array<{ identifier: string; enabled: boolean }> }>,
+              data.prompts as Array<{
+                identifier: string;
+                name: string;
+                role?: string;
+                content?: string;
+                marker?: boolean;
+              }>,
+              data.prompt_order as Array<{
+                character_id: number;
+                order: Array<{ identifier: string; enabled: boolean }>;
+              }>,
             );
           }
         } else if (preset.apiType === "sysprompt") {

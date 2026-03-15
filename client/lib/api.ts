@@ -1,21 +1,9 @@
 import { jsonSchema, parseJsonEventStream } from "ai";
 
-const EXPLICIT_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "")
-  .trim()
-  .replace(/\/+$/, "");
+export function getApiBase() {
+  const explicitApiBase = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/+$/, "");
 
-function getApiBase() {
-  if (EXPLICIT_API_BASE) return EXPLICIT_API_BASE;
-
-  // In local dev, bypass Next rewrite proxy for streaming stability.
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
-      return "http://localhost:3001/api";
-    }
-  }
-
-  return "/api";
+  return explicitApiBase || "/api";
 }
 
 type RawRecord = Record<string, unknown>;
@@ -99,8 +87,10 @@ function mapCharacter(rawInput: unknown): Character {
     mesExample: fromRaw(coalesceRaw(raw, "mes_example", "mesExample"), ""),
     scenario: fromRaw(raw.scenario, ""),
     systemPrompt: fromRaw(coalesceRaw(raw, "system_prompt", "systemPrompt"), ""),
-    postHistoryInstructions:
-      fromRaw(coalesceRaw(raw, "post_history_instructions", "postHistoryInstructions"), ""),
+    postHistoryInstructions: fromRaw(
+      coalesceRaw(raw, "post_history_instructions", "postHistoryInstructions"),
+      "",
+    ),
     alternateGreetings: parseJson<string[]>(
       coalesceRaw(raw, "alternate_greetings", "alternateGreetings") ?? "[]",
       [],
@@ -182,9 +172,7 @@ function toCharacterPayload(data: Partial<Character>) {
     payload.extensions = JSON.stringify(data.extensions);
   }
   if (data.characterBook !== undefined) {
-    payload.characterBook = data.characterBook
-      ? JSON.stringify(data.characterBook)
-      : null;
+    payload.characterBook = data.characterBook ? JSON.stringify(data.characterBook) : null;
   }
   return payload;
 }
@@ -469,11 +457,7 @@ export const aiApi = {
       yield chunk;
     }
   },
-  async healthCheck(req: {
-    provider: string;
-    apiKey?: string;
-    baseUrl: string;
-  }) {
+  async healthCheck(req: { provider: string; apiKey?: string; baseUrl: string }) {
     return request<{
       status: "ok" | "error";
       message: string;
@@ -547,7 +531,9 @@ export const presetApi = {
       }),
     );
   },
-  async export(id: number): Promise<{ name: string; apiType: string; data: Record<string, unknown> }> {
+  async export(
+    id: number,
+  ): Promise<{ name: string; apiType: string; data: Record<string, unknown> }> {
     return request(`/presets/${id}/export`);
   },
   async restore(id: number): Promise<{ isDefault: boolean; preset: Record<string, unknown> }> {
@@ -579,13 +565,7 @@ function mapPreset(rawInput: unknown): Preset {
   };
 }
 
-export type Provider =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "openrouter"
-  | "mistral"
-  | "custom";
+export type Provider = "openai" | "anthropic" | "google" | "openrouter" | "mistral" | "custom";
 
 export type GenerationType =
   | "normal"
@@ -672,11 +652,7 @@ export interface CompletionRequest {
   stream?: boolean;
   stop?: string[];
   tools?: unknown[];
-  toolChoice?:
-    | "auto"
-    | "none"
-    | "required"
-    | { type: string; function: { name: string } };
+  toolChoice?: "auto" | "none" | "required" | { type: string; function: { name: string } };
   assistantPrefill?: string;
   jsonSchema?: { name: string; description?: string; value: object };
   reasoningEffort?: string;
@@ -718,11 +694,19 @@ export const tagApi = {
   async getOne(id: string) {
     return mapTag(await request<unknown>(`/tags/${id}`));
   },
-  async create(data: { name: string; folderType?: string; sortOrder?: number; color?: string; color2?: string }) {
+  async create(data: {
+    name: string;
+    folderType?: string;
+    sortOrder?: number;
+    color?: string;
+    color2?: string;
+  }) {
     return mapTag(await request<unknown>("/tags", { method: "POST", body: JSON.stringify(data) }));
   },
   async update(id: string, data: Partial<Tag>) {
-    return mapTag(await request<unknown>(`/tags/${id}`, { method: "PUT", body: JSON.stringify(data) }));
+    return mapTag(
+      await request<unknown>(`/tags/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    );
   },
   async delete(id: string) {
     return mapTag(await request<unknown>(`/tags/${id}`, { method: "DELETE" }));
@@ -807,11 +791,22 @@ export const personaApi = {
     const raw = await request<unknown>("/personas/default");
     return raw ? mapPersona(raw) : null;
   },
-  async create(data: { name: string; description?: string; position?: number; depth?: number; role?: number; isDefault?: boolean }) {
-    return mapPersona(await request<unknown>("/personas", { method: "POST", body: JSON.stringify(data) }));
+  async create(data: {
+    name: string;
+    description?: string;
+    position?: number;
+    depth?: number;
+    role?: number;
+    isDefault?: boolean;
+  }) {
+    return mapPersona(
+      await request<unknown>("/personas", { method: "POST", body: JSON.stringify(data) }),
+    );
   },
   async update(id: string, data: Partial<Persona>) {
-    return mapPersona(await request<unknown>(`/personas/${id}`, { method: "PUT", body: JSON.stringify(data) }));
+    return mapPersona(
+      await request<unknown>(`/personas/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    );
   },
   async delete(id: string) {
     return mapPersona(await request<unknown>(`/personas/${id}`, { method: "DELETE" }));
@@ -819,7 +814,10 @@ export const personaApi = {
   async uploadAvatar(id: string, file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch(`${getApiBase()}/personas/${id}/avatar`, { method: "POST", body: formData });
+    const res = await fetch(`${getApiBase()}/personas/${id}/avatar`, {
+      method: "POST",
+      body: formData,
+    });
     if (!res.ok) throw new Error(`API Error ${res.status}: ${await res.text()}`);
     return mapPersona(await res.json());
   },
@@ -827,7 +825,10 @@ export const personaApi = {
     const items = await request<unknown[]>(`/personas/${id}/connections`);
     return items.map(mapPersonaConnection);
   },
-  async updateConnections(id: string, connections: Array<{ entityType: string; entityId: string }>) {
+  async updateConnections(
+    id: string,
+    connections: Array<{ entityType: string; entityId: string }>,
+  ) {
     const items = await request<unknown[]>(`/personas/${id}/connections`, {
       method: "PUT",
       body: JSON.stringify({ connections }),
@@ -944,16 +945,18 @@ export const worldInfoApi = {
     const rawRecord = toRawRecord(raw);
     return {
       ...mapWorldInfoBook(raw),
-      entries: Array.isArray(rawRecord.entries)
-        ? rawRecord.entries.map(mapWorldInfoEntry)
-        : [],
+      entries: Array.isArray(rawRecord.entries) ? rawRecord.entries.map(mapWorldInfoEntry) : [],
     };
   },
   async createBook(data: { name: string; description?: string }) {
-    return mapWorldInfoBook(await request<unknown>("/world-info", { method: "POST", body: JSON.stringify(data) }));
+    return mapWorldInfoBook(
+      await request<unknown>("/world-info", { method: "POST", body: JSON.stringify(data) }),
+    );
   },
   async updateBook(id: number, data: Partial<WorldInfoBook>) {
-    return mapWorldInfoBook(await request<unknown>(`/world-info/${id}`, { method: "PUT", body: JSON.stringify(data) }));
+    return mapWorldInfoBook(
+      await request<unknown>(`/world-info/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    );
   },
   async deleteBook(id: number) {
     return mapWorldInfoBook(await request<unknown>(`/world-info/${id}`, { method: "DELETE" }));
@@ -962,12 +965,18 @@ export const worldInfoApi = {
     const payload: Record<string, unknown> = { ...data };
     if (data.keys) payload.keys = JSON.stringify(data.keys);
     if (data.secondaryKeys) payload.secondary_keys = JSON.stringify(data.secondaryKeys);
-    return mapWorldInfoEntry(await request<unknown>(`/world-info/${bookId}/entries`, { method: "POST", body: JSON.stringify(payload) }));
+    return mapWorldInfoEntry(
+      await request<unknown>(`/world-info/${bookId}/entries`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    );
   },
   async updateEntry(entryId: number, data: Partial<WorldInfoEntry>) {
     const payload: Record<string, unknown> = {};
     if (data.keys !== undefined) payload.keys = JSON.stringify(data.keys);
-    if (data.secondaryKeys !== undefined) payload.secondaryKeys = JSON.stringify(data.secondaryKeys);
+    if (data.secondaryKeys !== undefined)
+      payload.secondaryKeys = JSON.stringify(data.secondaryKeys);
     if (data.content !== undefined) payload.content = data.content;
     if (data.comment !== undefined) payload.comment = data.comment;
     if (data.enabled !== undefined) payload.enabled = data.enabled ? 1 : 0;
@@ -986,13 +995,26 @@ export const worldInfoApi = {
     if (data.sticky !== undefined) payload.sticky = data.sticky;
     if (data.cooldown !== undefined) payload.cooldown = data.cooldown;
     if (data.delay !== undefined) payload.delay = data.delay;
-    return mapWorldInfoEntry(await request<unknown>(`/world-info/entries/${entryId}`, { method: "PUT", body: JSON.stringify(payload) }));
+    return mapWorldInfoEntry(
+      await request<unknown>(`/world-info/entries/${entryId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+    );
   },
   async deleteEntry(entryId: number) {
-    return mapWorldInfoEntry(await request<unknown>(`/world-info/entries/${entryId}`, { method: "DELETE" }));
+    return mapWorldInfoEntry(
+      await request<unknown>(`/world-info/entries/${entryId}`, { method: "DELETE" }),
+    );
   },
-  async importBook(data: { name: string; description?: string; entries: Array<Record<string, unknown>> }) {
-    return mapWorldInfoBook(await request<unknown>("/world-info/import", { method: "POST", body: JSON.stringify(data) }));
+  async importBook(data: {
+    name: string;
+    description?: string;
+    entries: Array<Record<string, unknown>>;
+  }) {
+    return mapWorldInfoBook(
+      await request<unknown>("/world-info/import", { method: "POST", body: JSON.stringify(data) }),
+    );
   },
   async exportBook(id: number) {
     return requestBlob(`/world-info/${id}/export`);
@@ -1062,21 +1084,27 @@ export const groupApi = {
     return mapGroup(await request<unknown>(`/groups/${id}`));
   },
   async create(data: { name: string; activationStrategy?: number; generationMode?: number }) {
-    return mapGroup(await request<unknown>("/groups", { method: "POST", body: JSON.stringify(data) }));
+    return mapGroup(
+      await request<unknown>("/groups", { method: "POST", body: JSON.stringify(data) }),
+    );
   },
   async update(id: string, data: Partial<Group>) {
     const payload: Record<string, unknown> = {};
     if (data.name !== undefined) payload.name = data.name;
     if (data.avatarUrl !== undefined) payload.avatarUrl = data.avatarUrl;
-    if (data.allowSelfResponses !== undefined) payload.allowSelfResponses = data.allowSelfResponses ? 1 : 0;
+    if (data.allowSelfResponses !== undefined)
+      payload.allowSelfResponses = data.allowSelfResponses ? 1 : 0;
     if (data.activationStrategy !== undefined) payload.activationStrategy = data.activationStrategy;
     if (data.generationMode !== undefined) payload.generationMode = data.generationMode;
-    if (data.disabledMembers !== undefined) payload.disabledMembers = JSON.stringify(data.disabledMembers);
+    if (data.disabledMembers !== undefined)
+      payload.disabledMembers = JSON.stringify(data.disabledMembers);
     if (data.fav !== undefined) payload.fav = data.fav ? 1 : 0;
     if (data.autoModeDelay !== undefined) payload.autoModeDelay = data.autoModeDelay;
     if (data.joinPrefix !== undefined) payload.joinPrefix = data.joinPrefix;
     if (data.joinSuffix !== undefined) payload.joinSuffix = data.joinSuffix;
-    return mapGroup(await request<unknown>(`/groups/${id}`, { method: "PUT", body: JSON.stringify(payload) }));
+    return mapGroup(
+      await request<unknown>(`/groups/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+    );
   },
   async delete(id: string) {
     return mapGroup(await request<unknown>(`/groups/${id}`, { method: "DELETE" }));
@@ -1093,7 +1121,9 @@ export const groupApi = {
     return items.map(mapGroupMember);
   },
   async removeMember(id: string, characterId: number) {
-    const items = await request<unknown[]>(`/groups/${id}/members/${characterId}`, { method: "DELETE" });
+    const items = await request<unknown[]>(`/groups/${id}/members/${characterId}`, {
+      method: "DELETE",
+    });
     return items.map(mapGroupMember);
   },
   async *generate(

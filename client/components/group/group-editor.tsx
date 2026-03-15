@@ -49,7 +49,9 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
       <div className="space-y-1">
         <Label>Turn Strategy</Label>
         <Select value={strategy} onValueChange={(value) => setStrategy(value ?? "0")}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="0">Natural</SelectItem>
             <SelectItem value="1">List (Round-robin)</SelectItem>
@@ -66,7 +68,10 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
             {members.map((m) => {
               const char = characters.find((c) => c.id === m.characterId);
               return (
-                <div key={m.characterId} className="flex items-center justify-between rounded border px-2 py-1 text-xs">
+                <div
+                  key={m.characterId}
+                  className="flex items-center justify-between rounded border px-2 py-1 text-xs"
+                >
                   <span>{char?.name ?? `Character #${m.characterId}`}</span>
                   <button
                     className="text-muted-foreground hover:text-destructive"
@@ -80,10 +85,14 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
           </div>
           {availableChars.length > 0 && (
             <Select onValueChange={(v) => addMember(group.id, Number(v))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Add member..." /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Add member..." />
+              </SelectTrigger>
               <SelectContent>
                 {availableChars.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -92,8 +101,12 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
       )}
 
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>{group ? "Update" : "Create"}</Button>
-        <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+        <Button size="sm" onClick={handleSave}>
+          {group ? "Update" : "Create"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

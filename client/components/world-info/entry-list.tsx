@@ -38,7 +38,9 @@ export function EntryList({ onEditEntry }: EntryListProps) {
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 text-xs"
         />
-        <Button size="sm" variant="outline" onClick={handleAddEntry}>+ Entry</Button>
+        <Button size="sm" variant="outline" onClick={handleAddEntry}>
+          + Entry
+        </Button>
       </div>
       <div className="max-h-[400px] space-y-1 overflow-y-auto">
         {filtered.map((entry) => (
@@ -49,13 +51,15 @@ export function EntryList({ onEditEntry }: EntryListProps) {
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
-                <span className={`h-2 w-2 rounded-full ${entry.enabled ? "bg-green-500" : "bg-gray-400"}`} />
-                <span className="truncate font-medium">{entry.comment || entry.keys.join(", ") || "Untitled"}</span>
+                <span
+                  className={`h-2 w-2 rounded-full ${entry.enabled ? "bg-green-500" : "bg-gray-400"}`}
+                />
+                <span className="truncate font-medium">
+                  {entry.comment || entry.keys.join(", ") || "Untitled"}
+                </span>
                 {entry.constant && <span className="text-[10px] text-blue-400">const</span>}
               </div>
-              <div className="truncate text-muted-foreground">
-                Keys: {entry.keys.join(", ")}
-              </div>
+              <div className="truncate text-muted-foreground">Keys: {entry.keys.join(", ")}</div>
             </div>
             <button
               className="ml-2 text-muted-foreground hover:text-destructive"

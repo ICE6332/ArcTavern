@@ -20,7 +20,9 @@ export function GroupList({ onSelectGroup, onCreateGroup }: GroupListProps) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Groups</h3>
-        <Button size="sm" variant="outline" onClick={onCreateGroup}>+ New</Button>
+        <Button size="sm" variant="outline" onClick={onCreateGroup}>
+          + New
+        </Button>
       </div>
       <div className="space-y-1">
         {groups.map((group) => (
@@ -43,9 +45,7 @@ export function GroupList({ onSelectGroup, onCreateGroup }: GroupListProps) {
             </button>
           </div>
         ))}
-        {groups.length === 0 && (
-          <p className="text-xs text-muted-foreground">No groups yet</p>
-        )}
+        {groups.length === 0 && <p className="text-xs text-muted-foreground">No groups yet</p>}
       </div>
     </div>
   );

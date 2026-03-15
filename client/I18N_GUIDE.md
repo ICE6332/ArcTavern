@@ -1,41 +1,32 @@
+# i18n Guide
 
-# i18n 集成指南
+The frontend uses a lightweight client-side i18n setup built on top of:
 
-## 已完成的工作
+1. `client/locales/en/common.json`
+2. `client/locales/zh/common.json`
+3. `client/stores/language-store.ts`
+4. `client/lib/i18n.tsx`
 
-1. ✅ 安装了 next-intl 包
-2. ✅ 创建了翻译文件:
-   - client/locales/en/common.json (英文)
-   - client/locales/zh/common.json (中文)
-3. ✅ 创建了 i18n.ts 配置文件
-4. ✅ 更新了 next.config.ts
-5. ✅ 创建了 app/[locale] 目录结构
-6. ✅ 创建了语言切换组件: components/i18n/language-switcher.tsx
-7. ✅ 创建了 middleware.ts
+## How it works
 
-## 如何在组件中使用翻译
+- The selected language is stored in Zustand and persisted to local storage.
+- `useTranslation()` looks up keys from the JSON locale bundles at runtime.
+- There is no locale-aware router or URL segment. The app remains a single-page interface.
 
-### 1. 导入 hook
+## Usage
 
+```tsx
+import { useTranslation } from "@/lib/i18n";
 
-### 2. 在组件中使用
+export function Example() {
+  const { t } = useTranslation();
 
+  return <span>{t("settings.language")}</span>;
+}
+```
 
-### 3. 添加语言切换器
+## Adding strings
 
-
-## 访问应用
-
-- 英文版: http://localhost:3000/en
-- 中文版: http://localhost:3000/zh
-
-## 下一步
-
-需要手动更新以下组件以使用翻译:
-- components/settings/settings-panel.tsx (已提供示例)
-- components/chat/chat-panel.tsx
-- components/chat/chat-input.tsx
-- components/sidebar/sidebar.tsx
-- components/character/* (所有角色相关组件)
-
-参考 components/settings/settings-panel-i18n-example.tsx 了解如何添加翻译。
+1. Add the new key to `client/locales/en/common.json`.
+2. Add the matching translated key to `client/locales/zh/common.json`.
+3. Reference it with `t("path.to.key")`.

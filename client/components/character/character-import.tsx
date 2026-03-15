@@ -51,7 +51,13 @@ export function CharacterImport() {
         className="hidden"
         onChange={handleFile}
       />
-      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handlePick} disabled={loading}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={handlePick}
+        disabled={loading}
+      >
         {loading ? "Importing..." : "Import"}
       </Button>
     </>

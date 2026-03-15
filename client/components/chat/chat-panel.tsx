@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { useConnectionStore } from "@/stores/connection-store";
@@ -8,7 +8,26 @@ import { usePromptManagerStore } from "@/stores/prompt-manager-store";
 import { chatDebug } from "@/lib/chat-debug";
 import { ChatInput } from "./chat-input";
 import { MessageBubble } from "./message-bubble";
+import { DotsLoader } from "@/components/ui/loader";
+import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { useTranslation } from "@/lib/i18n";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  UserIcon,
+  FileImportIcon,
+  Add01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+
+const GREETINGS = [
+  "欢迎回来~ 今天也要开心地聊天呀",
+  "好想你呀，终于等到你来了",
+  "你来啦~ 世界都变得明亮了呢",
+  "每次见到你都好开心，今天聊点什么呢",
+  "等你好久了~ 快来和我聊聊天吧",
+  "又见面了呢，今天的你一定也很棒",
+];
 
 export function ChatPanel() {
   const { t } = useTranslation();
@@ -42,7 +61,6 @@ export function ChatPanel() {
   }, [messages]);
   const hasAssistantMessage = latestAssistantMessageId !== null;
 
-  // Build prompt order and custom prompts from the prompt manager
   const promptOrder = useMemo(
     () =>
       [...promptComponents]
@@ -124,41 +142,22 @@ export function ChatPanel() {
     await sendMessage(content, generationConfig);
   };
 
-  if (!selectedId) {
-    return (
-      <main className="flex flex-1 items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          <p className="text-lg font-medium">{t("chat.welcome")}</p>
-          <p className="mt-1 text-sm">{t("chat.selectCharacter")}</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!currentChatId) {
-    return (
-      <main className="flex flex-1 items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          <p className="text-sm">{t("chat.selectChat")}</p>
-        </div>
-      </main>
-    );
+  if (!selectedId || !currentChatId) {
+    return <WelcomeScreen />;
   }
 
   return (
     <main className="flex min-h-0 flex-1 flex-col">
-      {/* Header */}
-      <div className="flex h-12 items-center border-b border-border px-4">
+      <div className="flex h-10 shrink-0 items-center border-b border-border px-4">
         <span className="text-sm font-medium">{selectedChar?.name ?? t("chat.defaultTitle")}</span>
       </div>
 
-      {/* Messages */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 scrollbar-chat p-4"
+        className="min-h-0 flex-1 overflow-y-auto px-4 py-6 [scrollbar-gutter:stable]"
       >
-        <div className="mx-auto flex max-w-3xl flex-col gap-4">
+        <div className="mx-auto flex max-w-3xl flex-col gap-6">
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
@@ -179,8 +178,7 @@ export function ChatPanel() {
             />
           ))}
 
-          {/* Streaming message */}
-          {isGenerating && (
+          {isGenerating && (streamingContent || streamingReasoning) && (
             <MessageBubble
               role="assistant"
               name={selectedChar?.name}
@@ -190,21 +188,17 @@ export function ChatPanel() {
             />
           )}
 
-          {/* Generating indicator */}
-          {isGenerating && !streamingContent && (
-            <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground">
-                {selectedChar?.name?.charAt(0)?.toUpperCase() ?? "A"}
-              </div>
-              <div className="rounded-2xl border border-border bg-card px-4 py-2.5 text-sm">
-                <span className="text-shimmer">Generating...</span>
-              </div>
+          {isGenerating && !streamingContent && !streamingReasoning && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                {selectedChar?.name ?? "Assistant"}
+              </p>
+              <DotsLoader size="md" className="text-muted-foreground" />
             </div>
           )}
         </div>
       </div>
 
-      {/* Input */}
       <ChatInput
         onSend={handleSend}
         onStop={stopGeneration}
@@ -216,6 +210,58 @@ export function ChatPanel() {
         isGenerating={isGenerating}
         disabled={false}
       />
+    </main>
+  );
+}
+
+function WelcomeScreen() {
+  const { createCharacter, fetchCharacters } = useCharacterStore();
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+
+  const handleCreateCharacter = async () => {
+    const created = await createCharacter({
+      name: "New Character",
+      description: "",
+    });
+    useCharacterStore.getState().selectCharacter(created.id);
+    const { createChat, selectChat } = useChatStore.getState();
+    const chat = await createChat(created.id);
+    await selectChat(chat.id);
+  };
+
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center px-4">
+      <div className="flex max-w-2xl flex-col items-center gap-8 text-center">
+        <div className="space-y-3">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            <Shimmer duration={3} spread={1.5}>
+              {`✦ ${greeting}`}
+            </Shimmer>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            在侧边栏选一个角色，开启你的奇妙对话吧
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <PromptSuggestion onClick={() => void fetchCharacters()}>
+            <HugeiconsIcon icon={UserIcon} size={14} strokeWidth={1.5} />
+            <span className="ml-1.5">浏览角色</span>
+          </PromptSuggestion>
+          <PromptSuggestion onClick={() => void handleCreateCharacter()}>
+            <HugeiconsIcon icon={Add01Icon} size={14} strokeWidth={1.5} />
+            <span className="ml-1.5">创建角色</span>
+          </PromptSuggestion>
+          <PromptSuggestion>
+            <HugeiconsIcon icon={FileImportIcon} size={14} strokeWidth={1.5} />
+            <span className="ml-1.5">导入角色</span>
+          </PromptSuggestion>
+          <PromptSuggestion>
+            <HugeiconsIcon icon={UserGroupIcon} size={14} strokeWidth={1.5} />
+            <span className="ml-1.5">群组聊天</span>
+          </PromptSuggestion>
+        </div>
+      </div>
     </main>
   );
 }

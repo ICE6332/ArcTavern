@@ -29,18 +29,114 @@ interface STPromptOrderEntry {
 }
 
 const DEFAULT_COMPONENTS: PromptComponent[] = [
-  { id: "main", name: "Main Prompt", enabled: true, position: 0, role: "system", isBuiltIn: true, isMarker: false },
-  { id: "worldInfoBefore", name: "World Info (Before)", enabled: true, position: 1, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "charDescription", name: "Character Description", enabled: true, position: 2, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "charPersonality", name: "Character Personality", enabled: true, position: 3, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "scenario", name: "Scenario", enabled: true, position: 4, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "enhanceDefinitions", name: "Enhance Definitions", enabled: false, position: 5, role: "system", isBuiltIn: true, isMarker: false },
-  { id: "nsfw", name: "NSFW Prompt", enabled: true, position: 6, role: "system", isBuiltIn: true, isMarker: false },
-  { id: "worldInfoAfter", name: "World Info (After)", enabled: true, position: 7, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "personaDescription", name: "Persona Description", enabled: true, position: 8, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "dialogueExamples", name: "Chat Examples", enabled: true, position: 9, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "chatHistory", name: "Chat History", enabled: true, position: 10, role: "system", isBuiltIn: true, isMarker: true },
-  { id: "jailbreak", name: "Post-History Instructions", enabled: true, position: 11, role: "system", isBuiltIn: true, isMarker: false },
+  {
+    id: "main",
+    name: "Main Prompt",
+    enabled: true,
+    position: 0,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: false,
+  },
+  {
+    id: "worldInfoBefore",
+    name: "World Info (Before)",
+    enabled: true,
+    position: 1,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "charDescription",
+    name: "Character Description",
+    enabled: true,
+    position: 2,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "charPersonality",
+    name: "Character Personality",
+    enabled: true,
+    position: 3,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "scenario",
+    name: "Scenario",
+    enabled: true,
+    position: 4,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "enhanceDefinitions",
+    name: "Enhance Definitions",
+    enabled: false,
+    position: 5,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: false,
+  },
+  {
+    id: "nsfw",
+    name: "NSFW Prompt",
+    enabled: true,
+    position: 6,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: false,
+  },
+  {
+    id: "worldInfoAfter",
+    name: "World Info (After)",
+    enabled: true,
+    position: 7,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "personaDescription",
+    name: "Persona Description",
+    enabled: true,
+    position: 8,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "dialogueExamples",
+    name: "Chat Examples",
+    enabled: true,
+    position: 9,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "chatHistory",
+    name: "Chat History",
+    enabled: true,
+    position: 10,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: true,
+  },
+  {
+    id: "jailbreak",
+    name: "Post-History Instructions",
+    enabled: true,
+    position: 11,
+    role: "system",
+    isBuiltIn: true,
+    isMarker: false,
+  },
 ];
 const BUILT_IN_IDS = new Set(DEFAULT_COMPONENTS.map((component) => component.id));
 
@@ -53,7 +149,11 @@ interface PromptManagerState {
     id: string,
     patch: Partial<Pick<PromptComponent, "name" | "role" | "content" | "enabled">>,
   ) => void;
-  addCustomComponent: (name: string, role: "system" | "user" | "assistant", content: string) => void;
+  addCustomComponent: (
+    name: string,
+    role: "system" | "user" | "assistant",
+    content: string,
+  ) => void;
   removeCustomComponent: (id: string) => void;
   updateCustomContent: (id: string, content: string) => void;
   resetToDefaults: () => void;
@@ -74,9 +174,7 @@ export const usePromptManagerStore = create<PromptManagerState>()(
 
       toggleComponent: (id) =>
         set((s) => ({
-          components: s.components.map((c) =>
-            c.id === id ? { ...c, enabled: !c.enabled } : c,
-          ),
+          components: s.components.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)),
         })),
 
       moveComponent: (id, newPosition) =>
@@ -130,8 +228,7 @@ export const usePromptManagerStore = create<PromptManagerState>()(
             .map((c, i) => ({ ...c, position: i })),
         })),
 
-      updateCustomContent: (id, content) =>
-        get().updateComponent(id, { content }),
+      updateCustomContent: (id, content) => get().updateComponent(id, { content }),
 
       resetToDefaults: () => set({ components: DEFAULT_COMPONENTS }),
 
@@ -148,9 +245,7 @@ export const usePromptManagerStore = create<PromptManagerState>()(
         let position = 0;
 
         for (const orderItem of globalOrder.order) {
-          const promptDef = prompts.find(
-            (p) => p.identifier === orderItem.identifier,
-          );
+          const promptDef = prompts.find((p) => p.identifier === orderItem.identifier);
           if (!promptDef) continue;
 
           components.push({

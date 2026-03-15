@@ -1,21 +1,22 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository is a Bun workspace monorepo with two primary apps:
-- `client/`: Next.js 16 frontend (`app/`, `components/`, `stores/`, `lib/`, `public/`)
+This repository is a pnpm workspace monorepo with two primary apps:
+- `client/`: Vite 8 frontend (`src/`, `components/`, `stores/`, `lib/`, `public/`)
 - `server/`: NestJS 11 backend (`src/modules/*`, `src/db/*`, `src/main.ts`)
 
 Planning and implementation notes live in `specs/`. Runtime SQLite files are created under `server/data/` and must stay untracked.
 
 ## Build, Test, and Development Commands
-- `bun install`: install all workspace dependencies
-- `bun dev`: run frontend and backend in watch mode
-- `bun dev:client`: run only the client (`localhost:3000`)
-- `bun dev:server`: run only the API (`localhost:3001`)
-- `bun build`: build all packages
-- `bun run --filter @arctravern/client lint`: run client lint checks
+- `pnpm install`: install all workspace dependencies
+- `pnpm dev`: run frontend and backend in watch mode
+- `pnpm dev:client`: run only the client (`localhost:3000`)
+- `pnpm dev:server`: run only the API (`localhost:3001`)
+- `pnpm check`: run workspace checks
+- `pnpm build`: build all packages
+- `pnpm --filter @arctravern/client lint`: run client lint checks
 
-When iterating on one workspace, use filters (example: `bun run --filter @arctravern/server build`).
+When iterating on one workspace, use filters (example: `pnpm --filter @arctravern/server build`).
 
 ## Coding Style & Naming Conventions
 TypeScript `strict` mode is enabled across client and server. Keep new code fully typed.
@@ -28,10 +29,11 @@ TypeScript `strict` mode is enabled across client and server. Keep new code full
 Match existing quote style: client uses double quotes, server uses single quotes.
 
 ## Testing Guidelines
-There is no root `test` script yet. Validate changes with:
-1. `bun run --filter @arctravern/client lint`
-2. `bun build`
-3. Manual smoke check of `GET /api/health`
+Validate changes with:
+1. `pnpm --filter @arctravern/client check`
+2. `pnpm test`
+3. `pnpm build`
+4. Manual smoke check of `GET /api/health`
 
 Add backend tests in `server/src` as `*.spec.ts`. Add frontend tests near relevant code as `*.test.tsx`.
 

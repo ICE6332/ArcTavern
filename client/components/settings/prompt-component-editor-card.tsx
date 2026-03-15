@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { usePromptManagerStore, type PromptComponent } from "@/stores/prompt-manager-store";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -27,10 +34,7 @@ interface PromptDraft {
   enabled: boolean;
 }
 
-export function PromptComponentEditorCard({
-  component,
-  onBack,
-}: PromptComponentEditorCardProps) {
+export function PromptComponentEditorCard({ component, onBack }: PromptComponentEditorCardProps) {
   const { updateComponent, removeCustomComponent } = usePromptManagerStore();
   const [draft, setDraft] = useState<PromptDraft>({
     name: component.name,

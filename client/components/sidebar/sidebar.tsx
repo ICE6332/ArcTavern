@@ -108,8 +108,8 @@ export function Sidebar() {
     <SidebarPrimitive collapsible="icon">
       {/* Tab nav: row when expanded, column when icon-collapsed */}
       <SidebarHeader className="border-b border-border p-1.5">
-        <SidebarMenu className="flex-row gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-px group-data-[collapsible=icon]:items-center">
-          <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:flex-none">
+        <SidebarMenu className="flex-col gap-0.5">
+          <SidebarMenuItem>
             <SidebarMenuButton
               size="sm"
               isActive={tab === "characters"}
@@ -120,7 +120,7 @@ export function Sidebar() {
               <span>{t("sidebar.characters")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:flex-none">
+          <SidebarMenuItem>
             <SidebarMenuButton
               size="sm"
               isActive={tab === "chats"}
@@ -132,7 +132,7 @@ export function Sidebar() {
               <span>{t("sidebar.chats")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:flex-none">
+          <SidebarMenuItem>
             <SidebarMenuButton
               size="sm"
               isActive={tab === "groups"}
@@ -149,7 +149,9 @@ export function Sidebar() {
       <SidebarContent>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden flex-1 overflow-y-auto scrollbar-hide p-1.5">
           {loading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">{t("sidebar.loading")}</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              {t("sidebar.loading")}
+            </div>
           ) : tab === "characters" ? (
             <div className="flex flex-col gap-2">
               <TagFilter />
@@ -163,7 +165,9 @@ export function Sidebar() {
                     await deleteCharacter(id);
                     toast.success({ title: t("sidebar.characterDeleted") ?? "Character deleted" });
                   } catch {
-                    toast.error({ title: t("sidebar.characterDeleteFailed") ?? "Failed to delete character" });
+                    toast.error({
+                      title: t("sidebar.characterDeleteFailed") ?? "Failed to delete character",
+                    });
                   }
                 }}
                 onExport={(id) => void exportCharacter(id, "png")}
@@ -180,7 +184,9 @@ export function Sidebar() {
           ) : (
             <div className="flex flex-col gap-1">
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">{t("sidebar.chats")}</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("sidebar.chats")}
+                </span>
                 <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleNewChat}>
                   {t("sidebar.newChat")}
                 </Button>
@@ -203,7 +209,9 @@ export function Sidebar() {
                       onClick={() => void selectChat(chat.id)}
                       className="min-w-0 flex-1 text-left text-sm"
                     >
-                      <p className="truncate">{chat.name || `${t("sidebar.chatDefault")} #${chat.id}`}</p>
+                      <p className="truncate">
+                        {chat.name || `${t("sidebar.chatDefault")} #${chat.id}`}
+                      </p>
                       <p className="text-[11px] text-muted-foreground">
                         {chat.updatedAt ? new Date(chat.updatedAt).toLocaleString() : ""}
                       </p>
@@ -227,7 +235,11 @@ export function Sidebar() {
       {/* Footer: horizontal action buttons, hidden when icon-collapsed */}
       <SidebarFooter className="group-data-[collapsible=icon]:hidden border-t border-border p-1.5">
         <div className="flex flex-wrap gap-1">
-          <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => void handleNewCharacter()}>
+          <Button
+            size="sm"
+            className="h-7 flex-1 text-xs"
+            onClick={() => void handleNewCharacter()}
+          >
             {t("sidebar.newCharacter")}
           </Button>
           <CharacterImport />

@@ -41,8 +41,12 @@ export function WorldInfoEditor({ onClose }: WorldInfoEditorProps) {
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>{book ? "Update" : "Create"}</Button>
-        <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+        <Button size="sm" onClick={handleSave}>
+          {book ? "Update" : "Create"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
       </div>
     </div>
   );
