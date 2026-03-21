@@ -29,7 +29,7 @@ function fromRaw<T>(value: unknown, fallback: T): T {
   return (value as T | null | undefined) ?? fallback;
 }
 
-type StreamChunk = { content?: string; reasoning?: string; error?: string };
+type StreamChunk = { content?: string; reasoning?: string; error?: string; structured?: unknown };
 type GroupStreamChunk = StreamChunk & { speaker?: string; speakerId?: number };
 const streamChunkSchema = jsonSchema<StreamChunk & { speaker?: string; speakerId?: number }>({
   type: "object",

@@ -158,17 +158,21 @@ export function Sidebar() {
               <CharacterList
                 characters={characters}
                 selectedId={selectedId}
-                onSelect={handleSelectCharacter}
+                onSelect={(id) => {
+                  void handleSelectCharacter(id);
+                }}
                 onDuplicate={(id) => void duplicateCharacter(id)}
-                onDelete={async (id) => {
-                  try {
-                    await deleteCharacter(id);
-                    toast.success({ title: t("sidebar.characterDeleted") ?? "Character deleted" });
-                  } catch {
-                    toast.error({
-                      title: t("sidebar.characterDeleteFailed") ?? "Failed to delete character",
-                    });
-                  }
+                onDelete={(id) => {
+                  void (async () => {
+                    try {
+                      await deleteCharacter(id);
+                      toast.success({ title: t("sidebar.characterDeleted") ?? "Character deleted" });
+                    } catch {
+                      toast.error({
+                        title: t("sidebar.characterDeleteFailed") ?? "Failed to delete character",
+                      });
+                    }
+                  })();
                 }}
                 onExport={(id) => void exportCharacter(id, "png")}
               />
@@ -176,9 +180,11 @@ export function Sidebar() {
             </div>
           ) : tab === "groups" ? (
             <GroupList
-              onSelectGroup={(id) => selectGroup(id)}
-              onCreateGroup={async () => {
-                await createGroup({ name: `Group ${Date.now()}` });
+              onSelectGroup={(id) => {
+                void selectGroup(id);
+              }}
+              onCreateGroup={() => {
+                void createGroup({ name: `Group ${Date.now()}` });
               }}
             />
           ) : (
@@ -187,7 +193,14 @@ export function Sidebar() {
                 <span className="text-xs font-medium text-muted-foreground">
                   {t("sidebar.chats")}
                 </span>
-                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleNewChat}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => {
+                    void handleNewChat();
+                  }}
+                >
                   {t("sidebar.newChat")}
                 </Button>
               </div>

@@ -7,6 +7,7 @@ import {
   type Message,
 } from "@/lib/api";
 import { chatDebug, chatError } from "@/lib/chat-debug";
+import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
 
 type GenerationConfig = Omit<CompletionRequest, "messages" | "stream"> & {
   userName?: string;
@@ -18,8 +19,10 @@ interface ChatState {
   currentChatId: number | null;
   messages: Message[];
   isGenerating: boolean;
+  generationType: GenerationType | null;
   streamingContent: string;
   streamingReasoning: string;
+  streamingStructured: PartialStructuredResponse | null;
   error: string | null;
 
   fetchChats: (characterId: number) => Promise<void>;
@@ -29,6 +32,7 @@ interface ChatState {
   generate: (type: GenerationType, config: GenerationConfig, message?: string) => Promise<void>;
   sendMessage: (content: string, config: GenerationConfig) => Promise<void>;
   regenerate: (config: GenerationConfig) => Promise<void>;
+  generateSwipe: (config: GenerationConfig) => Promise<void>;
   continueMessage: (config: GenerationConfig) => Promise<void>;
   impersonate: (config: GenerationConfig) => Promise<void>;
   stopGeneration: () => Promise<void>;
@@ -45,8 +49,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentChatId: null,
   messages: [],
   isGenerating: false,
+  generationType: null,
   streamingContent: "",
   streamingReasoning: "",
+  streamingStructured: null,
   error: null,
 
   fetchChats: async (characterId) => {
@@ -181,8 +187,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     set({
       isGenerating: true,
+      generationType: type,
       streamingContent: "",
       streamingReasoning: "",
+      streamingStructured: null,
       error: null,
     });
 
@@ -237,6 +245,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           fullReasoning += chunk.reasoning;
           set({ streamingReasoning: fullReasoning });
         }
+        if (chunk.structured) {
+          set({ streamingStructured: chunk.structured as PartialStructuredResponse });
+        }
       }
 
       const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
@@ -250,8 +261,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({
         messages: freshMessages,
         isGenerating: false,
+        generationType: null,
         streamingContent: "",
         streamingReasoning: "",
+        streamingStructured: null,
       });
       chatDebug("generate.success", {
         type,
@@ -281,8 +294,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({
         messages: freshMessages,
         isGenerating: false,
+        generationType: null,
         streamingContent: "",
         streamingReasoning: "",
+        streamingStructured: null,
       });
       chatDebug("generate.postErrorSync", {
         currentChatId: generationChatId,
@@ -311,6 +326,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     await get().generate("regenerate", config);
   },
 
+  generateSwipe: async (config) => {
+    const hasAssistant = get().messages.some((m) => m.role === "assistant");
+    if (!hasAssistant) {
+      set({ error: "No assistant message to generate swipe for" });
+      return;
+    }
+    await get().generate("swipe", config);
+  },
+
   continueMessage: async (config) => {
     const hasAssistant = get().messages.some((m) => m.role === "assistant");
     if (!hasAssistant) {
@@ -332,7 +356,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (chatId) {
       await chatApi.stop(chatId).catch(() => undefined);
     }
-    set({ isGenerating: false, streamingContent: "", streamingReasoning: "" });
+    set({ isGenerating: false, generationType: null, streamingContent: "", streamingReasoning: "", streamingStructured: null });
     chatDebug("stopGeneration.done", { chatId });
   },
 

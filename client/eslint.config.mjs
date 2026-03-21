@@ -6,7 +6,15 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: [".next/**", "coverage/**", "dist/**", "node_modules/**", "out/**"],
+    ignores: [
+      ".next/**",
+      "coverage/**",
+      "dist/**",
+      "node_modules/**",
+      "out/**",
+      "eslint.config.mjs",
+      "postcss.config.mjs",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

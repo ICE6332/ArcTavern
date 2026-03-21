@@ -18,5 +18,5 @@
     }
   },
   "include": ["components", "hooks", "lib", "locales", "src", "stores", "vite.config.ts"],
-  "exclude": ["coverage", "dist", "node_modules"]
+  "exclude": [".next", "coverage", "dist", "node_modules"]
 }

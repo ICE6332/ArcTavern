@@ -49,7 +49,9 @@ export function CharacterImport() {
         type="file"
         accept=".png,.json,.yaml,.yml"
         className="hidden"
-        onChange={handleFile}
+        onChange={(e) => {
+          void handleFile(e);
+        }}
       />
       <Button
         variant="outline"

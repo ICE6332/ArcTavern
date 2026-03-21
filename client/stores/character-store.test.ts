@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Character } from "@/lib/api";
 
 const { characterApiMock } = vi.hoisted(() => ({
   characterApiMock: {
@@ -24,6 +25,32 @@ vi.mock("@/lib/api", async () => {
 
 import { useCharacterStore } from "./character-store";
 
+function createCharacterFixture(id: number, name: string): Character {
+  return {
+    id,
+    name,
+    avatar: null,
+    description: "",
+    personality: "",
+    firstMes: "",
+    mesExample: "",
+    scenario: "",
+    systemPrompt: "",
+    postHistoryInstructions: "",
+    alternateGreetings: [],
+    creator: "",
+    creatorNotes: "",
+    characterVersion: "",
+    tags: [],
+    spec: "chara_card_v2",
+    specVersion: "2.0",
+    extensions: {},
+    characterBook: null,
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
 describe("useCharacterStore", () => {
   beforeEach(() => {
     useCharacterStore.setState({
@@ -40,15 +67,15 @@ describe("useCharacterStore", () => {
 
   it("loads characters into state", async () => {
     characterApiMock.getAll.mockResolvedValue([
-      { id: 1, name: "Alice" },
-      { id: 2, name: "Bob" },
+      createCharacterFixture(1, "Alice"),
+      createCharacterFixture(2, "Bob"),
     ]);
 
     await useCharacterStore.getState().fetchCharacters();
 
     expect(useCharacterStore.getState().characters).toEqual([
-      { id: 1, name: "Alice" },
-      { id: 2, name: "Bob" },
+      createCharacterFixture(1, "Alice"),
+      createCharacterFixture(2, "Bob"),
     ]);
     expect(useCharacterStore.getState().loading).toBe(false);
     expect(useCharacterStore.getState().error).toBeNull();
@@ -66,7 +93,7 @@ describe("useCharacterStore", () => {
 
   it("clears the selection when deleting the active character", async () => {
     useCharacterStore.setState({
-      characters: [{ id: 7, name: "Hero" }],
+      characters: [createCharacterFixture(7, "Hero")],
       selectedId: 7,
     });
     characterApiMock.delete.mockResolvedValue({ id: 7 });

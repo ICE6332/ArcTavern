@@ -6,6 +6,12 @@ import rehypeHighlight from "rehype-highlight";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StreamingText } from "./streaming-text";
+import { OpenUiMessage } from "./openui-message";
+import { StructuredMessage } from "./structured-message";
+import { isOpenUiLang } from "@/lib/openui";
+import { isStructuredResponse, type PartialStructuredResponse } from "@/lib/openui/structured-types";
+import type { ActionEvent } from "@openuidev/react-lang";
+import { DotsLoader } from "@/components/ui/loader";
 import {
   ChainOfThought,
   ChainOfThoughtHeader,
@@ -37,6 +43,10 @@ interface MessageBubbleProps {
   onSwipe?: (messageId: number, direction: "left" | "right") => void;
   onRegenerate?: () => void;
   onDelete?: (messageId: number) => void;
+  openUiEnabled?: boolean;
+  onOpenUiAction?: (event: ActionEvent) => void;
+  structuredContent?: PartialStructuredResponse | null;
+  onStructuredAction?: (label: string, value: string) => void;
 }
 
 function ActionButton({
@@ -87,11 +97,15 @@ export function MessageBubble({
   onSwipe,
   onRegenerate,
   onDelete,
+  openUiEnabled,
+  onOpenUiAction,
+  structuredContent,
+  onStructuredAction,
 }: MessageBubbleProps) {
   const isUser = role === "user";
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(content);
   };
 
   if (isUser) {
@@ -128,7 +142,13 @@ export function MessageBubble({
       )}
 
       <div className="text-sm leading-relaxed">
-        {isStreaming ? (
+        {structuredContent && structuredContent.blocks?.length ? (
+          <StructuredMessage data={structuredContent} isStreaming={isStreaming} onAction={onStructuredAction} />
+        ) : isStreaming && !content && !structuredContent ? (
+          <DotsLoader size="md" className="text-muted-foreground" />
+        ) : openUiEnabled && isOpenUiLang(content) ? (
+          <OpenUiMessage content={content} isStreaming={isStreaming} onAction={onOpenUiAction} />
+        ) : isStreaming ? (
           <StreamingText content={content} isStreaming />
         ) : (
           <div className={markdownStyles}>
@@ -160,7 +180,7 @@ export function MessageBubble({
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} size={15} strokeWidth={1.5} />
               </Button>
-              <span className="min-w-[2rem] text-center text-xs tabular-nums text-muted-foreground">
+              <span className="min-w-8 text-center text-xs tabular-nums text-muted-foreground">
                 {swipeId + 1}/{swipes.length}
               </span>
               <Button

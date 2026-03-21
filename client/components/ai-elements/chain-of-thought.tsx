@@ -162,7 +162,7 @@ export const ChainOfThoughtContent = memo(
         <CollapsibleContent
           className={cn(
             "mt-2 space-y-3",
-            "data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 transition-all duration-200 text-sm text-muted-foreground",
+            "data-ending-style:opacity-0 data-starting-style:opacity-0 transition-all duration-200 text-sm text-muted-foreground",
             className,
           )}
           {...props}

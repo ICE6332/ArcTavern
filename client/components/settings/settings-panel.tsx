@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { aiApi, secretApi, type Provider } from "@/lib/api";
+import { aiApi, secretApi, type Provider, type RagSettings } from "@/lib/api";
 import { DEFAULT_MODELS, useConnectionStore } from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -344,7 +344,9 @@ export function SettingsPanel() {
                 <Button
                   size="sm"
                   className="h-9 shrink-0"
-                  onClick={handleSaveKey}
+                  onClick={() => {
+                    void handleSaveKey();
+                  }}
                   disabled={saving}
                 >
                   Save
@@ -368,7 +370,9 @@ export function SettingsPanel() {
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs"
-                  onClick={handleDetectCustomProvider}
+                  onClick={() => {
+                    void handleDetectCustomProvider();
+                  }}
                   disabled={detecting || !canDetectCustom}
                 >
                   {detecting ? "Detecting..." : "Detect Connection & Models"}
@@ -380,7 +384,9 @@ export function SettingsPanel() {
               variant="outline"
               size="sm"
               className="h-8 text-xs"
-              onClick={handleTestConnection}
+              onClick={() => {
+                void handleTestConnection();
+              }}
               disabled={conn.provider === "custom" && !customReadyForTest}
             >
               Test Connection
@@ -489,6 +495,23 @@ export function SettingsPanel() {
 
             <Separator />
 
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-0.5">
+                <Label className="text-xs">Generative UI (OpenUI)</Label>
+                <span className="text-[0.625rem] text-muted-foreground">
+                  AI can respond with interactive components
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={conn.openUiEnabled}
+                onChange={(e) => conn.setOpenUiEnabled(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+            </div>
+
+            <Separator />
+
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">{t("settings.language")}</Label>
               <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
@@ -538,7 +561,9 @@ function MemorySettings() {
   }
 
   const s = rag.settings;
-  const update = rag.updateSettings;
+  const update = (data: Partial<RagSettings>) => {
+    void rag.updateSettings(data);
+  };
 
   return (
     <div className="flex flex-col gap-4">

@@ -32,6 +32,7 @@ interface ConnectionState {
   continuePostfix: string;
   namesBehavior: number;
   squashSystemMessages: boolean;
+  openUiEnabled: boolean;
 
   setProvider: (provider: Provider) => void;
   setModel: (model: string) => void;
@@ -59,6 +60,7 @@ interface ConnectionState {
   setContinuePostfix: (v: string) => void;
   setNamesBehavior: (v: number) => void;
   setSquashSystemMessages: (v: boolean) => void;
+  setOpenUiEnabled: (v: boolean) => void;
 }
 
 export const DEFAULT_MODELS: Record<Provider, string[]> = {
@@ -111,6 +113,7 @@ export const useConnectionStore = create<ConnectionState>()(
       continuePostfix: "",
       namesBehavior: 0,
       squashSystemMessages: false,
+      openUiEnabled: false,
 
       setProvider: (provider) => {
         const defaultModel = DEFAULT_MODELS[provider]?.[0] ?? "";
@@ -147,6 +150,7 @@ export const useConnectionStore = create<ConnectionState>()(
       setContinuePostfix: (continuePostfix) => set({ continuePostfix }),
       setNamesBehavior: (namesBehavior) => set({ namesBehavior }),
       setSquashSystemMessages: (squashSystemMessages) => set({ squashSystemMessages }),
+      setOpenUiEnabled: (openUiEnabled) => set({ openUiEnabled }),
     }),
     { name: "st-connection" },
   ),

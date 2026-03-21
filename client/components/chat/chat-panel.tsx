@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useCallback, useState } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { useConnectionStore } from "@/stores/connection-store";
 import { usePromptManagerStore } from "@/stores/prompt-manager-store";
 import { chatDebug } from "@/lib/chat-debug";
+import { getOpenUiSystemPrompt } from "@/lib/openui";
+import type { ActionEvent } from "@openuidev/react-lang";
 import { ChatInput } from "./chat-input";
 import { MessageBubble } from "./message-bubble";
 import { DotsLoader } from "@/components/ui/loader";
@@ -36,10 +38,12 @@ export function ChatPanel() {
     isGenerating,
     streamingContent,
     streamingReasoning,
+    streamingStructured,
     currentChatId,
     sendMessage,
     stopGeneration,
     regenerate,
+    generateSwipe,
     continueMessage,
     impersonate,
     swipe,
@@ -53,6 +57,8 @@ export function ChatPanel() {
   const shouldAutoScrollRef = useRef(true);
 
   const selectedChar = characters.find((c) => c.id === selectedId);
+  const generationType = useChatStore((s) => s.generationType);
+  const isSwipeGenerating = isGenerating && (generationType === "swipe" || generationType === "regenerate");
   const latestAssistantMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       if (messages[i].role === "assistant") return messages[i].id;
@@ -61,25 +67,35 @@ export function ChatPanel() {
   }, [messages]);
   const hasAssistantMessage = latestAssistantMessageId !== null;
 
-  const promptOrder = useMemo(
-    () =>
-      [...promptComponents]
-        .sort((a, b) => a.position - b.position)
-        .map((c) => ({ identifier: c.id, enabled: c.enabled })),
-    [promptComponents],
-  );
+  const openUiEnabled = connection.openUiEnabled;
 
-  const customPrompts = useMemo(
-    () =>
-      promptComponents
-        .filter((c) => c.enabled && c.content !== undefined && c.content.trim() !== "")
-        .map((c) => ({
-          identifier: c.id,
-          role: c.role,
-          content: c.content!,
-        })),
-    [promptComponents],
-  );
+  const promptOrder = useMemo(() => {
+    const order = [...promptComponents]
+      .sort((a, b) => a.position - b.position)
+      .map((c) => ({ identifier: c.id, enabled: c.enabled }));
+    if (openUiEnabled) {
+      order.push({ identifier: "openui_instructions", enabled: true });
+    }
+    return order;
+  }, [promptComponents, openUiEnabled]);
+
+  const customPrompts = useMemo(() => {
+    const prompts = promptComponents
+      .filter((c) => c.enabled && c.content !== undefined && c.content.trim() !== "")
+      .map((c) => ({
+        identifier: c.id,
+        role: c.role,
+        content: c.content!,
+      }));
+    if (openUiEnabled) {
+      prompts.push({
+        identifier: "openui_instructions",
+        role: "system",
+        content: getOpenUiSystemPrompt(),
+      });
+    }
+    return prompts;
+  }, [promptComponents, openUiEnabled]);
 
   const generationConfig = useMemo(
     () => ({
@@ -95,8 +111,9 @@ export function ChatPanel() {
       maxContext: connection.maxContext,
       promptOrder,
       customPrompts,
+      structuredOutput: openUiEnabled,
     }),
-    [connection, promptOrder, customPrompts],
+    [connection, promptOrder, customPrompts, openUiEnabled],
   );
 
   useEffect(() => {
@@ -133,13 +150,27 @@ export function ChatPanel() {
     shouldAutoScrollRef.current = distanceFromBottom < 80;
   };
 
-  const handleSend = async (content: string) => {
+  const handleOpenUiAction = useCallback(
+    (event: ActionEvent) => {
+      if (event.type === "continue_conversation") {
+        void sendMessage(event.humanFriendlyMessage, generationConfig);
+      } else if (event.type === "open_url") {
+        const url = event.params.url as unknown;
+        if (typeof url === "string") {
+          window.open(url, "_blank", "noopener");
+        }
+      }
+    },
+    [sendMessage, generationConfig],
+  );
+
+  const handleSend = (content: string) => {
     if (!currentChatId || !content.trim()) return;
     chatDebug("panel.send", {
       currentChatId,
       contentLength: content.trim().length,
     });
-    await sendMessage(content, generationConfig);
+    void sendMessage(content, generationConfig);
   };
 
   if (!selectedId || !currentChatId) {
@@ -158,37 +189,55 @@ export function ChatPanel() {
         className="min-h-0 flex-1 overflow-y-auto px-4 py-6 [scrollbar-gutter:stable]"
       >
         <div className="mx-auto flex max-w-3xl flex-col gap-6">
-          {messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              messageId={msg.id}
-              role={msg.role}
-              name={msg.name || (msg.role === "assistant" ? selectedChar?.name : undefined)}
-              content={msg.content}
-              reasoning={msg.reasoning}
-              swipeId={msg.swipeId}
-              swipes={msg.swipes}
-              onSwipe={swipe}
-              onDelete={deleteMessage}
-              onRegenerate={
-                msg.role === "assistant" && msg.id === latestAssistantMessageId
-                  ? () => regenerate(generationConfig)
-                  : undefined
-              }
-            />
-          ))}
+          {messages.map((msg) => {
+            const isLastAssistant = msg.role === "assistant" && msg.id === latestAssistantMessageId;
+            const showSwipeStreaming = isLastAssistant && isSwipeGenerating;
 
-          {isGenerating && (streamingContent || streamingReasoning) && (
+            return (
+              <MessageBubble
+                key={msg.id}
+                messageId={msg.id}
+                role={msg.role}
+                name={msg.name || (msg.role === "assistant" ? selectedChar?.name : undefined)}
+                content={showSwipeStreaming ? (streamingContent || "") : msg.content}
+                reasoning={showSwipeStreaming ? (streamingReasoning || undefined) : msg.reasoning}
+                isStreaming={showSwipeStreaming}
+                swipeId={msg.swipeId}
+                swipes={msg.swipes}
+                onSwipe={(messageId, direction) => {
+                  void swipe(messageId, direction);
+                }}
+                onDelete={(messageId) => {
+                  void deleteMessage(messageId);
+                }}
+                openUiEnabled={openUiEnabled}
+                onOpenUiAction={handleOpenUiAction}
+                structuredContent={showSwipeStreaming ? streamingStructured : undefined}
+                onStructuredAction={(label) => void sendMessage(label, generationConfig)}
+                onRegenerate={
+                  isLastAssistant && !isGenerating
+                    ? () => void generateSwipe(generationConfig)
+                    : undefined
+                }
+              />
+            );
+          })}
+
+          {isGenerating && !isSwipeGenerating && (streamingContent || streamingReasoning || streamingStructured) && (
             <MessageBubble
               role="assistant"
               name={selectedChar?.name}
               content={streamingContent}
               reasoning={streamingReasoning}
               isStreaming
+              openUiEnabled={openUiEnabled}
+              onOpenUiAction={handleOpenUiAction}
+              structuredContent={streamingStructured}
+              onStructuredAction={(label) => void sendMessage(label, generationConfig)}
             />
           )}
 
-          {isGenerating && !streamingContent && !streamingReasoning && (
+          {isGenerating && !isSwipeGenerating && !streamingContent && !streamingReasoning && !streamingStructured && (
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">
                 {selectedChar?.name ?? "Assistant"}
@@ -202,11 +251,9 @@ export function ChatPanel() {
       <ChatInput
         onSend={handleSend}
         onStop={stopGeneration}
-        onContinue={() => continueMessage(generationConfig)}
-        onImpersonate={() => impersonate(generationConfig)}
-        onRegenerate={() => regenerate(generationConfig)}
+        onContinue={() => void continueMessage(generationConfig)}
+        onImpersonate={() => void impersonate(generationConfig)}
         canContinue={hasAssistantMessage}
-        canRegenerate={hasAssistantMessage}
         isGenerating={isGenerating}
         disabled={false}
       />

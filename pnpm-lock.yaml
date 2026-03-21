@@ -48,6 +48,9 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.5
         version: 1.1.6(react@19.2.3)
+      '@openuidev/react-lang':
+        specifier: ^0.1.3
+        version: 0.1.3(react@19.2.3)
       '@radix-ui/react-use-controllable-state':
         specifier: ^1.2.2
         version: 1.2.2(@types/react@19.2.14)(react@19.2.3)
@@ -93,6 +96,9 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
       zustand:
         specifier: ^5.0.5
         version: 5.0.11(@types/react@19.2.14)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
@@ -226,6 +232,9 @@ importers:
       yaml:
         specifier: ^2.8.1
         version: 2.8.2
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@nestjs/cli':
         specifier: ^11.0.7
@@ -1027,6 +1036,11 @@ packages:
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
+
+  '@openuidev/react-lang@0.1.3':
+    resolution: {integrity: sha512-+/sVNVOFFzmnAsR8y+5W/la5U485OGXPFNtgY7wu0XdBdKSkbljNUGBA1XiHkzcxSVoATWOSy9eQ/J4UeHSPuQ==}
+    peerDependencies:
+      react: '>=19.0.0'
 
   '@oxc-project/runtime@0.115.0':
     resolution: {integrity: sha512-Rg8Wlt5dCbXhQnsXPrkOjL1DTSvXLgb2R/KYfnf1/K+R0k6UMLEmbQXPM+kwrWqSmWA2t0B1EtHy2/3zikQpvQ==}
@@ -5535,6 +5549,11 @@ snapshots:
   '@open-draft/until@2.1.0': {}
 
   '@opentelemetry/api@1.9.0': {}
+
+  '@openuidev/react-lang@0.1.3(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      zod: 4.3.6
 
   '@oxc-project/runtime@0.115.0': {}
 

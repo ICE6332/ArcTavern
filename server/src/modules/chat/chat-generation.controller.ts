@@ -21,6 +21,11 @@ import { PersonaService } from '../persona/persona.service';
 import { RagService } from '../rag/rag.service';
 import type { CompletionRequest } from '../ai-provider/types';
 import type { RetrievedMemory } from '../rag/types';
+import {
+  StructuredResponseSchema,
+  getStructuredOutputSystemPrompt,
+  extractNarrationText,
+} from '../ai-provider/structured-output-schema';
 
 type GenerationType =
   | 'normal'
@@ -50,6 +55,9 @@ type GenerateRequest = Omit<CompletionRequest, 'messages' | 'stream'> & {
     role: 'system' | 'user' | 'assistant';
     content: string;
   }>;
+
+  /** Enable structured JSON output via Output.object() */
+  structuredOutput?: boolean;
 };
 
 @Controller()
@@ -221,6 +229,15 @@ export class ChatGenerationController {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
 
+    // Inject a cache-busting marker for swipe/regenerate to prevent identical responses
+    if (generationType === 'swipe' || generationType === 'regenerate') {
+      const seed = Math.random().toString(36).slice(2, 10);
+      promptMessages.push({
+        role: 'system',
+        content: `[generation_seed: ${seed}] Produce a fresh, unique response. Vary your word choices, structure, and creative details from any prior responses.`,
+      });
+    }
+
     const completionRequest: CompletionRequest = {
       ...body,
       messages: promptMessages,
@@ -231,8 +248,47 @@ export class ChatGenerationController {
     let fullReasoning = '';
     let chunkCount = 0;
     let reasoningChunkCount = 0;
+    let structuredResult: unknown = null;
     try {
-      for await (const chunk of this.aiProviderService.streamComplete(
+      if (body.structuredOutput) {
+        // --- Structured output path: Output.object() with partialOutputStream ---
+        promptMessages.push({
+          role: 'system',
+          content: getStructuredOutputSystemPrompt(),
+        });
+
+        for await (const chunk of this.aiProviderService.streamStructured(
+          completionRequest,
+          StructuredResponseSchema,
+          abortController.signal,
+        )) {
+          structuredResult = chunk.partial;
+          chunkCount += 1;
+          if (chunkCount <= 3 || chunkCount % 20 === 0) {
+            this.chatDebug('generate.structuredChunk', {
+              requestTag,
+              chatId,
+              chunkCount,
+            });
+          }
+          res.write(`data: ${JSON.stringify({ structured: chunk.partial })}\n\n`);
+        }
+
+        // Extract text for persistence and RAG
+        if (structuredResult && typeof structuredResult === 'object') {
+          try {
+            const parsed = StructuredResponseSchema.parse(structuredResult);
+            fullContent = JSON.stringify(parsed);
+            // Extract narration for RAG embedding
+            const narrationText = extractNarrationText(parsed);
+            if (!narrationText) fullContent = JSON.stringify(parsed);
+          } catch {
+            fullContent = JSON.stringify(structuredResult);
+          }
+        }
+      } else {
+        // --- Text streaming path (existing behavior) ---
+        for await (const chunk of this.aiProviderService.streamComplete(
         completionRequest,
         abortController.signal,
       )) {
@@ -264,6 +320,7 @@ export class ChatGenerationController {
           res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
         }
       }
+      } // end else (text streaming path)
 
       if (!abortController.signal.aborted) {
         await this.persistGenerationResult(
@@ -273,6 +330,7 @@ export class ChatGenerationController {
           fullContent,
           fullReasoning,
           now,
+          body.structuredOutput ? 'structured' : undefined,
         );
         this.chatDebug('generate.persisted', {
           requestTag,
@@ -393,12 +451,15 @@ export class ChatGenerationController {
     fullContent: string,
     fullReasoning: string,
     startedAt: string,
+    format?: string,
   ) {
     const finishedAt = new Date().toISOString();
     if (!fullContent.trim()) return;
+    const extraObj: Record<string, unknown> = {};
+    if (format) extraObj.format = format;
     const messageExtra = fullReasoning
-      ? this.stringifyExtra({}, fullReasoning, [fullReasoning])
-      : '{}';
+      ? this.stringifyExtra(extraObj, fullReasoning, [fullReasoning])
+      : (Object.keys(extraObj).length > 0 ? JSON.stringify(extraObj) : '{}');
 
     if (generationType === 'impersonate') {
       await this.chatService.addMessage({

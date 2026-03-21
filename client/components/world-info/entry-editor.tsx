@@ -260,7 +260,12 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
       </div>
 
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>
+        <Button
+          size="sm"
+          onClick={() => {
+            void handleSave();
+          }}
+        >
           Save
         </Button>
         <Button size="sm" variant="outline" onClick={onClose}>

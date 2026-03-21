@@ -8,13 +8,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowUp02Icon, StopIcon } from "@hugeicons/core-free-icons";
 
 interface ChatInputProps {
-  onSend: (content: string) => Promise<void>;
-  onStop: () => Promise<void>;
-  onContinue: () => Promise<void>;
-  onImpersonate: () => Promise<void>;
-  onRegenerate: () => Promise<void>;
+  onSend: (content: string) => void | Promise<void>;
+  onStop: () => void | Promise<void>;
+  onContinue: () => void | Promise<void>;
+  onImpersonate: () => void | Promise<void>;
   canContinue?: boolean;
-  canRegenerate?: boolean;
   canImpersonate?: boolean;
   isGenerating?: boolean;
   disabled?: boolean;
@@ -25,9 +23,7 @@ export function ChatInput({
   onStop,
   onContinue,
   onImpersonate,
-  onRegenerate,
   canContinue = true,
-  canRegenerate = true,
   canImpersonate = true,
   isGenerating,
   disabled,
@@ -43,7 +39,7 @@ export function ChatInput({
     el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
   }, [value]);
 
-  const handleSend = useCallback(async () => {
+  const submit = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed || disabled || isGenerating) return;
     await onSend(trimmed);
@@ -51,10 +47,26 @@ export function ChatInput({
     textareaRef.current?.focus();
   }, [value, disabled, isGenerating, onSend]);
 
-  const handleKeyDown = async (e: React.KeyboardEvent) => {
+  const handleSend = () => {
+    void submit();
+  };
+
+  const handleStop = () => {
+    void onStop();
+  };
+
+  const handleContinue = () => {
+    void onContinue();
+  };
+
+  const handleImpersonate = () => {
+    void onImpersonate();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      await handleSend();
+      handleSend();
     }
   };
 
@@ -82,7 +94,7 @@ export function ChatInput({
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={onContinue}
+                onClick={handleContinue}
                 disabled={Boolean(isGenerating) || !canContinue}
               >
                 Continue
@@ -91,19 +103,10 @@ export function ChatInput({
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={onImpersonate}
+                onClick={handleImpersonate}
                 disabled={Boolean(isGenerating) || !canImpersonate}
               >
                 Impersonate
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={onRegenerate}
-                disabled={Boolean(isGenerating) || !canRegenerate}
-              >
-                Regenerate
               </Button>
             </div>
 
@@ -113,7 +116,7 @@ export function ChatInput({
                   <TooltipTrigger
                     render={
                       <Button
-                        onClick={onStop}
+                        onClick={handleStop}
                         size="icon-sm"
                         variant="destructive"
                         className="h-8 w-8 rounded-full"

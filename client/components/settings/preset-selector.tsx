@@ -45,7 +45,7 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
   );
 
   useEffect(() => {
-    loadPresets(apiType);
+    void loadPresets(apiType);
   }, [apiType, loadPresets]);
 
   const handleSelect = (value: string | null) => {
@@ -193,7 +193,9 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
             size="sm"
             variant="outline"
             className="h-6 px-2 text-[10px]"
-            onClick={handleOverwrite}
+            onClick={() => {
+              void handleOverwrite();
+            }}
           >
             Overwrite
           </Button>
@@ -205,7 +207,9 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
           size="sm"
           variant="outline"
           className="h-6 px-2 text-[10px]"
-          onClick={handleExport}
+          onClick={() => {
+            void handleExport();
+          }}
           disabled={!currentPresetId}
         >
           Export
@@ -215,7 +219,9 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
             size="sm"
             variant="outline"
             className="h-6 px-2 text-[10px] text-destructive"
-            onClick={handleDelete}
+            onClick={() => {
+              void handleDelete();
+            }}
           >
             Delete
           </Button>
@@ -225,7 +231,9 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
             size="sm"
             variant="outline"
             className="h-6 px-2 text-[10px]"
-            onClick={handleRestore}
+            onClick={() => {
+              void handleRestore();
+            }}
           >
             Restore
           </Button>
@@ -237,7 +245,9 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
         type="file"
         accept=".json"
         className="hidden"
-        onChange={handleFileSelected}
+        onChange={(e) => {
+          void handleFileSelected(e);
+        }}
       />
     </div>
   );

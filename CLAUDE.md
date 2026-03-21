@@ -10,16 +10,26 @@ Arctravern: a full-feature rewrite of SillyTavern (v1.15.0). The original Expres
 
 | Layer | Technology |
 |-------|-----------|
-| Package Manager | pnpm + Vite+ |
-| Frontend | Vite 8 + React 19 + TypeScript |
-| UI | shadcn/ui (base-mira style) + Tailwind CSS 4 + hugeicons |
+| Package Manager | pnpm 10 + Vite+ (`vite-plus` CLI as `vp`) |
+| Frontend | Vite 8 (via `@voidzero-dev/vite-plus-core`) + React 19 + TypeScript |
+| UI | shadcn/ui (`base-mira` style) + Tailwind CSS 4 + hugeicons |
 | Backend | NestJS 11 + TypeScript |
 | AI Integration | Vercel AI SDK v6 (`ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`, `@ai-sdk/openai-compatible`) |
 | Database | SQLite via sql.js (pure WASM, no native bindings) |
 | Vector DB | LanceDB (embedded, Rust core via native bindings) |
 | State Management | Zustand (persisted) |
 | Streaming | SSE (Server-Sent Events) for AI completions |
-| Testing | Vitest (server) |
+| Testing | Vitest (both workspaces, via `@voidzero-dev/vite-plus-test`) |
+
+### Vite+ / vite-plus
+
+`pnpm-workspace.yaml` overrides `vite` and `vitest` with Vite+ equivalents:
+```yaml
+overrides:
+  vite: npm:@voidzero-dev/vite-plus-core@0.1.11
+  vitest: npm:@voidzero-dev/vite-plus-test@0.1.11
+```
+The `vp` CLI (from `vite-plus` devDependency) is used for workspace-wide `check`, `build`, and `test` commands. Client scripts use `vp dev`, `vp build`, `vp check`, `vp test run`. Client config imports `defineConfig` from `"vite-plus"`, not `"vite"`.
 
 ## Commands
 
@@ -27,19 +37,24 @@ Arctravern: a full-feature rewrite of SillyTavern (v1.15.0). The original Expres
 pnpm install                 # Install all workspace dependencies
 pnpm dev                     # Start both frontend (:3000) and backend (:3001)
 pnpm dev:client              # Vite frontend only
-pnpm dev:server              # NestJS only
-pnpm check                   # Run workspace checks
-pnpm build                   # Build all workspaces
-pnpm test                    # Run all workspace tests
+pnpm dev:server              # NestJS only (nest start --watch)
+pnpm check                   # vp run check -r (both workspaces)
+pnpm build                   # vp run build -r (both workspaces)
+pnpm test                    # vp run test -r (both workspaces)
+pnpm ready                   # check + test + build (full CI-like validation)
 
 # Workspace-scoped commands
 pnpm --filter @arctravern/client check       # Vite+ check frontend
 pnpm --filter @arctravern/client build       # Vite+ build frontend
-pnpm --filter @arctravern/server build       # Build server only
-pnpm --filter @arctravern/server check       # Type-check server only
+pnpm --filter @arctravern/client lint        # ESLint (flat config, v9)
+pnpm --filter @arctravern/server build       # nest build
+pnpm --filter @arctravern/server check       # tsc --noEmit
 
-# Run a single test file
+# Run a single test file (server uses .spec.ts suffix)
 cd server && pnpm exec vitest run src/modules/chat/chat.service.spec.ts
+
+# Run a single test file (client uses .test.ts suffix)
+cd client && pnpm exec vitest run stores/character-store.test.ts
 
 # Run tests matching a pattern
 cd server && pnpm exec vitest run -t "pattern"
@@ -53,9 +68,31 @@ cd client && pnpm exec tsc --noEmit
 
 ### Monorepo Layout
 
-- `client/` — Vite 8 frontend (`@arctravern/client`). React SPA, shadcn/ui components, Zustand stores.
-- `server/` — NestJS 11 backend (`@arctravern/server`). Modular architecture under `src/modules/`.
-- `specs/` — Phase-based implementation specs (phase1 through phase7).
+```
+client/           @arctravern/client — Vite 8 + React SPA
+  components/     Domain-organized: character/, chat/, group/, persona/,
+                  settings/, sidebar/, tags/, world-info/, ai-elements/
+  components/ui/  shadcn/ui primitives (auto-generated, do not hand-edit)
+  stores/         Zustand stores (one per domain)
+  lib/            api.ts (typed fetch client), utils, i18n, openui/
+  hooks/          Custom React hooks
+  locales/        i18n translations (en, zh)
+  src/            App shell, main.tsx, globals.css, test setup
+
+server/           @arctravern/server — NestJS 11
+  src/modules/    Feature modules (one dir per domain)
+  src/db/         DrizzleService (sql.js wrapper, NOT Drizzle ORM)
+  src/types/      Type declarations for untyped packages
+  data/           Runtime data (gitignored): arctravern.db, lancedb/
+
+specs/            Phase-based implementation specs (phase1 through phase7)
+```
+
+### Path Aliases
+
+Both workspaces use `@/` as a path alias:
+- **Client:** `@/` → `client/` root (e.g., `@/components/...`, `@/stores/...`, `@/lib/...`)
+- **Server:** `@/` → `server/src/` (e.g., `@/modules/...`, `@/db/...`)
 
 ### Backend Modules (server/src/modules/)
 
@@ -93,29 +130,14 @@ cd client && pnpm exec tsc --noEmit
 
 **AI SDK v6 API naming:** `maxOutputTokens` (not `maxTokens`), `ModelMessage` (not `CoreMessage`), `usage.inputTokens`/`usage.outputTokens` (not `promptTokens`/`completionTokens`).
 
-### RAG Memory System (server/src/modules/rag/)
-
-Provides long-term memory for AI characters via vector similarity search.
-
-**Flow:**
-1. After chat generation, new messages are queued for async embedding (non-blocking)
-2. `RagEmbedderService` chunks text and calls `AiProviderService.embed()` to generate vectors
-3. Vectors stored in LanceDB (`server/data/lancedb/`, tables named by dimension e.g. `memories_1536d`)
-4. Before prompt building, `RagService.retrieveMemories()` embeds recent messages as query, searches for similar past content
-5. Retrieved memories injected into prompt via `PromptBuilderService` at configurable position
-
-**Key design:** RAG is non-blocking and fault-tolerant. Embedding failures are logged and skipped. Retrieval failures return empty array — generation proceeds normally.
-
-**Settings** stored via `SettingsService` (key: `rag_settings`). Configurable: enabled, embedding provider/model, scope (chat vs character), max results, similarity threshold, token budget, chunk size/overlap, insertion position (before_char, after_char, at_depth).
-
 ### Database (sql.js)
 
-`DrizzleService` wraps sql.js with three methods — services use raw SQL strings:
+`DrizzleService` (name is historical — this is NOT Drizzle ORM) wraps sql.js with three methods. Services use raw SQL strings:
 - `query<T>(sql, params?)` — SELECT, returns array
 - `run(sql, params?)` — INSERT/UPDATE/DELETE, returns `{ changes, lastId }`
 - `get<T>(sql, params?)` — Single row or null
 
-SQLite file: `server/data/arctravern.db`. Auto-saves every 30 seconds.
+Schema is defined as raw SQL in `drizzle.service.ts` (not a separate schema file). SQLite file: `server/data/arctravern.db`. Auto-saves every 30 seconds.
 
 ### Chat Generation Flow
 
@@ -130,23 +152,42 @@ SQLite file: `server/data/arctravern.db`. Auto-saves every 30 seconds.
 
 Generation types: `normal`, `regenerate`, `swipe`, `continue`, `impersonate`, `quiet`.
 
-### Frontend Stores (client/stores/)
+### RAG Memory System (server/src/modules/rag/)
 
-Zustand stores call the typed API client (`lib/api.ts`). `connection-store` is persisted to localStorage.
+Provides long-term memory for AI characters via vector similarity search.
 
-Stores: `character-store`, `chat-store`, `connection-store`, `tag-store`, `persona-store`, `world-info-store`, `group-store`, `prompt-manager-store`, `language-store`, `rag-store`.
+**Flow:**
+1. After chat generation, new messages are queued for async embedding (non-blocking)
+2. `RagEmbedderService` chunks text and calls `AiProviderService.embed()` to generate vectors
+3. Vectors stored in LanceDB (`server/data/lancedb/`, tables named by dimension e.g. `memories_1536d`)
+4. Before prompt building, `RagService.retrieveMemories()` embeds recent messages as query, searches for similar past content
+5. Retrieved memories injected into prompt via `PromptBuilderService` at configurable position
 
-### API Client (client/lib/api.ts)
+**Key design:** RAG is non-blocking and fault-tolerant. Embedding failures are logged and skipped. Retrieval failures return empty array — generation proceeds normally.
+
+### Frontend API Client (client/lib/api.ts)
 
 Typed fetch wrappers organized by domain: `characterApi`, `chatApi`, `aiApi`, `secretApi`, `presetApi`, `settingsApi`, `tagApi`, `personaApi`, `worldInfoApi`, `groupApi`, `ragApi`. Includes async generator streaming for SSE.
 
-Vite dev proxies `/api/*` to `http://localhost:3001/api/*` in dev (configured in `client/vite.config.ts`).
+Base URL: defaults to `/api` (proxied to `localhost:3001` in dev via Vite proxy). Override with `VITE_API_BASE` env var for production/custom deployments.
+
+### Frontend Stores (client/stores/)
+
+Zustand stores call the typed API client. `connection-store` is persisted to localStorage.
+
+### shadcn/ui Configuration
+
+`client/components.json` configures shadcn with:
+- Style: `base-mira`, Icon library: `hugeicons`, Base color: `zinc`
+- Additional registries: `@abui` (abui.io), `@ai-elements` (ai-sdk.dev)
+- Components live in `client/components/ui/` — these are auto-generated, prefer not hand-editing
 
 ## Coding Conventions
 
 - TypeScript `strict` mode in both workspaces
 - 2-space indentation, kebab-case filenames
-- Client: double quotes. Server: single quotes.
+- **Client:** double quotes, ESLint flat config (v9), `.test.ts` / `.test.tsx` test suffix
+- **Server:** single quotes, no ESLint (relies on `tsc --noEmit`), `.spec.ts` test suffix
 - NestJS files: `*.module.ts`, `*.service.ts`, `*.controller.ts`
 - React components: PascalCase exports. Zustand hooks: `useXxxStore`.
 - Services export Row interfaces (e.g. `CharacterRow`, `ChatRow`) for type-safe SQL results.
@@ -154,11 +195,10 @@ Vite dev proxies `/api/*` to `http://localhost:3001/api/*` in dev (configured in
 
 ## Testing
 
-Backend tests use Vitest. Frontend tests use Vite+ test/Vitest with jsdom. Specs are colocated as `*.spec.ts` or `*.test.ts(x)` near the source files.
+Backend tests use Vitest with node environment. Frontend tests use Vitest with jsdom. Tests are colocated near source files.
 
-Vitest config: `server/vitest.config.ts` — node environment, globals enabled, clearMocks.
-
-Test pattern: mock dependencies with `vi.fn()`, instantiate services directly (no DI container needed for unit tests).
+- **Server:** `src/**/*.spec.ts` — mock dependencies with `vi.fn()`, instantiate services directly (no DI container)
+- **Client:** `src/**/*.test.ts(x)`, `lib/**/*.test.ts`, `stores/**/*.test.ts` — setup file at `src/test/setup.ts`
 
 ## Known Constraints
 

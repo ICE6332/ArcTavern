@@ -88,7 +88,7 @@ export function GroupChatPanel({ groupId, chatId, onNewMessage }: GroupChatPanel
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
               e.preventDefault();
-              handleGenerate();
+              void handleGenerate();
             }
           }}
           disabled={isGenerating}
@@ -98,7 +98,12 @@ export function GroupChatPanel({ groupId, chatId, onNewMessage }: GroupChatPanel
             Stop
           </Button>
         ) : (
-          <Button size="sm" onClick={handleGenerate}>
+          <Button
+            size="sm"
+            onClick={() => {
+              void handleGenerate();
+            }}
+          >
             Send
           </Button>
         )}

@@ -61,11 +61,22 @@ export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
         Set as default persona
       </label>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>
+        <Button
+          size="sm"
+          onClick={() => {
+            void handleSave();
+          }}
+        >
           {persona ? "Update" : "Create"}
         </Button>
         {persona && (
-          <Button size="sm" variant="destructive" onClick={handleDelete}>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => {
+              void handleDelete();
+            }}
+          >
             Delete
           </Button>
         )}

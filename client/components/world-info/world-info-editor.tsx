@@ -25,7 +25,7 @@ export function WorldInfoEditor({ onClose }: WorldInfoEditorProps) {
     } else {
       const created = await createBook({ name, description });
       // Auto-select the new book
-      useWorldInfoStore.getState().selectBook(created.id);
+      void useWorldInfoStore.getState().selectBook(created.id);
     }
     onClose();
   };
@@ -41,7 +41,12 @@ export function WorldInfoEditor({ onClose }: WorldInfoEditorProps) {
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>
+        <Button
+          size="sm"
+          onClick={() => {
+            void handleSave();
+          }}
+        >
           {book ? "Update" : "Create"}
         </Button>
         <Button size="sm" variant="outline" onClick={onClose}>

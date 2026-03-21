@@ -13,7 +13,8 @@ import {
   EmbeddingResponse,
   ChatMessage,
 } from './types';
-import { generateText, streamText, embedMany, type ModelMessage } from 'ai';
+import { generateText, streamText, embedMany, Output, type ModelMessage } from 'ai';
+import type { ZodType } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -221,6 +222,33 @@ export class AiProviderService {
       if (chunk.type === 'reasoning' && chunk.text) {
         yield { reasoning: chunk.text };
       }
+    }
+  }
+
+  async *streamStructured<T>(
+    req: CompletionRequest,
+    schema: ZodType<T>,
+    signal?: AbortSignal,
+  ): AsyncGenerator<{ partial: unknown }, void, unknown> {
+    const apiKey = await this.getApiKey(req.provider);
+    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy);
+
+    const result = streamText({
+      model,
+      messages: this.convertMessages(req.messages, req.assistantPrefill),
+      output: Output.object({ schema }),
+      temperature: req.temperature,
+      maxOutputTokens: req.maxTokens,
+      topP: req.topP,
+      topK: req.topK,
+      frequencyPenalty: req.frequencyPenalty,
+      presencePenalty: req.presencePenalty,
+      stopSequences: req.stop,
+      abortSignal: signal,
+    });
+
+    for await (const partial of result.partialOutputStream) {
+      yield { partial };
     }
   }
 

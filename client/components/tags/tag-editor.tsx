@@ -63,11 +63,22 @@ export function TagEditor({ editingTagId, onClose }: TagEditorProps) {
         </div>
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>
+        <Button
+          size="sm"
+          onClick={() => {
+            void handleSave();
+          }}
+        >
           {existing ? "Update" : "Create"}
         </Button>
         {existing && (
-          <Button size="sm" variant="destructive" onClick={handleDelete}>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => {
+              void handleDelete();
+            }}
+          >
             Delete
           </Button>
         )}

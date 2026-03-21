@@ -75,7 +75,9 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
                   <span>{char?.name ?? `Character #${m.characterId}`}</span>
                   <button
                     className="text-muted-foreground hover:text-destructive"
-                    onClick={() => removeMember(group.id, m.characterId)}
+                    onClick={() => {
+                      void removeMember(group.id, m.characterId);
+                    }}
                   >
                     ×
                   </button>
@@ -84,7 +86,11 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
             })}
           </div>
           {availableChars.length > 0 && (
-            <Select onValueChange={(v) => addMember(group.id, Number(v))}>
+            <Select
+              onValueChange={(v) => {
+                void addMember(group.id, Number(v));
+              }}
+            >
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Add member..." />
               </SelectTrigger>
@@ -101,7 +107,12 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
       )}
 
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave}>
+        <Button
+          size="sm"
+          onClick={() => {
+            void handleSave();
+          }}
+        >
           {group ? "Update" : "Create"}
         </Button>
         <Button size="sm" variant="outline" onClick={onClose}>

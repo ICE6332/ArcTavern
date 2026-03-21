@@ -38,7 +38,13 @@ export function EntryList({ onEditEntry }: EntryListProps) {
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 text-xs"
         />
-        <Button size="sm" variant="outline" onClick={handleAddEntry}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            void handleAddEntry();
+          }}
+        >
           + Entry
         </Button>
       </div>
@@ -65,7 +71,7 @@ export function EntryList({ onEditEntry }: EntryListProps) {
               className="ml-2 text-muted-foreground hover:text-destructive"
               onClick={(e) => {
                 e.stopPropagation();
-                deleteEntry(entry.id);
+                void deleteEntry(entry.id);
               }}
             >
               ×

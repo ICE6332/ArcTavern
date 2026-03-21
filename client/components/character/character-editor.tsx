@@ -143,7 +143,14 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           />
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             Avatar
-            <input type="file" accept="image/*" onChange={handleAvatar} className="text-xs" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                void handleAvatar(e);
+              }}
+              className="text-xs"
+            />
           </label>
         </div>
       )}
@@ -205,7 +212,14 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
       )}
 
       <div className="flex justify-end gap-1">
-        <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={saving}>
+        <Button
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => {
+            void handleSave();
+          }}
+          disabled={saving}
+        >
           {saving ? "Saving..." : "Save"}
         </Button>
       </div>
