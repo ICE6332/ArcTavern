@@ -1,52 +1,67 @@
-// TypeScript types mirroring server/src/modules/ai-provider/structured-output-schema.ts
+// Flat block types matching server structured-output-schema.ts
 
 export interface NarrationBlock {
-  type: "narration";
+  role: "narration";
+  text: string;
+}
+
+export interface CardBlock {
+  role: "card";
+  title?: string;
+  markdown: string;
+}
+
+export interface AlertBlock {
+  role: "alert";
+  message: string;
+  level?: "info" | "warning" | "error" | "success";
+}
+
+export interface CodeBlock {
+  role: "code";
   content: string;
+  language?: string;
 }
 
-export type UIComponent =
-  | { type: "Text"; content: string }
-  | { type: "Heading"; text: string; level?: number }
-  | { type: "ItemList"; items: string[]; ordered?: boolean }
-  | { type: "DataTable"; headers: string[]; rows: string[][] }
-  | { type: "CodeBlock"; code: string; language?: string }
-  | { type: "AlertBox"; message: string; variant?: "info" | "warning" | "error" | "success" }
-  | { type: "TagGroup"; items: string[] }
-  | { type: "ChoiceButtons"; choices: { label: string; value: string }[] }
-  | { type: "Divider" };
-
-export interface UICardBlock {
-  type: "ui";
-  title?: string | null;
-  children: UIComponent[];
+export interface ChoicesBlock {
+  role: "choices";
+  options: string[];
 }
 
-export type StructuredBlock = NarrationBlock | UICardBlock;
+export interface SeparatorBlock {
+  role: "separator";
+}
+
+export type StructuredBlock =
+  | NarrationBlock
+  | CardBlock
+  | AlertBlock
+  | CodeBlock
+  | ChoicesBlock
+  | SeparatorBlock;
 
 export interface StructuredResponse {
   blocks: StructuredBlock[];
 }
 
-/** Deep-partial version for streaming — all fields optional */
-export type PartialUIComponent = Partial<UIComponent> & { type?: string };
-
-export interface PartialUICardBlock {
-  type?: "ui";
-  title?: string | null;
-  children?: PartialUIComponent[];
-}
-
-export interface PartialNarrationBlock {
-  type?: "narration";
+/** Partial version for streaming */
+export interface PartialBlock {
+  role?: string;
+  text?: string;
+  title?: string;
+  markdown?: string;
+  message?: string;
+  level?: string;
   content?: string;
+  language?: string;
+  options?: string[];
 }
 
 export interface PartialStructuredResponse {
-  blocks?: Array<PartialNarrationBlock | PartialUICardBlock | undefined>;
+  blocks?: PartialBlock[];
 }
 
-/** Check if an object looks like a structured response (has blocks array) */
+/** Check if an object looks like a structured response */
 export function isStructuredResponse(value: unknown): value is PartialStructuredResponse {
   return (
     typeof value === "object" &&

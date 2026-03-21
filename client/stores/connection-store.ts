@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type Provider = "openai" | "anthropic" | "google" | "openrouter" | "mistral" | "custom";
+export type CustomApiFormat = "openai-compatible" | "google" | "openai" | "anthropic";
 
 interface ConnectionState {
   provider: Provider;
@@ -33,6 +34,7 @@ interface ConnectionState {
   namesBehavior: number;
   squashSystemMessages: boolean;
   openUiEnabled: boolean;
+  customApiFormat: CustomApiFormat;
 
   setProvider: (provider: Provider) => void;
   setModel: (model: string) => void;
@@ -61,6 +63,7 @@ interface ConnectionState {
   setNamesBehavior: (v: number) => void;
   setSquashSystemMessages: (v: boolean) => void;
   setOpenUiEnabled: (v: boolean) => void;
+  setCustomApiFormat: (v: CustomApiFormat) => void;
 }
 
 export const DEFAULT_MODELS: Record<Provider, string[]> = {
@@ -114,6 +117,7 @@ export const useConnectionStore = create<ConnectionState>()(
       namesBehavior: 0,
       squashSystemMessages: false,
       openUiEnabled: false,
+      customApiFormat: "openai-compatible",
 
       setProvider: (provider) => {
         const defaultModel = DEFAULT_MODELS[provider]?.[0] ?? "";
@@ -151,6 +155,7 @@ export const useConnectionStore = create<ConnectionState>()(
       setNamesBehavior: (namesBehavior) => set({ namesBehavior }),
       setSquashSystemMessages: (squashSystemMessages) => set({ squashSystemMessages }),
       setOpenUiEnabled: (openUiEnabled) => set({ openUiEnabled }),
+      setCustomApiFormat: (customApiFormat) => set({ customApiFormat }),
     }),
     { name: "st-connection" },
   ),

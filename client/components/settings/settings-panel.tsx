@@ -366,6 +366,19 @@ export function SettingsPanel() {
 
             {conn.provider === "custom" && (
               <>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">API Format</Label>
+                  <select
+                    value={conn.customApiFormat}
+                    onChange={(e) => conn.setCustomApiFormat(e.target.value as "openai-compatible" | "google" | "openai" | "anthropic")}
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="openai-compatible">OpenAI Compatible</option>
+                    <option value="google">Google Gemini (Native)</option>
+                    <option value="openai">OpenAI (Native)</option>
+                    <option value="anthropic">Anthropic (Native)</option>
+                  </select>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"

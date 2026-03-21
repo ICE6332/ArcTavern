@@ -20,6 +20,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { tryParsePartialJson } from './json-stream-parser';
 
 const SECRET_KEY_MAP: Record<string, string> = {
   openai: 'api_key_openai',
@@ -74,6 +75,7 @@ export class AiProviderService {
     model: string,
     apiKey: string,
     reverseProxy?: string,
+    customApiFormat?: string,
   ) {
     switch (provider) {
       case 'openai':
@@ -93,12 +95,23 @@ export class AiProviderService {
         })(model);
       case 'mistral':
         return createMistral({ apiKey, baseURL: reverseProxy })(model);
-      case 'custom':
-        return createOpenAICompatible({
-          name: 'custom',
-          apiKey,
-          baseURL: this.normalizeBaseUrl(reverseProxy!),
-        })(model);
+      case 'custom': {
+        const format = customApiFormat ?? 'openai-compatible';
+        const baseURL = this.normalizeBaseUrl(reverseProxy!);
+        switch (format) {
+          case 'google': {
+            // Google native SDK expects baseURL ending with /v1beta or /v1
+            const googleBase = /\/v1(beta)?$/.test(baseURL) ? baseURL : `${baseURL.replace(/\/+$/, '')}/v1beta`;
+            return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
+          }
+          case 'openai':
+            return createOpenAI({ apiKey, baseURL })(model);
+          case 'anthropic':
+            return createAnthropic({ apiKey, baseURL })(model);
+          default:
+            return createOpenAICompatible({ name: 'custom', apiKey, baseURL })(model);
+        }
+      }
       default:
         throw new BadRequestException(`Unknown provider: ${provider}`);
     }
@@ -152,7 +165,7 @@ export class AiProviderService {
 
   async complete(req: CompletionRequest): Promise<CompletionResponse> {
     const apiKey = await this.getApiKey(req.provider);
-    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy);
+    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
 
     const result = await generateText({
       model,
@@ -188,7 +201,7 @@ export class AiProviderService {
     signal?: AbortSignal,
   ): AsyncGenerator<CompletionStreamChunk, void, unknown> {
     const apiKey = await this.getApiKey(req.provider);
-    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy);
+    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
 
     const result = streamText({
       model,
@@ -231,25 +244,62 @@ export class AiProviderService {
     signal?: AbortSignal,
   ): AsyncGenerator<{ partial: unknown }, void, unknown> {
     const apiKey = await this.getApiKey(req.provider);
-    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy);
+    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
+    const useNativeSchema = this.supportsResponseFormat(req.provider, req.customApiFormat);
 
-    const result = streamText({
-      model,
-      messages: this.convertMessages(req.messages, req.assistantPrefill),
-      output: Output.object({ schema }),
-      temperature: req.temperature,
-      maxOutputTokens: req.maxTokens,
-      topP: req.topP,
-      topK: req.topK,
-      frequencyPenalty: req.frequencyPenalty,
-      presencePenalty: req.presencePenalty,
-      stopSequences: req.stop,
-      abortSignal: signal,
-    });
+    if (useNativeSchema) {
+      // Path A: Output.object() — schema enforced by API
+      const result = streamText({
+        model,
+        messages: this.convertMessages(req.messages, req.assistantPrefill),
+        output: Output.object({ schema }),
+        temperature: req.temperature,
+        maxOutputTokens: req.maxTokens,
+        topP: req.topP,
+        topK: req.topK,
+        frequencyPenalty: req.frequencyPenalty,
+        presencePenalty: req.presencePenalty,
+        stopSequences: req.stop,
+        abortSignal: signal,
+      });
 
-    for await (const partial of result.partialOutputStream) {
-      yield { partial };
+      for await (const partial of result.partialOutputStream) {
+        yield { partial };
+      }
+    } else {
+      // Path B: text stream + manual incremental JSON parsing
+      const result = streamText({
+        model,
+        messages: this.convertMessages(req.messages, req.assistantPrefill),
+        temperature: req.temperature,
+        maxOutputTokens: req.maxTokens,
+        topP: req.topP,
+        topK: req.topK,
+        frequencyPenalty: req.frequencyPenalty,
+        presencePenalty: req.presencePenalty,
+        stopSequences: req.stop,
+        abortSignal: signal,
+      });
+
+      let fullText = '';
+      for await (const part of result.fullStream) {
+        const chunk = part as { type?: string; textDelta?: string; text?: string };
+        const deltaText = chunk.textDelta ?? chunk.text;
+        if ((chunk.type === 'text-delta' || chunk.type === 'text') && deltaText) {
+          fullText += deltaText;
+          const parsed = tryParsePartialJson(fullText);
+          if (parsed) {
+            yield { partial: parsed };
+          }
+        }
+      }
     }
+  }
+
+  private supportsResponseFormat(provider: string, customApiFormat?: string): boolean {
+    if (['openai', 'anthropic', 'google'].includes(provider)) return true;
+    if (provider === 'custom' && customApiFormat && customApiFormat !== 'openai-compatible') return true;
+    return false;
   }
 
   async embed(req: EmbeddingRequest): Promise<EmbeddingResponse> {

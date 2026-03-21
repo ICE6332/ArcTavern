@@ -1,126 +1,89 @@
 import { z } from 'zod';
 
-// --- Individual UI component schemas (mirror client/lib/openui/components.tsx props) ---
+// --- Flat block schemas (no nesting, Gemini-compatible) ---
 
-const TextComponentSchema = z.object({
-  type: z.literal('Text'),
-  content: z.string(),
-});
-
-const HeadingComponentSchema = z.object({
-  type: z.literal('Heading'),
+const NarrationBlockSchema = z.object({
+  role: z.literal('narration'),
   text: z.string(),
-  level: z.number().optional(),
 });
 
-const ItemListComponentSchema = z.object({
-  type: z.literal('ItemList'),
-  items: z.array(z.string()),
-  ordered: z.boolean().optional(),
+const CardBlockSchema = z.object({
+  role: z.literal('card'),
+  title: z.string().optional(),
+  markdown: z.string(),
 });
 
-const DataTableComponentSchema = z.object({
-  type: z.literal('DataTable'),
-  headers: z.array(z.string()),
-  rows: z.array(z.array(z.string())),
+const AlertBlockSchema = z.object({
+  role: z.literal('alert'),
+  message: z.string(),
+  level: z.enum(['info', 'warning', 'error', 'success']).optional(),
 });
 
-const CodeBlockComponentSchema = z.object({
-  type: z.literal('CodeBlock'),
-  code: z.string(),
+const CodeBlockSchema = z.object({
+  role: z.literal('code'),
+  content: z.string(),
   language: z.string().optional(),
 });
 
-const AlertBoxComponentSchema = z.object({
-  type: z.literal('AlertBox'),
-  message: z.string(),
-  variant: z.enum(['info', 'warning', 'error', 'success']).optional(),
+const ChoicesBlockSchema = z.object({
+  role: z.literal('choices'),
+  options: z.array(z.string()),
 });
 
-const TagGroupComponentSchema = z.object({
-  type: z.literal('TagGroup'),
-  items: z.array(z.string()),
+const SeparatorBlockSchema = z.object({
+  role: z.literal('separator'),
 });
 
-const ChoiceButtonsComponentSchema = z.object({
-  type: z.literal('ChoiceButtons'),
-  choices: z.array(z.object({ label: z.string(), value: z.string() })),
-});
-
-const DividerComponentSchema = z.object({
-  type: z.literal('Divider'),
-});
-
-// Union of all UI children components
-const ComponentUnionSchema = z.discriminatedUnion('type', [
-  TextComponentSchema,
-  HeadingComponentSchema,
-  ItemListComponentSchema,
-  DataTableComponentSchema,
-  CodeBlockComponentSchema,
-  AlertBoxComponentSchema,
-  TagGroupComponentSchema,
-  ChoiceButtonsComponentSchema,
-  DividerComponentSchema,
-]);
-
-// --- Top-level block types ---
-
-const NarrationBlockSchema = z.object({
-  type: z.literal('narration'),
-  content: z.string(),
-});
-
-const UICardBlockSchema = z.object({
-  type: z.literal('ui'),
-  title: z.string().nullable(),
-  children: z.array(ComponentUnionSchema),
-});
-
-const BlockUnionSchema = z.discriminatedUnion('type', [
+const BlockSchema = z.discriminatedUnion('role', [
   NarrationBlockSchema,
-  UICardBlockSchema,
+  CardBlockSchema,
+  AlertBlockSchema,
+  CodeBlockSchema,
+  ChoicesBlockSchema,
+  SeparatorBlockSchema,
 ]);
 
 // --- Root schema for Output.object() ---
 
 export const StructuredResponseSchema = z.object({
-  blocks: z.array(BlockUnionSchema),
+  blocks: z.array(BlockSchema),
 });
 
 export type StructuredResponse = z.infer<typeof StructuredResponseSchema>;
-export type StructuredBlock = z.infer<typeof BlockUnionSchema>;
-export type UIComponent = z.infer<typeof ComponentUnionSchema>;
+export type StructuredBlock = z.infer<typeof BlockSchema>;
 
 // --- System prompt for structured output mode ---
 
 export function getStructuredOutputSystemPrompt(): string {
-  return `You respond with a JSON object containing a "blocks" array. Each block is one of:
+  return `You respond with a JSON object containing a "blocks" array. Each block has a "role" field.
 
-1. Narration block — for roleplay, dialogue, descriptions, actions:
-   { "type": "narration", "content": "..." }
-   Use *asterisks* for actions and regular text for dialogue.
+Block types:
 
-2. UI block — for structured content (tables, lists, code, alerts, choices):
-   { "type": "ui", "title": "optional title", "children": [...] }
+1. narration — roleplay, dialogue, descriptions, inner thoughts:
+   { "role": "narration", "text": "*action description* spoken dialogue" }
 
-UI children component types:
-- { "type": "Text", "content": "paragraph text" }
-- { "type": "Heading", "text": "section title", "level": 2 }
-- { "type": "ItemList", "items": ["item1", "item2"], "ordered": false }
-- { "type": "DataTable", "headers": ["col1", "col2"], "rows": [["a", "b"]] }
-- { "type": "CodeBlock", "code": "...", "language": "js" }
-- { "type": "AlertBox", "message": "...", "variant": "info|warning|error|success" }
-- { "type": "TagGroup", "items": ["tag1", "tag2"] }
-- { "type": "ChoiceButtons", "choices": [{"label": "Option", "value": "opt"}] }
-- { "type": "Divider" }
+2. card — structured content rendered in a card. Use markdown for tables, lists, headings, etc:
+   { "role": "card", "title": "Optional Title", "markdown": "## Heading\\n| Col | Val |\\n|---|---|\\n| HP | 100 |" }
+
+3. alert — colored status message (level: info, warning, error, success):
+   { "role": "alert", "message": "System online.", "level": "info" }
+
+4. code — code snippet with optional language label:
+   { "role": "code", "content": "console.log('hello')", "language": "javascript" }
+
+5. choices — interactive option buttons the user can click:
+   { "role": "choices", "options": ["Option A", "Option B"] }
+
+6. separator — horizontal line to separate sections:
+   { "role": "separator" }
 
 Guidelines:
-- Use narration blocks for storytelling, dialogue, and descriptive text.
-- Use UI blocks when structured layout adds clear value (data, reports, choices).
-- You can freely mix both types in one response.
-- Most responses should have at least one narration block.
-- Use ChoiceButtons to give the user interactive options.
+- Use narration for storytelling, dialogue, and descriptive text. Write actions in *asterisks*.
+- Use card for data tables, attribute panels, lists, or any rich content. Write the content as markdown.
+- Use alert for status updates, warnings, or system messages that deserve visual emphasis.
+- Use code for code snippets, logs, or terminal output.
+- Use choices to offer the user interactive options.
+- You can freely mix block types. Most responses should include at least one narration block.
 - Respond in the same language as the user.`;
 }
 
@@ -128,7 +91,7 @@ Guidelines:
 
 export function extractNarrationText(response: StructuredResponse): string {
   return response.blocks
-    .filter((b): b is { type: 'narration'; content: string } => b.type === 'narration')
-    .map((b) => b.content)
+    .filter((b): b is { role: 'narration'; text: string } => b.role === 'narration')
+    .map((b) => b.text)
     .join('\n');
 }

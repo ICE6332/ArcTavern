@@ -58,6 +58,7 @@ export interface CompletionRequest {
   maxContext?: number;
   userName?: string;
   reverseProxy?: string;
+  customApiFormat?: 'openai-compatible' | 'google' | 'openai' | 'anthropic';
 }
 
 export interface CompletionResponse {

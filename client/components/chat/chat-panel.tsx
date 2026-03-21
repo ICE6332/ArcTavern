@@ -112,6 +112,7 @@ export function ChatPanel() {
       promptOrder,
       customPrompts,
       structuredOutput: openUiEnabled,
+      customApiFormat: connection.provider === "custom" ? connection.customApiFormat : undefined,
     }),
     [connection, promptOrder, customPrompts, openUiEnabled],
   );
