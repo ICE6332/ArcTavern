@@ -13,7 +13,7 @@ import {
   EmbeddingResponse,
   ChatMessage,
 } from './types';
-import { generateText, streamText, embedMany, Output, type ModelMessage } from 'ai';
+import { generateText, streamText, embedMany, type ModelMessage } from 'ai';
 import type { ZodType } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
@@ -245,61 +245,34 @@ export class AiProviderService {
   ): AsyncGenerator<{ partial: unknown }, void, unknown> {
     const apiKey = await this.getApiKey(req.provider);
     const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
-    const useNativeSchema = this.supportsResponseFormat(req.provider, req.customApiFormat);
 
-    if (useNativeSchema) {
-      // Path A: Output.object() — schema enforced by API
-      const result = streamText({
-        model,
-        messages: this.convertMessages(req.messages, req.assistantPrefill),
-        output: Output.object({ schema }),
-        temperature: req.temperature,
-        maxOutputTokens: req.maxTokens,
-        topP: req.topP,
-        topK: req.topK,
-        frequencyPenalty: req.frequencyPenalty,
-        presencePenalty: req.presencePenalty,
-        stopSequences: req.stop,
-        abortSignal: signal,
-      });
+    // Text stream + incremental JSON parsing
+    // System prompt (injected by controller) guides the model to output valid JSON.
+    const result = streamText({
+      model,
+      messages: this.convertMessages(req.messages, req.assistantPrefill),
+      temperature: req.temperature,
+      maxOutputTokens: req.maxTokens,
+      topP: req.topP,
+      topK: req.topK,
+      frequencyPenalty: req.frequencyPenalty,
+      presencePenalty: req.presencePenalty,
+      stopSequences: req.stop,
+      abortSignal: signal,
+    });
 
-      for await (const partial of result.partialOutputStream) {
-        yield { partial };
-      }
-    } else {
-      // Path B: text stream + manual incremental JSON parsing
-      const result = streamText({
-        model,
-        messages: this.convertMessages(req.messages, req.assistantPrefill),
-        temperature: req.temperature,
-        maxOutputTokens: req.maxTokens,
-        topP: req.topP,
-        topK: req.topK,
-        frequencyPenalty: req.frequencyPenalty,
-        presencePenalty: req.presencePenalty,
-        stopSequences: req.stop,
-        abortSignal: signal,
-      });
-
-      let fullText = '';
-      for await (const part of result.fullStream) {
-        const chunk = part as { type?: string; textDelta?: string; text?: string };
-        const deltaText = chunk.textDelta ?? chunk.text;
-        if ((chunk.type === 'text-delta' || chunk.type === 'text') && deltaText) {
-          fullText += deltaText;
-          const parsed = tryParsePartialJson(fullText);
-          if (parsed) {
-            yield { partial: parsed };
-          }
+    let fullText = '';
+    for await (const part of result.fullStream) {
+      const chunk = part as { type?: string; textDelta?: string; text?: string };
+      const deltaText = chunk.textDelta ?? chunk.text;
+      if ((chunk.type === 'text-delta' || chunk.type === 'text') && deltaText) {
+        fullText += deltaText;
+        const parsed = tryParsePartialJson(fullText);
+        if (parsed) {
+          yield { partial: parsed };
         }
       }
     }
-  }
-
-  private supportsResponseFormat(provider: string, customApiFormat?: string): boolean {
-    if (['openai', 'anthropic', 'google'].includes(provider)) return true;
-    if (provider === 'custom' && customApiFormat && customApiFormat !== 'openai-compatible') return true;
-    return false;
   }
 
   async embed(req: EmbeddingRequest): Promise<EmbeddingResponse> {

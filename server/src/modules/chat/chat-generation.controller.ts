@@ -19,7 +19,7 @@ import { WorldInfoService } from '../world-info/world-info.service';
 import { WorldInfoScannerService } from '../world-info/world-info-scanner.service';
 import { PersonaService } from '../persona/persona.service';
 import { RagService } from '../rag/rag.service';
-import type { CompletionRequest } from '../ai-provider/types';
+import type { CompletionRequest, ChatMessage } from '../ai-provider/types';
 import type { RetrievedMemory } from '../rag/types';
 import {
   StructuredResponseSchema,
@@ -251,11 +251,15 @@ export class ChatGenerationController {
     let structuredResult: unknown = null;
     try {
       if (body.structuredOutput) {
-        // --- Structured output path: Output.object() with partialOutputStream ---
+        // --- Structured output path: text stream + incremental JSON parsing ---
         promptMessages.push({
           role: 'system',
           content: getStructuredOutputSystemPrompt(),
         });
+
+        // Google native SDK requires all system messages at the beginning.
+        // Merge any system messages scattered in the prompt to the front.
+        this.hoistSystemMessages(promptMessages);
 
         for await (const chunk of this.aiProviderService.streamStructured(
           completionRequest,
@@ -273,6 +277,8 @@ export class ChatGenerationController {
           }
           res.write(`data: ${JSON.stringify({ structured: chunk.partial })}\n\n`);
         }
+
+        this.logger.log(`[structured] Stream ended. Total chunks: ${chunkCount}`);
 
         // Extract text for persistence and RAG
         if (structuredResult && typeof structuredResult === 'object') {
@@ -371,6 +377,7 @@ export class ChatGenerationController {
     } catch (error: unknown) {
       if (!abortController.signal.aborted) {
         const message = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`[generate] Error: ${message}`, error instanceof Error ? error.stack : '');
         this.chatDebug('generate.error', {
           requestTag,
           chatId,
@@ -540,6 +547,24 @@ export class ChatGenerationController {
       if (messages[i].role === 'assistant') return messages[i];
     }
     return null;
+  }
+
+  /** Move all system messages to the front and merge into a single message. */
+  private hoistSystemMessages(messages: ChatMessage[]): void {
+    const systemParts: string[] = [];
+    let i = 0;
+    while (i < messages.length) {
+      if (messages[i].role === 'system') {
+        const content = messages[i].content;
+        if (typeof content === 'string') systemParts.push(content);
+        messages.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+    if (systemParts.length > 0) {
+      messages.unshift({ role: 'system', content: systemParts.join('\n\n') });
+    }
   }
 
   private parseSwipes(message: MessageRow): string[] {
