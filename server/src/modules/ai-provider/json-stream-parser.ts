@@ -4,7 +4,12 @@
  */
 
 export function tryParsePartialJson(text: string): unknown | null {
-  const trimmed = text.trim();
+  let trimmed = text.trim();
+  if (!trimmed) return null;
+
+  // Strip markdown code fence wrapper (```json ... ``` or ``` ... ```)
+  trimmed = trimmed.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  trimmed = trimmed.trim();
   if (!trimmed) return null;
 
   // Try direct parse first (complete JSON)

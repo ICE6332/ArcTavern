@@ -34,6 +34,18 @@ const SeparatorBlockSchema = z.object({
   role: z.literal('separator'),
 });
 
+const TaskBlockSchema = z.object({
+  role: z.literal('task'),
+  title: z.string(),
+  items: z.array(z.string()),
+});
+
+const ProgressBlockSchema = z.object({
+  role: z.literal('progress'),
+  label: z.string(),
+  value: z.number(),
+});
+
 const BlockSchema = z.discriminatedUnion('role', [
   NarrationBlockSchema,
   CardBlockSchema,
@@ -41,6 +53,8 @@ const BlockSchema = z.discriminatedUnion('role', [
   CodeBlockSchema,
   ChoicesBlockSchema,
   SeparatorBlockSchema,
+  TaskBlockSchema,
+  ProgressBlockSchema,
 ]);
 
 // --- Root schema for Output.object() ---
@@ -76,6 +90,12 @@ Block types:
 
 6. separator — horizontal line to separate sections:
    { "role": "separator" }
+
+7. task — a collapsible task/checklist with a title and item list:
+   { "role": "task", "title": "Setup Checklist", "items": ["Install dependencies", "Configure API keys", "Run tests"] }
+
+8. progress — a progress bar showing completion or stats (value 0-100):
+   { "role": "progress", "label": "HP", "value": 75 }
 
 Guidelines:
 - Use narration for storytelling, dialogue, and descriptive text. Write actions in *asterisks*.

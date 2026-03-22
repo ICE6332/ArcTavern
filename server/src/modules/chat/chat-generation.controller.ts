@@ -232,9 +232,12 @@ export class ChatGenerationController {
     // Inject a cache-busting marker for swipe/regenerate to prevent identical responses
     if (generationType === 'swipe' || generationType === 'regenerate') {
       const seed = Math.random().toString(36).slice(2, 10);
+      const ts = Date.now().toString(36);
+      // Use 'user' role for cache-busting — system messages get hoisted/merged
+      // and proxy caches may ignore them
       promptMessages.push({
-        role: 'system',
-        content: `[generation_seed: ${seed}] Produce a fresh, unique response. Vary your word choices, structure, and creative details from any prior responses.`,
+        role: 'user',
+        content: `[${seed}-${ts}] Please generate a completely fresh and different response. Vary wording, structure, and creative details.`,
       });
     }
 
@@ -522,6 +525,7 @@ export class ChatGenerationController {
       swipes.push(fullContent);
       const nextSwipeId = swipes.length - 1;
       const existingExtra = this.parseExtra(targetAssistant.extra);
+      if (format) existingExtra.format = format;
       const reasoningSwipes = this.parseReasoningSwipes(
         existingExtra,
         swipes.length,

@@ -2,11 +2,22 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import {
+  CodeBlock,
+  CodeBlockHeader,
+  CodeBlockTitle,
+  CodeBlockFilename,
+  CodeBlockActions,
+  CodeBlockCopyButton,
+  CodeBlockContent,
+} from "@/src/components/ai-elements/code-block";
+import { Task, TaskTrigger, TaskContent, TaskItem } from "@/src/components/ai-elements/task";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
+import type { BundledLanguage } from "shiki";
 
 const markdownStyles =
   "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2";
@@ -35,9 +46,7 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
         if (block.role === "narration" && block.text) {
           return (
             <div key={i} className={markdownStyles}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                {block.text}
-              </ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.text}</ReactMarkdown>
             </div>
           );
         }
@@ -53,9 +62,7 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
               {block.markdown && (
                 <CardContent>
                   <div className={markdownStyles}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                      {block.markdown}
-                    </ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.markdown}</ReactMarkdown>
                   </div>
                 </CardContent>
               )}
@@ -73,17 +80,18 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
         }
 
         if (block.role === "code" && block.content) {
+          const lang = (block.language || "text") as BundledLanguage;
           return (
-            <div key={i} className="overflow-x-auto rounded-md bg-muted p-3">
-              {block.language && (
-                <span className="mb-1 block text-[0.625rem] font-medium text-muted-foreground">
-                  {block.language}
-                </span>
-              )}
-              <pre className="text-xs">
-                <code>{block.content}</code>
-              </pre>
-            </div>
+            <CodeBlock key={i} code={block.content} language={lang}>
+              <CodeBlockHeader>
+                <CodeBlockTitle>
+                  <CodeBlockFilename>{lang}</CodeBlockFilename>
+                </CodeBlockTitle>
+                <CodeBlockActions>
+                  <CodeBlockCopyButton />
+                </CodeBlockActions>
+              </CodeBlockHeader>
+            </CodeBlock>
           );
         }
 
@@ -101,6 +109,33 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
 
         if (block.role === "separator") {
           return <Separator key={i} className="my-2" />;
+        }
+
+        if (block.role === "task" && block.title) {
+          return (
+            <Task key={i}>
+              <TaskTrigger title={block.title} />
+              {block.items?.length ? (
+                <TaskContent>
+                  {block.items.map((item, ti) => (
+                    <TaskItem key={ti}>{item}</TaskItem>
+                  ))}
+                </TaskContent>
+              ) : null}
+            </Task>
+          );
+        }
+
+        if (block.role === "progress" && block.label) {
+          return (
+            <div key={i} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{block.label}</span>
+                <span>{block.value ?? 0}%</span>
+              </div>
+              <Progress value={block.value ?? 0} className="h-2" />
+            </div>
+          );
         }
 
         return null;

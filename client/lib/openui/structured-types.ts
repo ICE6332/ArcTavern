@@ -32,13 +32,27 @@ export interface SeparatorBlock {
   role: "separator";
 }
 
+export interface TaskBlock {
+  role: "task";
+  title: string;
+  items: string[];
+}
+
+export interface ProgressBlock {
+  role: "progress";
+  label: string;
+  value: number;
+}
+
 export type StructuredBlock =
   | NarrationBlock
   | CardBlock
   | AlertBlock
   | CodeBlock
   | ChoicesBlock
-  | SeparatorBlock;
+  | SeparatorBlock
+  | TaskBlock
+  | ProgressBlock;
 
 export interface StructuredResponse {
   blocks: StructuredBlock[];
@@ -55,6 +69,9 @@ export interface PartialBlock {
   content?: string;
   language?: string;
   options?: string[];
+  items?: string[];
+  value?: number;
+  label?: string;
 }
 
 export interface PartialStructuredResponse {
