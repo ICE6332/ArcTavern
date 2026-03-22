@@ -54,3 +54,5 @@ nul
 # AI assistant instruction files (local only)
 CLAUDE.md
 AGENTS.md
+.mcp.json
+specs/
