@@ -125,7 +125,9 @@ export function ChatInput({
                   >
                     <HugeiconsIcon icon={StopIcon} size={16} strokeWidth={2} />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Stop</TooltipContent>
+                  <TooltipContent side="top" className="text-xs">
+                    Stop
+                  </TooltipContent>
                 </Tooltip>
               ) : (
                 <Tooltip>
@@ -141,7 +143,9 @@ export function ChatInput({
                   >
                     <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Send</TooltipContent>
+                  <TooltipContent side="top" className="text-xs">
+                    Send
+                  </TooltipContent>
                 </Tooltip>
               )}
             </div>

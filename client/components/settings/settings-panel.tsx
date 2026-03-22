@@ -200,7 +200,11 @@ export function SettingsPanel() {
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title={collapsed ? t("settings.openSettings") : "Close settings"}
         >
-          <HugeiconsIcon icon={collapsed ? Settings01Icon : Cancel01Icon} size={16} strokeWidth={1.5} />
+          <HugeiconsIcon
+            icon={collapsed ? Settings01Icon : Cancel01Icon}
+            size={16}
+            strokeWidth={1.5}
+          />
         </button>
       </div>
 
@@ -244,301 +248,314 @@ export function SettingsPanel() {
 
             <div className="min-w-[320px] flex-1 overflow-y-auto p-4">
               {settingsTab === "prompts" ? (
-          <div className="flex flex-col gap-4">
-            <PromptManager />
+                <div className="flex flex-col gap-4">
+                  <PromptManager />
 
-            <Separator />
+                  <Separator />
 
-            <p className="text-xs font-medium text-muted-foreground">System Prompt Preset</p>
-            <PresetSelector apiType="sysprompt" />
+                  <p className="text-xs font-medium text-muted-foreground">System Prompt Preset</p>
+                  <PresetSelector apiType="sysprompt" />
 
-            <Separator />
+                  <Separator />
 
-            <p className="text-xs font-medium text-muted-foreground">Context Template</p>
-            <PresetSelector apiType="context" />
-          </div>
-        ) : settingsTab === "memory" ? (
-          <MemorySettings />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">{t("settings.provider")}</Label>
-              <Select value={conn.provider} onValueChange={(v) => conn.setProvider(v as Provider)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROVIDERS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {t(p.label)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">{t("settings.model")}</Label>
-              {conn.provider === "custom" && conn.customModels.length > 0 ? (
-                <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
-                  <ComboboxInput placeholder="Search models..." />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No models found.</ComboboxEmpty>
-                    <ComboboxList>
-                      {conn.customModels.map((m) => (
-                        <ComboboxItem key={m} value={m}>
-                          {m}
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              ) : models.length > 0 ? (
-                <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
-                  <ComboboxInput placeholder="Search models..." />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No models found.</ComboboxEmpty>
-                    <ComboboxList>
-                      {models.map((m) => (
-                        <ComboboxItem key={m} value={m}>
-                          {m}
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              ) : (
-                <Input
-                  value={conn.model}
-                  onChange={(e) => conn.setModel(e.target.value)}
-                  placeholder={
-                    conn.provider === "custom"
-                      ? "Detect connection to load model list"
-                      : t("settings.modelName")
-                  }
-                  className="h-9"
-                />
-              )}
-              {conn.provider === "custom" && conn.customModels.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Step 1: Detect connection & models. Step 2: Test connection.
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">
-                API Key{" "}
-                {conn.apiKeyConfigured[conn.provider]
-                  ? t("settings.configured")
-                  : t("settings.notSet")}
-              </Label>
-              <div className="flex gap-1.5">
-                <Input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={t("settings.enterApiKey")}
-                  className="h-9"
-                />
-                <Button
-                  size="sm"
-                  className="h-9 shrink-0"
-                  onClick={() => {
-                    void handleSaveKey();
-                  }}
-                  disabled={saving}
-                >
-                  Save
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">{t("settings.customEndpoint")}</Label>
-              <Input
-                value={conn.reverseProxy}
-                onChange={(e) => conn.setReverseProxy(e.target.value)}
-                placeholder={t("settings.endpointPlaceholder")}
-                className="h-9"
-              />
-            </div>
-
-            {conn.provider === "custom" && (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">API Format</Label>
-                  <select
-                    value={conn.customApiFormat}
-                    onChange={(e) => conn.setCustomApiFormat(e.target.value as "openai-compatible" | "google" | "openai" | "anthropic")}
-                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-                  >
-                    <option value="openai-compatible">OpenAI Compatible</option>
-                    <option value="google">Google Gemini (Native)</option>
-                    <option value="openai">OpenAI (Native)</option>
-                    <option value="anthropic">Anthropic (Native)</option>
-                  </select>
+                  <p className="text-xs font-medium text-muted-foreground">Context Template</p>
+                  <PresetSelector apiType="context" />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => {
-                    void handleDetectCustomProvider();
-                  }}
-                  disabled={detecting || !canDetectCustom}
-                >
-                  {detecting ? "Detecting..." : "Detect Connection & Models"}
-                </Button>
-              </>
-            )}
+              ) : settingsTab === "memory" ? (
+                <MemorySettings />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">{t("settings.provider")}</Label>
+                    <Select
+                      value={conn.provider}
+                      onValueChange={(v) => conn.setProvider(v as Provider)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROVIDERS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {t(p.label)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => {
-                void handleTestConnection();
-              }}
-              disabled={conn.provider === "custom" && !customReadyForTest}
-            >
-              Test Connection
-            </Button>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">{t("settings.model")}</Label>
+                    {conn.provider === "custom" && conn.customModels.length > 0 ? (
+                      <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
+                        <ComboboxInput placeholder="Search models..." />
+                        <ComboboxContent>
+                          <ComboboxEmpty>No models found.</ComboboxEmpty>
+                          <ComboboxList>
+                            {conn.customModels.map((m) => (
+                              <ComboboxItem key={m} value={m}>
+                                {m}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    ) : models.length > 0 ? (
+                      <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
+                        <ComboboxInput placeholder="Search models..." />
+                        <ComboboxContent>
+                          <ComboboxEmpty>No models found.</ComboboxEmpty>
+                          <ComboboxList>
+                            {models.map((m) => (
+                              <ComboboxItem key={m} value={m}>
+                                {m}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    ) : (
+                      <Input
+                        value={conn.model}
+                        onChange={(e) => conn.setModel(e.target.value)}
+                        placeholder={
+                          conn.provider === "custom"
+                            ? "Detect connection to load model list"
+                            : t("settings.modelName")
+                        }
+                        className="h-9"
+                      />
+                    )}
+                    {conn.provider === "custom" && conn.customModels.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Step 1: Detect connection & models. Step 2: Test connection.
+                      </p>
+                    )}
+                  </div>
 
-            <Separator />
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">
+                      API Key{" "}
+                      {conn.apiKeyConfigured[conn.provider]
+                        ? t("settings.configured")
+                        : t("settings.notSet")}
+                    </Label>
+                    <div className="flex gap-1.5">
+                      <Input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder={t("settings.enterApiKey")}
+                        className="h-9"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 shrink-0"
+                        onClick={() => {
+                          void handleSaveKey();
+                        }}
+                        disabled={saving}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </div>
 
-            <p className="text-xs font-medium text-muted-foreground">Completion Preset</p>
-            <PresetSelector apiType="openai" />
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">{t("settings.customEndpoint")}</Label>
+                    <Input
+                      value={conn.reverseProxy}
+                      onChange={(e) => conn.setReverseProxy(e.target.value)}
+                      placeholder={t("settings.endpointPlaceholder")}
+                      className="h-9"
+                    />
+                  </div>
 
-            <Separator />
+                  {conn.provider === "custom" && (
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">API Format</Label>
+                        <select
+                          value={conn.customApiFormat}
+                          onChange={(e) =>
+                            conn.setCustomApiFormat(
+                              e.target.value as
+                                | "openai-compatible"
+                                | "google"
+                                | "openai"
+                                | "anthropic",
+                            )
+                          }
+                          className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                        >
+                          <option value="openai-compatible">OpenAI Compatible</option>
+                          <option value="google">Google Gemini (Native)</option>
+                          <option value="openai">OpenAI (Native)</option>
+                          <option value="anthropic">Anthropic (Native)</option>
+                        </select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => {
+                          void handleDetectCustomProvider();
+                        }}
+                        disabled={detecting || !canDetectCustom}
+                      >
+                        {detecting ? "Detecting..." : "Detect Connection & Models"}
+                      </Button>
+                    </>
+                  )}
 
-            <p className="text-xs font-medium text-muted-foreground">{t("settings.sampling")}</p>
-            <SliderField
-              label={t("settings.temperature")}
-              value={conn.temperature}
-              onChange={conn.setTemperature}
-              min={0}
-              max={2}
-              step={0.05}
-            />
-            <SliderField
-              label={t("settings.maxTokens")}
-              value={conn.maxTokens}
-              onChange={conn.setMaxTokens}
-              min={1}
-              max={32768}
-              step={1}
-              isInt
-            />
-            <SliderField
-              label={t("settings.topP")}
-              value={conn.topP}
-              onChange={conn.setTopP}
-              min={0}
-              max={1}
-              step={0.05}
-            />
-            <SliderField
-              label={t("settings.topK")}
-              value={conn.topK}
-              onChange={conn.setTopK}
-              min={0}
-              max={500}
-              step={1}
-              isInt
-            />
-            <SliderField
-              label={t("settings.freqPenalty")}
-              value={conn.frequencyPenalty}
-              onChange={conn.setFrequencyPenalty}
-              min={-2}
-              max={2}
-              step={0.05}
-            />
-            <SliderField
-              label={t("settings.presPenalty")}
-              value={conn.presencePenalty}
-              onChange={conn.setPresencePenalty}
-              min={-2}
-              max={2}
-              step={0.05}
-            />
-            <SliderField
-              label="Top A"
-              value={conn.topA}
-              onChange={conn.setTopA}
-              min={0}
-              max={1}
-              step={0.01}
-            />
-            <SliderField
-              label="Min P"
-              value={conn.minP}
-              onChange={conn.setMinP}
-              min={0}
-              max={1}
-              step={0.01}
-            />
-            <SliderField
-              label="Rep. Penalty"
-              value={conn.repetitionPenalty}
-              onChange={conn.setRepetitionPenalty}
-              min={1}
-              max={3}
-              step={0.05}
-            />
-            <SliderField
-              label="Max Context"
-              value={conn.maxContext}
-              onChange={conn.setMaxContext}
-              min={512}
-              max={200000}
-              step={512}
-              isInt
-            />
-            <SliderField
-              label="Seed (-1=random)"
-              value={conn.seed}
-              onChange={conn.setSeed}
-              min={-1}
-              max={99999}
-              step={1}
-              isInt
-            />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      void handleTestConnection();
+                    }}
+                    disabled={conn.provider === "custom" && !customReadyForTest}
+                  >
+                    Test Connection
+                  </Button>
 
-            <Separator />
+                  <Separator />
 
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-0.5">
-                <Label className="text-xs">Generative UI (OpenUI)</Label>
-                <span className="text-[0.625rem] text-muted-foreground">
-                  AI can respond with interactive components
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={conn.openUiEnabled}
-                onChange={(e) => conn.setOpenUiEnabled(e.target.checked)}
-                className="h-4 w-4 accent-primary"
-              />
-            </div>
+                  <p className="text-xs font-medium text-muted-foreground">Completion Preset</p>
+                  <PresetSelector apiType="openai" />
 
-            <Separator />
+                  <Separator />
 
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">{t("settings.language")}</Label>
-              <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {t("settings.sampling")}
+                  </p>
+                  <SliderField
+                    label={t("settings.temperature")}
+                    value={conn.temperature}
+                    onChange={conn.setTemperature}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                  />
+                  <SliderField
+                    label={t("settings.maxTokens")}
+                    value={conn.maxTokens}
+                    onChange={conn.setMaxTokens}
+                    min={1}
+                    max={32768}
+                    step={1}
+                    isInt
+                  />
+                  <SliderField
+                    label={t("settings.topP")}
+                    value={conn.topP}
+                    onChange={conn.setTopP}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                  />
+                  <SliderField
+                    label={t("settings.topK")}
+                    value={conn.topK}
+                    onChange={conn.setTopK}
+                    min={0}
+                    max={500}
+                    step={1}
+                    isInt
+                  />
+                  <SliderField
+                    label={t("settings.freqPenalty")}
+                    value={conn.frequencyPenalty}
+                    onChange={conn.setFrequencyPenalty}
+                    min={-2}
+                    max={2}
+                    step={0.05}
+                  />
+                  <SliderField
+                    label={t("settings.presPenalty")}
+                    value={conn.presencePenalty}
+                    onChange={conn.setPresencePenalty}
+                    min={-2}
+                    max={2}
+                    step={0.05}
+                  />
+                  <SliderField
+                    label="Top A"
+                    value={conn.topA}
+                    onChange={conn.setTopA}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                  />
+                  <SliderField
+                    label="Min P"
+                    value={conn.minP}
+                    onChange={conn.setMinP}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                  />
+                  <SliderField
+                    label="Rep. Penalty"
+                    value={conn.repetitionPenalty}
+                    onChange={conn.setRepetitionPenalty}
+                    min={1}
+                    max={3}
+                    step={0.05}
+                  />
+                  <SliderField
+                    label="Max Context"
+                    value={conn.maxContext}
+                    onChange={conn.setMaxContext}
+                    min={512}
+                    max={200000}
+                    step={512}
+                    isInt
+                  />
+                  <SliderField
+                    label="Seed (-1=random)"
+                    value={conn.seed}
+                    onChange={conn.setSeed}
+                    min={-1}
+                    max={99999}
+                    step={1}
+                    isInt
+                  />
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <Label className="text-xs">Generative UI (OpenUI)</Label>
+                      <span className="text-[0.625rem] text-muted-foreground">
+                        AI can respond with interactive components
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={conn.openUiEnabled}
+                      onChange={(e) => conn.setOpenUiEnabled(e.target.checked)}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">{t("settings.language")}</Label>
+                    <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="zh">中文</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.aside>
         )}

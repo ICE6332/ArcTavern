@@ -34,13 +34,13 @@ export function WorldInfoList({ onSelectBook, onCreateBook }: WorldInfoListProps
             onClick={() => onSelectBook(book.id)}
           >
             <span className="truncate">{book.name}</span>
-              <button
-                className="text-xs text-muted-foreground hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void deleteBook(book.id);
-                }}
-              >
+            <button
+              className="text-xs text-muted-foreground hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                void deleteBook(book.id);
+              }}
+            >
               ×
             </button>
           </div>

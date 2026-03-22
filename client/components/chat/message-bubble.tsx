@@ -9,7 +9,10 @@ import { StreamingText } from "./streaming-text";
 import { OpenUiMessage } from "./openui-message";
 import { StructuredMessage } from "./structured-message";
 import { isOpenUiLang } from "@/lib/openui";
-import { isStructuredResponse, type PartialStructuredResponse } from "@/lib/openui/structured-types";
+import {
+  isStructuredResponse,
+  type PartialStructuredResponse,
+} from "@/lib/openui/structured-types";
 import type { ActionEvent } from "@openuidev/react-lang";
 import { DotsLoader } from "@/components/ui/loader";
 import {
@@ -68,9 +71,7 @@ function ActionButton({
             variant="ghost"
             size="icon-sm"
             className={`h-7 w-7 text-muted-foreground ${
-              variant === "destructive"
-                ? "hover:text-destructive"
-                : "hover:text-foreground"
+              variant === "destructive" ? "hover:text-destructive" : "hover:text-foreground"
             }`}
             onClick={onClick}
           />
@@ -124,15 +125,15 @@ export function MessageBubble({
 
   return (
     <div className="group/message">
-      {name && (
-        <p className="mb-1 text-xs font-medium text-muted-foreground">{name}</p>
-      )}
+      {name && <p className="mb-1 text-xs font-medium text-muted-foreground">{name}</p>}
 
       {reasoning && (
         <ChainOfThought className="mb-2">
           <ChainOfThoughtHeader>Reasoning</ChainOfThoughtHeader>
           <ChainOfThoughtContent>
-            <div className={`${markdownStyles} whitespace-pre-wrap break-words text-muted-foreground`}>
+            <div
+              className={`${markdownStyles} whitespace-pre-wrap break-words text-muted-foreground`}
+            >
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                 {reasoning}
               </ReactMarkdown>
@@ -143,7 +144,11 @@ export function MessageBubble({
 
       <div className="text-sm leading-relaxed">
         {structuredContent && structuredContent.blocks?.length ? (
-          <StructuredMessage data={structuredContent} isStreaming={isStreaming} onAction={onStructuredAction} />
+          <StructuredMessage
+            data={structuredContent}
+            isStreaming={isStreaming}
+            onAction={onStructuredAction}
+          />
         ) : isStreaming && !content && !structuredContent ? (
           <DotsLoader size="md" className="text-muted-foreground" />
         ) : openUiEnabled && isOpenUiLang(content) ? (

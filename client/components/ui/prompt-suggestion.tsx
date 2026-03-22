@@ -3,17 +3,12 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export interface PromptSuggestionProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface PromptSuggestionProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   className?: string;
 }
 
-export function PromptSuggestion({
-  children,
-  className,
-  ...props
-}: PromptSuggestionProps) {
+export function PromptSuggestion({ children, className, ...props }: PromptSuggestionProps) {
   return (
     <Button
       variant="outline"

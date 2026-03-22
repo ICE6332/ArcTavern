@@ -8,6 +8,10 @@ import { usePromptManagerStore } from "@/stores/prompt-manager-store";
 import { chatDebug } from "@/lib/chat-debug";
 import { getOpenUiSystemPrompt } from "@/lib/openui";
 import type { ActionEvent } from "@openuidev/react-lang";
+import {
+  isStructuredResponse,
+  type PartialStructuredResponse,
+} from "@/lib/openui/structured-types";
 import { ChatInput } from "./chat-input";
 import { MessageBubble } from "./message-bubble";
 import { DotsLoader } from "@/components/ui/loader";
@@ -15,12 +19,7 @@ import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { useTranslation } from "@/lib/i18n";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  UserIcon,
-  FileImportIcon,
-  Add01Icon,
-  UserGroupIcon,
-} from "@hugeicons/core-free-icons";
+import { UserIcon, FileImportIcon, Add01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 
 const GREETINGS = [
   "欢迎回来~ 今天也要开心地聊天呀",
@@ -58,7 +57,8 @@ export function ChatPanel() {
 
   const selectedChar = characters.find((c) => c.id === selectedId);
   const generationType = useChatStore((s) => s.generationType);
-  const isSwipeGenerating = isGenerating && (generationType === "swipe" || generationType === "regenerate");
+  const isSwipeGenerating =
+    isGenerating && (generationType === "swipe" || generationType === "regenerate");
   const latestAssistantMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       if (messages[i].role === "assistant") return messages[i].id;
@@ -194,14 +194,36 @@ export function ChatPanel() {
             const isLastAssistant = msg.role === "assistant" && msg.id === latestAssistantMessageId;
             const showSwipeStreaming = isLastAssistant && isSwipeGenerating;
 
+            // For persisted structured messages, parse the JSON content back
+            let persistedStructured: PartialStructuredResponse | undefined;
+            if (!showSwipeStreaming && msg.extra?.format === "structured" && msg.content) {
+              try {
+                const parsed: unknown = JSON.parse(msg.content);
+                if (isStructuredResponse(parsed)) {
+                  persistedStructured = parsed;
+                } else if (Array.isArray(parsed)) {
+                  // Model returned bare blocks array — wrap it
+                  persistedStructured = { blocks: parsed };
+                }
+              } catch {
+                // Not valid JSON — render as plain text
+              }
+            }
+
             return (
               <MessageBubble
                 key={msg.id}
                 messageId={msg.id}
                 role={msg.role}
                 name={msg.name || (msg.role === "assistant" ? selectedChar?.name : undefined)}
-                content={showSwipeStreaming ? (streamingContent || "") : msg.content}
-                reasoning={showSwipeStreaming ? (streamingReasoning || undefined) : msg.reasoning}
+                content={
+                  showSwipeStreaming
+                    ? streamingContent || ""
+                    : persistedStructured
+                      ? ""
+                      : msg.content
+                }
+                reasoning={showSwipeStreaming ? streamingReasoning || undefined : msg.reasoning}
                 isStreaming={showSwipeStreaming}
                 swipeId={msg.swipeId}
                 swipes={msg.swipes}
@@ -213,7 +235,7 @@ export function ChatPanel() {
                 }}
                 openUiEnabled={openUiEnabled}
                 onOpenUiAction={handleOpenUiAction}
-                structuredContent={showSwipeStreaming ? streamingStructured : undefined}
+                structuredContent={showSwipeStreaming ? streamingStructured : persistedStructured}
                 onStructuredAction={(label) => void sendMessage(label, generationConfig)}
                 onRegenerate={
                   isLastAssistant && !isGenerating
@@ -224,28 +246,34 @@ export function ChatPanel() {
             );
           })}
 
-          {isGenerating && !isSwipeGenerating && (streamingContent || streamingReasoning || streamingStructured) && (
-            <MessageBubble
-              role="assistant"
-              name={selectedChar?.name}
-              content={streamingContent}
-              reasoning={streamingReasoning}
-              isStreaming
-              openUiEnabled={openUiEnabled}
-              onOpenUiAction={handleOpenUiAction}
-              structuredContent={streamingStructured}
-              onStructuredAction={(label) => void sendMessage(label, generationConfig)}
-            />
-          )}
+          {isGenerating &&
+            !isSwipeGenerating &&
+            (streamingContent || streamingReasoning || streamingStructured) && (
+              <MessageBubble
+                role="assistant"
+                name={selectedChar?.name}
+                content={streamingContent}
+                reasoning={streamingReasoning}
+                isStreaming
+                openUiEnabled={openUiEnabled}
+                onOpenUiAction={handleOpenUiAction}
+                structuredContent={streamingStructured}
+                onStructuredAction={(label) => void sendMessage(label, generationConfig)}
+              />
+            )}
 
-          {isGenerating && !isSwipeGenerating && !streamingContent && !streamingReasoning && !streamingStructured && (
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                {selectedChar?.name ?? "Assistant"}
-              </p>
-              <DotsLoader size="md" className="text-muted-foreground" />
-            </div>
-          )}
+          {isGenerating &&
+            !isSwipeGenerating &&
+            !streamingContent &&
+            !streamingReasoning &&
+            !streamingStructured && (
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  {selectedChar?.name ?? "Assistant"}
+                </p>
+                <DotsLoader size="md" className="text-muted-foreground" />
+              </div>
+            )}
         </div>
       </div>
 
@@ -286,9 +314,7 @@ function WelcomeScreen() {
               {`✦ ${greeting}`}
             </Shimmer>
           </h1>
-          <p className="text-sm text-muted-foreground">
-            在侧边栏选一个角色，开启你的奇妙对话吧
-          </p>
+          <p className="text-sm text-muted-foreground">在侧边栏选一个角色，开启你的奇妙对话吧</p>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2">

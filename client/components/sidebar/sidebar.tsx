@@ -166,7 +166,9 @@ export function Sidebar() {
                   void (async () => {
                     try {
                       await deleteCharacter(id);
-                      toast.success({ title: t("sidebar.characterDeleted") ?? "Character deleted" });
+                      toast.success({
+                        title: t("sidebar.characterDeleted") ?? "Character deleted",
+                      });
                     } catch {
                       toast.error({
                         title: t("sidebar.characterDeleteFailed") ?? "Failed to delete character",

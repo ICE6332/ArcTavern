@@ -72,11 +72,7 @@ export function PromptManager() {
           </Button>
         </div>
       </div>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sorted.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-1">
             {sorted.map((component) => (

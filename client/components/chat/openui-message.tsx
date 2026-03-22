@@ -19,11 +19,14 @@ interface OpenUiMessageProps {
 export function OpenUiMessage({ content, isStreaming, onAction }: OpenUiMessageProps) {
   const [fallback, setFallback] = useState(false);
 
-  const handleParseResult = useCallback((result: ParseResult | null) => {
-    if (result && !result.meta.incomplete && result.root === null && !isStreaming) {
-      setFallback(true);
-    }
-  }, [isStreaming]);
+  const handleParseResult = useCallback(
+    (result: ParseResult | null) => {
+      if (result && !result.meta.incomplete && result.root === null && !isStreaming) {
+        setFallback(true);
+      }
+    },
+    [isStreaming],
+  );
 
   if (fallback) {
     return (
@@ -36,13 +39,15 @@ export function OpenUiMessage({ content, isStreaming, onAction }: OpenUiMessageP
   }
 
   return (
-    <OpenUiErrorBoundary fallback={
-      <div className={markdownStyles}>
-        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-          {content}
-        </ReactMarkdown>
-      </div>
-    }>
+    <OpenUiErrorBoundary
+      fallback={
+        <div className={markdownStyles}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            {content}
+          </ReactMarkdown>
+        </div>
+      }
+    >
       <Renderer
         response={content}
         library={arctavernLibrary}

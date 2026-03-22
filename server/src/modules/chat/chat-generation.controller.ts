@@ -266,7 +266,11 @@ export class ChatGenerationController {
           StructuredResponseSchema,
           abortController.signal,
         )) {
-          structuredResult = chunk.partial;
+          // Normalize: bare array → {blocks: [...]}
+          const partial = Array.isArray(chunk.partial)
+            ? { blocks: chunk.partial }
+            : chunk.partial;
+          structuredResult = partial;
           chunkCount += 1;
           if (chunkCount <= 3 || chunkCount % 20 === 0) {
             this.chatDebug('generate.structuredChunk', {
@@ -275,21 +279,25 @@ export class ChatGenerationController {
               chunkCount,
             });
           }
-          res.write(`data: ${JSON.stringify({ structured: chunk.partial })}\n\n`);
+          res.write(`data: ${JSON.stringify({ structured: partial })}\n\n`);
         }
 
         this.logger.log(`[structured] Stream ended. Total chunks: ${chunkCount}`);
 
         // Extract text for persistence and RAG
         if (structuredResult && typeof structuredResult === 'object') {
+          // Normalize: if model returned a bare array, wrap it in {blocks: [...]}
+          const normalized = Array.isArray(structuredResult)
+            ? { blocks: structuredResult }
+            : structuredResult;
           try {
-            const parsed = StructuredResponseSchema.parse(structuredResult);
+            const parsed = StructuredResponseSchema.parse(normalized);
             fullContent = JSON.stringify(parsed);
             // Extract narration for RAG embedding
             const narrationText = extractNarrationText(parsed);
             if (!narrationText) fullContent = JSON.stringify(parsed);
           } catch {
-            fullContent = JSON.stringify(structuredResult);
+            fullContent = JSON.stringify(normalized);
           }
         }
       } else {

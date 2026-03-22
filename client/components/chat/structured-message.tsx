@@ -80,7 +80,9 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
                   {block.language}
                 </span>
               )}
-              <pre className="text-xs"><code>{block.content}</code></pre>
+              <pre className="text-xs">
+                <code>{block.content}</code>
+              </pre>
             </div>
           );
         }
@@ -89,12 +91,7 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
           return (
             <div key={i} className="flex flex-wrap gap-1.5">
               {block.options.map((option, oi) => (
-                <Button
-                  key={oi}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onAction?.(option)}
-                >
+                <Button key={oi} variant="outline" size="sm" onClick={() => onAction?.(option)}>
                   {option}
                 </Button>
               ))}

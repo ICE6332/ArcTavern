@@ -356,7 +356,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (chatId) {
       await chatApi.stop(chatId).catch(() => undefined);
     }
-    set({ isGenerating: false, generationType: null, streamingContent: "", streamingReasoning: "", streamingStructured: null });
+    set({
+      isGenerating: false,
+      generationType: null,
+      streamingContent: "",
+      streamingReasoning: "",
+      streamingStructured: null,
+    });
     chatDebug("stopGeneration.done", { chatId });
   },
 

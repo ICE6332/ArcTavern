@@ -13,9 +13,7 @@ export const Text = defineComponent({
   props: z.object({
     content: z.string(),
   }),
-  component: ({ props }) => (
-    <p className="leading-relaxed">{props.content}</p>
-  ),
+  component: ({ props }) => <p className="leading-relaxed">{props.content}</p>,
 });
 
 export const Heading = defineComponent({
@@ -26,9 +24,7 @@ export const Heading = defineComponent({
     level: z.number().optional(),
   }),
   component: ({ props }) => {
-    const cls = props.level === 3
-      ? "text-sm font-semibold"
-      : "text-base font-semibold";
+    const cls = props.level === 3 ? "text-sm font-semibold" : "text-base font-semibold";
     if (props.level === 3) {
       return <h3 className={cls}>{props.text}</h3>;
     }
@@ -49,7 +45,9 @@ export const ItemList = defineComponent({
     return (
       <Tag className={cls}>
         {props.items.map((item, i) => (
-          <li key={i} className="my-0.5">{item}</li>
+          <li key={i} className="my-0.5">
+            {item}
+          </li>
         ))}
       </Tag>
     );
@@ -58,7 +56,8 @@ export const ItemList = defineComponent({
 
 export const DataTable = defineComponent({
   name: "DataTable",
-  description: "A data table with headers and rows. Use for structured comparisons or tabular data.",
+  description:
+    "A data table with headers and rows. Use for structured comparisons or tabular data.",
   props: z.object({
     headers: z.array(z.string()),
     rows: z.array(z.array(z.string())),
@@ -69,7 +68,9 @@ export const DataTable = defineComponent({
         <thead>
           <tr className="border-b border-border bg-muted/50">
             {props.headers.map((h, i) => (
-              <th key={i} className="px-3 py-2 text-left font-medium">{h}</th>
+              <th key={i} className="px-3 py-2 text-left font-medium">
+                {h}
+              </th>
             ))}
           </tr>
         </thead>
@@ -77,7 +78,9 @@ export const DataTable = defineComponent({
           {props.rows.map((row, ri) => (
             <tr key={ri} className="border-b border-border last:border-0">
               {row.map((cell, ci) => (
-                <td key={ci} className="px-3 py-2">{cell}</td>
+                <td key={ci} className="px-3 py-2">
+                  {cell}
+                </td>
               ))}
             </tr>
           ))}
@@ -101,7 +104,9 @@ export const CodeBlock = defineComponent({
           {props.language}
         </span>
       )}
-      <pre className="text-xs"><code>{props.code}</code></pre>
+      <pre className="text-xs">
+        <code>{props.code}</code>
+      </pre>
     </div>
   ),
 });
@@ -121,11 +126,7 @@ export const AlertBox = defineComponent({
       success: "border-green-500/30 bg-green-500/5 text-green-700 dark:text-green-300",
     };
     const cls = colors[props.variant ?? "info"] ?? colors.info;
-    return (
-      <div className={`rounded-md border px-3 py-2 text-xs ${cls}`}>
-        {props.message}
-      </div>
-    );
+    return <div className={`rounded-md border px-3 py-2 text-xs ${cls}`}>{props.message}</div>;
   },
 });
 
@@ -138,13 +139,19 @@ export const TagGroup = defineComponent({
   component: ({ props }) => (
     <div className="flex flex-wrap gap-1.5">
       {props.items.map((label, i) => (
-        <Badge key={i} variant="secondary">{label}</Badge>
+        <Badge key={i} variant="secondary">
+          {label}
+        </Badge>
       ))}
     </div>
   ),
 });
 
-function ChoiceButtonsRenderer({ props }: { props: { choices: { label: string; value: string }[] } }) {
+function ChoiceButtonsRenderer({
+  props,
+}: {
+  props: { choices: { label: string; value: string }[] };
+}) {
   const triggerAction = useTriggerAction();
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -169,12 +176,15 @@ function ChoiceButtonsRenderer({ props }: { props: { choices: { label: string; v
 
 export const ChoiceButtons = defineComponent({
   name: "ChoiceButtons",
-  description: "Interactive choice buttons. When clicked, sends the choice label as a user message.",
+  description:
+    "Interactive choice buttons. When clicked, sends the choice label as a user message.",
   props: z.object({
-    choices: z.array(z.object({
-      label: z.string(),
-      value: z.string(),
-    })),
+    choices: z.array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+      }),
+    ),
   }),
   component: ChoiceButtonsRenderer,
 });
@@ -202,7 +212,8 @@ const ContentChildUnion = z.union([
 
 export const UICard = defineComponent({
   name: "UICard",
-  description: "Root container for structured content. Wraps children in a card layout. Always use as the root component.",
+  description:
+    "Root container for structured content. Wraps children in a card layout. Always use as the root component.",
   props: z.object({
     title: z.string().optional(),
     children: z.array(ContentChildUnion),
@@ -214,9 +225,7 @@ export const UICard = defineComponent({
           <CardTitle>{props.title}</CardTitle>
         </CardHeader>
       )}
-      <CardContent className="space-y-3">
-        {renderNode(props.children)}
-      </CardContent>
+      <CardContent className="space-y-3">{renderNode(props.children)}</CardContent>
     </Card>
   ),
 });
