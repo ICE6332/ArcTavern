@@ -14,8 +14,8 @@ import {
   CodeBlockActions,
   CodeBlockCopyButton,
   CodeBlockContent,
-} from "@/src/components/ai-elements/code-block";
-import { Task, TaskTrigger, TaskContent, TaskItem } from "@/src/components/ai-elements/task";
+} from "@/components/ai-elements/code-block";
+import { Task, TaskTrigger, TaskContent, TaskItem } from "@/components/ai-elements/task";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
 import type { BundledLanguage } from "shiki";
 

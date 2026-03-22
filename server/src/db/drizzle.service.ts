@@ -11,7 +11,7 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
   private saveInterval!: ReturnType<typeof setInterval>;
 
   async onModuleInit() {
-    const dataDir = path.resolve(process.cwd(), 'data');
+    const dataDir = path.resolve(__dirname, '../../../data');
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
