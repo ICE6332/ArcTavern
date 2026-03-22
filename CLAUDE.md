@@ -124,6 +124,13 @@ Both workspaces use `@/` as a path alias:
 
 **Supported providers:** OpenAI, Anthropic, Google, OpenRouter (via `createOpenAI` with custom `baseURL`), Mistral, Custom (via `createOpenAICompatible`).
 
+**Custom provider API format (`customApiFormat`):** When `provider === 'custom'`, the frontend sends `customApiFormat` (`"openai-compatible" | "google" | "openai" | "anthropic"`) to select the native SDK. Google format auto-appends `/v1beta` to the base URL and requires all system messages hoisted to the front (`hoistSystemMessages()` in the controller). Stored in `connection-store` in the frontend.
+
+**Structured output (`streamStructured`):** Path B — `streamText()` yields raw text that is accumulated and incrementally parsed by `tryParsePartialJson()` in `json-stream-parser.ts`. The parser strips markdown code fences (` ```json...``` `), then attempts direct `JSON.parse`, then bracket/brace repair. Schemas are defined in `structured-output-schema.ts` using Zod. The system prompt instructing the model to emit JSON is injected by `getStructuredOutputSystemPrompt()`. SSE chunks carry `{ structured: partialParsed }`. A cache-busting seed is injected per swipe/regenerate to prevent proxy caching identical responses.
+
+**Block types** (defined in `client/lib/openui/structured-types.ts` and `structured-output-schema.ts`):
+`narration`, `card` (markdown), `alert` (info/warning/error/success), `code` (language + content), `choices` (option buttons), `separator`, `task` (checklist), `progress` (value 0–100).
+
 **API keys** come from `SecretService` (encrypted DB), not environment variables. Keys are passed to AI SDK factory functions at call time.
 
 **Utility methods** (`healthCheck`, `testRequest`, `discoverModels`, `tokenize`, `getModels`) use raw `fetch()` for model discovery and health checks — these don't go through the AI SDK.
@@ -151,6 +158,8 @@ Schema is defined as raw SQL in `drizzle.service.ts` (not a separate schema file
 7. Fire-and-forget: embed new messages for RAG
 
 Generation types: `normal`, `regenerate`, `swipe`, `continue`, `impersonate`, `quiet`.
+
+**Swipe vs Regenerate:** Both call `generateSwipe()` on the frontend, which sends `type: "swipe"`. A swipe appends a new version to the existing message (user can flip between versions). The UI shows inline streaming on the last assistant message bubble during swipe generation (`isSwipeGenerating` flag). Persisted messages with `extra.format === "structured"` have their `content` field (raw JSON string) re-parsed back to `PartialStructuredResponse` in `chat-panel.tsx` for rendering — the content field is set to `""` to avoid showing raw JSON.
 
 ### RAG Memory System (server/src/modules/rag/)
 
@@ -199,6 +208,16 @@ Backend tests use Vitest with node environment. Frontend tests use Vitest with j
 
 - **Server:** `src/**/*.spec.ts` — mock dependencies with `vi.fn()`, instantiate services directly (no DI container)
 - **Client:** `src/**/*.test.ts(x)`, `lib/**/*.test.ts`, `stores/**/*.test.ts` — setup file at `src/test/setup.ts`
+
+### OpenUI / Structured Message Rendering
+
+`StructuredMessage` component (`client/components/chat/structured-message.tsx`) renders JSON blocks. Each block `role` maps to a React component. To add a new block type: (1) add Zod schema entry to `structured-output-schema.ts`, (2) add TypeScript type to `structured-types.ts`, (3) add renderer branch in `StructuredMessage`. The AI only needs to know the `role` name — animations and visual complexity live entirely in the React component.
+
+### `nest start --watch` Gotcha
+
+Watch mode uses **ts-node** (not the compiled `dist/`). TypeScript compilation errors reported in watch logs (`Found N errors`) prevent new code from being loaded — the process continues running the last successful compilation. Always check the watch log for TS errors when server behavior seems stale. To force a clean restart: kill the process and re-run `pnpm dev`. Running `nest build` does not affect the watch server.
+
+`AiProviderService` is not decorated with NestJS `@Logger()` — do not use `this.logger` in that class. Use `console.log` or inject `Logger` manually via constructor.
 
 ## Known Constraints
 
