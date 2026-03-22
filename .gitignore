@@ -50,3 +50,7 @@ skills/
 data/
 X-2.0.json
 nul
+
+# AI assistant instruction files (local only)
+CLAUDE.md
+AGENTS.md
