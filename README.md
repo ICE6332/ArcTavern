@@ -4,9 +4,10 @@ A modern rewrite of [SillyTavern](https://github.com/SillyTavern/SillyTavern) wi
 
 ## Tech Stack
 
-- **Frontend**: Vite 8 + React 19 + TypeScript + shadcn/ui + Tailwind CSS 4
-- **Backend**: NestJS 11 + TypeScript
+- **Frontend**: Vite 8 + React 19 + TypeScript 6 + shadcn/ui + Tailwind CSS 4
+- **Backend**: NestJS 11 + TypeScript 6
 - **Database**: SQLite (sql.js)
+- **AI Integration**: Vercel AI SDK v6
 - **Tooling**: Vite+ (`vp`) + pnpm workspace monorepo
 
 ## Quick Start

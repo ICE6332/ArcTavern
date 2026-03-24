@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import extract from 'png-chunks-extract';
 import encode from 'png-chunks-encode';
-import * as PNGText from 'png-chunk-text';
+import PNGText from 'png-chunk-text';
 
 export interface TavernCardV2 {
   spec: 'chara_card_v2';

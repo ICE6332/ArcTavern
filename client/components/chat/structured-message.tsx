@@ -32,7 +32,7 @@ const alertColors: Record<string, string> = {
 interface StructuredMessageProps {
   data: PartialStructuredResponse;
   isStreaming?: boolean;
-  onAction?: (label: string) => void;
+  onAction?: (label: string, value: string) => void;
 }
 
 export function StructuredMessage({ data, isStreaming, onAction }: StructuredMessageProps) {
@@ -99,7 +99,7 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
           return (
             <div key={i} className="flex flex-wrap gap-1.5">
               {block.options.map((option, oi) => (
-                <Button key={oi} variant="outline" size="sm" onClick={() => onAction?.(option)}>
+                <Button key={oi} variant="outline" size="sm" onClick={() => onAction?.(option, option)}>
                   {option}
                 </Button>
               ))}

@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as lancedb from '@lancedb/lancedb';
-import * as path from 'path';
-import * as fs from 'fs';
+import lancedb from '@lancedb/lancedb';
+import path from 'path';
+import fs from 'fs';
 import type { VectorRecord } from './types';
 
 type LanceRecord = Record<string, unknown>;

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DrizzleService } from '../../db/drizzle.service';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 
 const ENCRYPTION_KEY = process.env.SECRET_KEY ?? 'arctravern-default-secret-key!!';
 const ALGORITHM = 'aes-256-cbc';
