@@ -7,7 +7,6 @@ import { useTranslation } from "@/lib/i18n";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowUp02Icon, StopIcon } from "@hugeicons/core-free-icons";
 import { isSlashCommand } from "@/lib/slash-commands/parser";
-import { executeSlashCommand } from "@/lib/slash-commands/executor";
 import { registerBuiltInCommands } from "@/lib/slash-commands/built-in";
 import { SlashAutocomplete } from "./slash-autocomplete";
 
@@ -16,11 +15,10 @@ registerBuiltInCommands();
 
 interface ChatInputProps {
   onSend: (content: string) => void | Promise<void>;
+  onSlashCommand: (input: string) => void | Promise<void>;
   onStop: () => void | Promise<void>;
   onContinue: () => void | Promise<void>;
   onImpersonate: () => void | Promise<void>;
-  onEcho?: (text: string) => void;
-  chatId?: number;
   canContinue?: boolean;
   canImpersonate?: boolean;
   isGenerating?: boolean;
@@ -29,11 +27,10 @@ interface ChatInputProps {
 
 export function ChatInput({
   onSend,
+  onSlashCommand,
   onStop,
   onContinue,
   onImpersonate,
-  onEcho,
-  chatId,
   canContinue = true,
   canImpersonate = true,
   isGenerating,
@@ -57,50 +54,19 @@ export function ChatInput({
     setShowAutocomplete(trimmed.startsWith("/") && !trimmed.includes(" ") && trimmed.length > 1);
   }, [value]);
 
-  const handleSlashCommand = useCallback(
-    async (input: string) => {
-      if (!chatId) return;
-      const result = await executeSlashCommand(input, chatId);
-
-      if (result.error) {
-        onEcho?.(`⚠ ${result.error}`);
-        return;
-      }
-
-      // Handle sentinel values from commands
-      const val = result.result;
-      if (val.startsWith("__echo__:")) {
-        onEcho?.(val.slice("__echo__:".length));
-      } else if (val.startsWith("__gen__:")) {
-        const prompt = val.slice("__gen__:".length);
-        if (prompt) await onSend(prompt);
-        else await onSend("");
-      } else if (val.startsWith("__impersonate__:")) {
-        void onImpersonate();
-      } else if (val === "__continue__") {
-        void onContinue();
-      } else if (val === "__stop__") {
-        void onStop();
-      } else if (result.shouldSendMessage && val) {
-        await onSend(val);
-      }
-    },
-    [chatId, onSend, onEcho, onStop, onContinue, onImpersonate],
-  );
-
   const submit = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed || disabled || isGenerating) return;
 
     if (isSlashCommand(trimmed)) {
       setValue("");
-      await handleSlashCommand(trimmed);
+      await onSlashCommand(trimmed);
     } else {
       await onSend(trimmed);
       setValue("");
     }
     textareaRef.current?.focus();
-  }, [value, disabled, isGenerating, onSend, handleSlashCommand]);
+  }, [value, disabled, isGenerating, onSend, onSlashCommand]);
 
   const handleSend = () => {
     void submit();

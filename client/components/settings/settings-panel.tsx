@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/combobox";
 import { PromptManager } from "./prompt-manager";
 import { PresetSelector } from "./preset-selector";
+import { QuickReplyEditor } from "./quick-reply-editor";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguageStore, type Language } from "@/stores/language-store";
 import { useRagStore } from "@/stores/rag-store";
@@ -260,6 +261,10 @@ export function SettingsPanel() {
 
                   <p className="text-xs font-medium text-muted-foreground">Context Template</p>
                   <PresetSelector apiType="context" />
+
+                  <Separator />
+
+                  <QuickReplyEditor />
                 </div>
               ) : settingsTab === "memory" ? (
                 <MemorySettings />

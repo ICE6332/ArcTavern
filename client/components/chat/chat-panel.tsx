@@ -5,6 +5,8 @@ import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { useConnectionStore } from "@/stores/connection-store";
 import { usePromptManagerStore } from "@/stores/prompt-manager-store";
+import { useQuickReplyStore } from "@/stores/quick-reply-store";
+import { useVariableStore } from "@/stores/variable-store";
 import { chatDebug } from "@/lib/chat-debug";
 import { getOpenUiSystemPrompt } from "@/lib/openui";
 import type { ActionEvent } from "@openuidev/react-lang";
@@ -12,8 +14,12 @@ import {
   isStructuredResponse,
   type PartialStructuredResponse,
 } from "@/lib/openui/structured-types";
+import { toast } from "@/lib/toast";
+import { useSidebar } from "@/components/ui/sidebar";
+import { consumeSlashCommandResult } from "@/lib/slash-commands/consume-result";
 import { ChatInput } from "./chat-input";
 import { MessageBubble } from "./message-bubble";
+import { QuickReplyBar } from "./quick-reply-bar";
 import { DotsLoader } from "@/components/ui/loader";
 import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
 import { Shimmer } from "@/components/ai-elements/shimmer";
@@ -42,17 +48,25 @@ export function ChatPanel() {
     currentChatId,
     sendMessage,
     stopGeneration,
-    regenerate,
     generateSwipe,
     continueMessage,
     impersonate,
     swipe,
     deleteMessage,
+    refreshCurrentChat,
+    selectChat,
+    createChat,
+    deleteChat,
   } = useChatStore();
   const selectedId = useCharacterStore((s) => s.selectedId);
   const characters = useCharacterStore((s) => s.characters);
   const connection = useConnectionStore();
   const promptComponents = usePromptManagerStore((s) => s.components);
+  const quickRepliesLoaded = useQuickReplyStore((s) => s.loaded);
+  const loadQuickReplies = useQuickReplyStore((s) => s.loadSets);
+  const loadGlobalVariables = useVariableStore((s) => s.loadGlobalVariables);
+  const loadChatVariables = useVariableStore((s) => s.loadChatVariables);
+  const { toggleSidebar } = useSidebar();
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
 
@@ -145,12 +159,43 @@ export function ChatPanel() {
     shouldAutoScrollRef.current = true;
   }, [currentChatId]);
 
+  useEffect(() => {
+    void loadGlobalVariables();
+  }, [loadGlobalVariables]);
+
+  useEffect(() => {
+    if (!quickRepliesLoaded) {
+      void loadQuickReplies();
+    }
+  }, [quickRepliesLoaded, loadQuickReplies]);
+
+  useEffect(() => {
+    if (currentChatId) {
+      void loadChatVariables(currentChatId);
+    }
+  }, [currentChatId, loadChatVariables]);
+
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     shouldAutoScrollRef.current = distanceFromBottom < 80;
   };
+
+  const displayCommandOutput = useCallback((text: string, kind: "info" | "error" = "info") => {
+    const content = text.trim();
+    if (!content) return;
+
+    const [title, ...rest] = content.split("\n");
+    const description = rest.join("\n").trim() || undefined;
+
+    if (kind === "error") {
+      toast.error({ title, description });
+      return;
+    }
+
+    toast.success({ title, description });
+  }, []);
 
   const handleOpenUiAction = useCallback(
     (event: ActionEvent) => {
@@ -166,21 +211,71 @@ export function ChatPanel() {
     [sendMessage, generationConfig],
   );
 
-  const handleSend = (content: string) => {
-    if (!currentChatId || !content.trim()) return;
-    chatDebug("panel.send", {
-      currentChatId,
-      contentLength: content.trim().length,
-    });
-    void sendMessage(content, generationConfig);
-  };
-
-  const handleCommandAction = useCallback(
-    (command: string) => {
-      if (!currentChatId) return;
-      void executeSlashCommand(command, currentChatId);
+  const handleSend = useCallback(
+    async (content: string) => {
+      if (!currentChatId || !content.trim()) return;
+      chatDebug("panel.send", {
+        currentChatId,
+        contentLength: content.trim().length,
+      });
+      await sendMessage(content, generationConfig);
     },
-    [currentChatId],
+    [currentChatId, generationConfig, sendMessage],
+  );
+
+  const handleDeleteCurrentChat = useCallback(async () => {
+    if (!currentChatId) return;
+
+    await deleteChat(currentChatId);
+
+    const nextChats = useChatStore.getState().chats;
+    if (nextChats.length > 0) {
+      await selectChat(nextChats[0].id);
+      return;
+    }
+
+    if (!selectedId) {
+      await selectChat(null);
+      return;
+    }
+
+    const created = await createChat(selectedId);
+    await selectChat(created.id);
+  }, [createChat, currentChatId, deleteChat, selectChat, selectedId]);
+
+  const runSlashCommand = useCallback(
+    async (command: string) => {
+      if (!currentChatId) {
+        displayCommandOutput("Open a chat before running slash commands.", "error");
+        return;
+      }
+
+      const result = await executeSlashCommand(command, currentChatId);
+      await consumeSlashCommandResult(result, {
+        onDisplay: displayCommandOutput,
+        onSendMessage: handleSend,
+        onImpersonate: () => impersonate(generationConfig),
+        onContinue: () => continueMessage(generationConfig),
+        onStop: stopGeneration,
+        onDeleteCurrentChat: handleDeleteCurrentChat,
+        onCloseChat: () => selectChat(null),
+        onTogglePanels: toggleSidebar,
+        onRefreshChat: refreshCurrentChat,
+      });
+    },
+    [
+      continueMessage,
+      currentChatId,
+      displayCommandOutput,
+      generationConfig,
+      handleDeleteCurrentChat,
+      handleSend,
+      impersonate,
+      refreshCurrentChat,
+      selectChat,
+      stopGeneration,
+      toggleSidebar,
+    ],
   );
 
   if (!selectedId || !currentChatId) {
@@ -245,8 +340,10 @@ export function ChatPanel() {
                 openUiEnabled={openUiEnabled}
                 onOpenUiAction={handleOpenUiAction}
                 structuredContent={showSwipeStreaming ? streamingStructured : persistedStructured}
-                onStructuredAction={(label) => void sendMessage(label, generationConfig)}
-                onStructuredCommandAction={handleCommandAction}
+                onStructuredAction={(label) => void handleSend(label)}
+                onStructuredCommandAction={(command) => {
+                  void runSlashCommand(command);
+                }}
                 onRegenerate={
                   isLastAssistant && !isGenerating
                     ? () => void generateSwipe(generationConfig)
@@ -268,8 +365,10 @@ export function ChatPanel() {
                 openUiEnabled={openUiEnabled}
                 onOpenUiAction={handleOpenUiAction}
                 structuredContent={streamingStructured}
-                onStructuredAction={(label) => void sendMessage(label, generationConfig)}
-                onStructuredCommandAction={handleCommandAction}
+                onStructuredAction={(label) => void handleSend(label)}
+                onStructuredCommandAction={(command) => {
+                  void runSlashCommand(command);
+                }}
               />
             )}
 
@@ -288,12 +387,18 @@ export function ChatPanel() {
         </div>
       </div>
 
+      <QuickReplyBar
+        onExecute={(script) => {
+          void runSlashCommand(script);
+        }}
+      />
+
       <ChatInput
         onSend={handleSend}
+        onSlashCommand={runSlashCommand}
         onStop={stopGeneration}
         onContinue={() => void continueMessage(generationConfig)}
         onImpersonate={() => void impersonate(generationConfig)}
-        chatId={currentChatId ?? undefined}
         canContinue={hasAssistantMessage}
         isGenerating={isGenerating}
         disabled={false}

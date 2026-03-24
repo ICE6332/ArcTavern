@@ -1,6 +1,6 @@
-import type { ExecutionContext } from "./types"
-import { getVariable, setVariable, addToVariable } from "./variables"
-import { useVariableStore } from "@/stores/variable-store"
+import type { ExecutionContext } from "./types";
+import { getVariable, setVariable, addToVariable } from "./variables";
+import { useVariableStore } from "@/stores/variable-store";
 
 /**
  * Expand all {{...}} macros in a string.
@@ -19,83 +19,76 @@ import { useVariableStore } from "@/stores/variable-store"
  *   - {{incvar::name}}, {{decvar::name}}
  *   - {{incglobalvar::name}}, {{decglobalvar::name}}
  */
-export function expandMacros(
-  text: string,
-  context: ExecutionContext,
-): string {
-  if (!text || !text.includes("{{")) return text
+export function expandMacros(text: string, context: ExecutionContext): string {
+  if (!text || !text.includes("{{")) return text;
 
   return text.replace(/\{\{([^}]+)\}\}/g, (match, inner: string) => {
-    const parts = inner.split("::")
-    const macroName = parts[0].trim().toLowerCase()
+    const parts = inner.split("::");
+    const macroName = parts[0].trim().toLowerCase();
 
     try {
-      return resolveMacro(macroName, parts.slice(1), context) ?? match
+      return resolveMacro(macroName, parts.slice(1), context) ?? match;
     } catch {
-      return match
+      return match;
     }
-  })
+  });
 }
 
-function resolveMacro(
-  name: string,
-  args: string[],
-  context: ExecutionContext,
-): string | undefined {
+function resolveMacro(name: string, args: string[], context: ExecutionContext): string | undefined {
   switch (name) {
     // --- Built-in macros ---
     case "char":
-      return getCharName()
+      return getCharName();
     case "user":
-      return getUserName()
+      return getUserName();
     case "time":
-      return new Date().toLocaleTimeString()
+      return new Date().toLocaleTimeString();
     case "date":
-      return new Date().toLocaleDateString()
+      return new Date().toLocaleDateString();
     case "datetime":
-      return new Date().toLocaleString()
+      return new Date().toLocaleString();
     case "random": {
-      const min = parseInt(args[0] ?? "0", 10)
-      const max = parseInt(args[1] ?? "100", 10)
-      return String(Math.floor(Math.random() * (max - min + 1)) + min)
+      const min = parseInt(args[0] ?? "0", 10);
+      const max = parseInt(args[1] ?? "100", 10);
+      return String(Math.floor(Math.random() * (max - min + 1)) + min);
     }
     case "idle_duration":
-      return "0" // TODO: implement with last message timestamp
+      return "0"; // TODO: implement with last message timestamp
     case "lastmessage":
-      return "" // TODO: implement with chat store
+      return ""; // TODO: implement with chat store
 
     // --- Variable macros ---
     case "getvar":
-      return getVariable(args[0] ?? "", context) ?? ""
+      return getVariable(args[0] ?? "", context) ?? "";
     case "setvar": {
-      const val = args[1] ?? ""
-      setVariable("local", args[0] ?? "", val, context)
-      return val
+      const val = args[1] ?? "";
+      setVariable("local", args[0] ?? "", val, context);
+      return val;
     }
     case "getglobalvar": {
-      const store = useVariableStore.getState()
-      return store.globalVariables[args[0] ?? ""] ?? ""
+      const store = useVariableStore.getState();
+      return store.globalVariables[args[0] ?? ""] ?? "";
     }
     case "setglobalvar": {
-      const val = args[1] ?? ""
-      setVariable("global", args[0] ?? "", val, context)
-      return val
+      const val = args[1] ?? "";
+      setVariable("global", args[0] ?? "", val, context);
+      return val;
     }
     case "addvar":
-      return addToVariable("local", args[0] ?? "", args[1] ?? "0", context)
+      return addToVariable("local", args[0] ?? "", args[1] ?? "0", context);
     case "addglobalvar":
-      return addToVariable("global", args[0] ?? "", args[1] ?? "0", context)
+      return addToVariable("global", args[0] ?? "", args[1] ?? "0", context);
     case "incvar":
-      return addToVariable("local", args[0] ?? "", "1", context)
+      return addToVariable("local", args[0] ?? "", "1", context);
     case "decvar":
-      return addToVariable("local", args[0] ?? "", "-1", context)
+      return addToVariable("local", args[0] ?? "", "-1", context);
     case "incglobalvar":
-      return addToVariable("global", args[0] ?? "", "1", context)
+      return addToVariable("global", args[0] ?? "", "1", context);
     case "decglobalvar":
-      return addToVariable("global", args[0] ?? "", "-1", context)
+      return addToVariable("global", args[0] ?? "", "-1", context);
 
     default:
-      return undefined
+      return undefined;
   }
 }
 
@@ -105,10 +98,10 @@ function getCharName(): string {
     // Dynamic import to avoid circular dependency at module level
     const stores = (globalThis as Record<string, unknown>).__arctavern_stores as
       | { characterName?: string; userName?: string }
-      | undefined
-    return stores?.characterName ?? "Character"
+      | undefined;
+    return stores?.characterName ?? "Character";
   } catch {
-    return "Character"
+    return "Character";
   }
 }
 
@@ -116,10 +109,10 @@ function getUserName(): string {
   try {
     const stores = (globalThis as Record<string, unknown>).__arctavern_stores as
       | { characterName?: string; userName?: string }
-      | undefined
-    return stores?.userName ?? "User"
+      | undefined;
+    return stores?.userName ?? "User";
   } catch {
-    return "User"
+    return "User";
   }
 }
 
@@ -127,9 +120,6 @@ function getUserName(): string {
  * Register store references for macro access.
  * Call this once during app initialization.
  */
-export function registerMacroStores(stores: {
-  characterName: string
-  userName: string
-}): void {
-  ;(globalThis as Record<string, unknown>).__arctavern_stores = stores
+export function registerMacroStores(stores: { characterName: string; userName: string }): void {
+  (globalThis as Record<string, unknown>).__arctavern_stores = stores;
 }

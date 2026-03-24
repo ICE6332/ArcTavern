@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/sidebar/sidebar";
 import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTranslation } from "@/lib/i18n";
+import { registerMacroStores } from "@/lib/slash-commands/macros";
 import { useCharacterStore } from "@/stores/character-store";
 import { usePersonaStore } from "@/stores/persona-store";
 import { useTagStore } from "@/stores/tag-store";
@@ -15,18 +16,29 @@ import { Toaster } from "sileo";
 export function AppShell() {
   const { t } = useTranslation();
   const fetchCharacters = useCharacterStore((s) => s.fetchCharacters);
+  const characters = useCharacterStore((s) => s.characters);
+  const selectedCharacterId = useCharacterStore((s) => s.selectedId);
   const fetchTags = useTagStore((s) => s.fetchTags);
   const fetchPersonas = usePersonaStore((s) => s.fetchPersonas);
   const { personas, activePersonaId } = usePersonaStore();
   const [showPersonaEditor, setShowPersonaEditor] = useState(false);
 
   const activePersona = personas.find((p) => p.id === activePersonaId) ?? null;
+  const selectedCharacter =
+    characters.find((character) => character.id === selectedCharacterId) ?? null;
 
   useEffect(() => {
     fetchCharacters();
     fetchTags();
     fetchPersonas();
   }, [fetchCharacters, fetchTags, fetchPersonas]);
+
+  useEffect(() => {
+    registerMacroStores({
+      characterName: selectedCharacter?.name ?? "Character",
+      userName: activePersona?.name ?? "User",
+    });
+  }, [activePersona?.name, selectedCharacter?.name]);
 
   return (
     <>

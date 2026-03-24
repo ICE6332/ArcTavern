@@ -9,18 +9,11 @@ interface SlashAutocompleteProps {
   onClose: () => void;
 }
 
-export function SlashAutocomplete({
-  partial,
-  onSelect,
-  onClose,
-}: SlashAutocompleteProps) {
+export function SlashAutocomplete({ partial, onSelect, onClose }: SlashAutocompleteProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const results = useMemo(
-    () => registry.getCompletions(partial).slice(0, 10),
-    [partial],
-  );
+  const results = useMemo(() => registry.getCompletions(partial).slice(0, 10), [partial]);
 
   // Reset selection when results change
   useEffect(() => {
@@ -70,9 +63,7 @@ export function SlashAutocomplete({
           key={cmd.name}
           type="button"
           className={`flex w-full items-start gap-3 px-3 py-2 text-left text-sm transition-colors ${
-            i === selectedIndex
-              ? "bg-accent text-accent-foreground"
-              : "hover:bg-muted"
+            i === selectedIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
           }`}
           onMouseDown={(e) => {
             e.preventDefault();
@@ -80,12 +71,8 @@ export function SlashAutocomplete({
           }}
           onMouseEnter={() => setSelectedIndex(i)}
         >
-          <span className="font-mono text-xs font-medium text-primary">
-            /{cmd.name}
-          </span>
-          <span className="truncate text-xs text-muted-foreground">
-            {cmd.helpString}
-          </span>
+          <span className="font-mono text-xs font-medium text-primary">/{cmd.name}</span>
+          <span className="truncate text-xs text-muted-foreground">{cmd.helpString}</span>
         </button>
       ))}
     </div>

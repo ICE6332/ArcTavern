@@ -1,56 +1,50 @@
-import { create } from "zustand"
-import { settingsApi } from "@/lib/api"
+import { create } from "zustand";
+import { settingsApi } from "@/lib/api";
 
 export interface QuickReply {
-  id: number
-  label: string
-  title?: string
-  message: string
-  isHidden: boolean
-  executeOnStartup: boolean
-  executeOnUser: boolean
-  executeOnAi: boolean
-  executeOnChatChange: boolean
-  executeOnNewChat: boolean
-  executeBeforeGeneration: boolean
+  id: number;
+  label: string;
+  title?: string;
+  message: string;
+  isHidden: boolean;
+  executeOnStartup: boolean;
+  executeOnUser: boolean;
+  executeOnAi: boolean;
+  executeOnChatChange: boolean;
+  executeOnNewChat: boolean;
+  executeBeforeGeneration: boolean;
 }
 
 export interface QuickReplySet {
-  name: string
-  scope: "global" | "chat" | "character"
-  disableSend: boolean
-  placeBeforeInput: boolean
-  color?: string
-  qrList: QuickReply[]
+  name: string;
+  scope: "global" | "chat" | "character";
+  disableSend: boolean;
+  placeBeforeInput: boolean;
+  color?: string;
+  qrList: QuickReply[];
 }
 
-type TriggerEvent =
-  | "startup"
-  | "user"
-  | "ai"
-  | "chatChange"
-  | "newChat"
-  | "beforeGeneration"
+type TriggerEvent = "startup" | "user" | "ai" | "chatChange" | "newChat" | "beforeGeneration";
 
 interface QuickReplyState {
-  sets: QuickReplySet[]
-  loaded: boolean
+  sets: QuickReplySet[];
+  loaded: boolean;
 
   // Actions
-  loadSets: () => Promise<void>
-  saveSets: () => Promise<void>
-  addSet: (name: string, scope?: QuickReplySet["scope"]) => void
-  removeSet: (name: string) => void
-  addQr: (setName: string, qr: Omit<QuickReply, "id">) => void
-  removeQr: (setName: string, qrId: number) => void
-  updateQr: (setName: string, qrId: number, updates: Partial<QuickReply>) => void
-  updateSet: (name: string, updates: Partial<Omit<QuickReplySet, "qrList">>) => void
-  getTriggered: (event: TriggerEvent) => QuickReply[]
-  getVisibleQrs: () => { qr: QuickReply; set: QuickReplySet }[]
+  loadSets: () => Promise<void>;
+  saveSets: () => Promise<void>;
+  addSet: (name: string, scope?: QuickReplySet["scope"]) => void;
+  removeSet: (name: string) => void;
+  addQr: (setName: string, qr: Omit<QuickReply, "id">) => void;
+  removeQr: (setName: string, qrId: number) => void;
+  updateQr: (setName: string, qrId: number, updates: Partial<QuickReply>) => void;
+  updateSet: (name: string, updates: Partial<Omit<QuickReplySet, "qrList">>) => void;
+  getTriggered: (event: TriggerEvent) => QuickReply[];
+  getVisibleQrs: () => { qr: QuickReply; set: QuickReplySet }[];
 }
 
-const QR_SETTINGS_KEY = "qr:sets"
-let nextId = 1
+const QR_SETTINGS_KEY = "qr:sets";
+let nextId = 1;
 
 export const useQuickReplyStore = create<QuickReplyState>()((set, get) => ({
   sets: [],
@@ -58,29 +52,29 @@ export const useQuickReplyStore = create<QuickReplyState>()((set, get) => ({
 
   loadSets: async () => {
     try {
-      const data = await settingsApi.get(QR_SETTINGS_KEY)
+      const data = await settingsApi.get(QR_SETTINGS_KEY);
       if (Array.isArray(data)) {
-        const sets = data as QuickReplySet[]
+        const sets = data as QuickReplySet[];
         // Re-compute next ID
         for (const s of sets) {
           for (const qr of s.qrList) {
-            if (qr.id >= nextId) nextId = qr.id + 1
+            if (qr.id >= nextId) nextId = qr.id + 1;
           }
         }
-        set({ sets, loaded: true })
+        set({ sets, loaded: true });
       } else {
-        set({ loaded: true })
+        set({ loaded: true });
       }
     } catch {
-      set({ loaded: true })
+      set({ loaded: true });
     }
   },
 
   saveSets: async () => {
     try {
-      await settingsApi.set(QR_SETTINGS_KEY, get().sets)
+      await settingsApi.set(QR_SETTINGS_KEY, get().sets);
     } catch (err) {
-      console.error("Failed to save QR sets:", err)
+      console.error("Failed to save QR sets:", err);
     }
   },
 
@@ -96,38 +90,34 @@ export const useQuickReplyStore = create<QuickReplyState>()((set, get) => ({
           qrList: [],
         },
       ],
-    }))
-    void get().saveSets()
+    }));
+    void get().saveSets();
   },
 
   removeSet: (name) => {
     set((state) => ({
       sets: state.sets.filter((s) => s.name !== name),
-    }))
-    void get().saveSets()
+    }));
+    void get().saveSets();
   },
 
   addQr: (setName, qr) => {
-    const id = nextId++
+    const id = nextId++;
     set((state) => ({
       sets: state.sets.map((s) =>
-        s.name === setName
-          ? { ...s, qrList: [...s.qrList, { ...qr, id }] }
-          : s,
+        s.name === setName ? { ...s, qrList: [...s.qrList, { ...qr, id }] } : s,
       ),
-    }))
-    void get().saveSets()
+    }));
+    void get().saveSets();
   },
 
   removeQr: (setName, qrId) => {
     set((state) => ({
       sets: state.sets.map((s) =>
-        s.name === setName
-          ? { ...s, qrList: s.qrList.filter((q) => q.id !== qrId) }
-          : s,
+        s.name === setName ? { ...s, qrList: s.qrList.filter((q) => q.id !== qrId) } : s,
       ),
-    }))
-    void get().saveSets()
+    }));
+    void get().saveSets();
   },
 
   updateQr: (setName, qrId, updates) => {
@@ -136,28 +126,24 @@ export const useQuickReplyStore = create<QuickReplyState>()((set, get) => ({
         s.name === setName
           ? {
               ...s,
-              qrList: s.qrList.map((q) =>
-                q.id === qrId ? { ...q, ...updates } : q,
-              ),
+              qrList: s.qrList.map((q) => (q.id === qrId ? { ...q, ...updates } : q)),
             }
           : s,
       ),
-    }))
-    void get().saveSets()
+    }));
+    void get().saveSets();
   },
 
   updateSet: (name, updates) => {
     set((state) => ({
-      sets: state.sets.map((s) =>
-        s.name === name ? { ...s, ...updates } : s,
-      ),
-    }))
-    void get().saveSets()
+      sets: state.sets.map((s) => (s.name === name ? { ...s, ...updates } : s)),
+    }));
+    void get().saveSets();
   },
 
   getTriggered: (event) => {
-    const { sets } = get()
-    const results: QuickReply[] = []
+    const { sets } = get();
+    const results: QuickReply[] = [];
     const triggerKey = {
       startup: "executeOnStartup",
       user: "executeOnUser",
@@ -165,27 +151,27 @@ export const useQuickReplyStore = create<QuickReplyState>()((set, get) => ({
       chatChange: "executeOnChatChange",
       newChat: "executeOnNewChat",
       beforeGeneration: "executeBeforeGeneration",
-    } as const
+    } as const;
 
-    const key = triggerKey[event]
+    const key = triggerKey[event];
     for (const s of sets) {
       for (const qr of s.qrList) {
-        if (qr[key]) results.push(qr)
+        if (qr[key]) results.push(qr);
       }
     }
-    return results
+    return results;
   },
 
   getVisibleQrs: () => {
-    const { sets } = get()
-    const results: { qr: QuickReply; set: QuickReplySet }[] = []
+    const { sets } = get();
+    const results: { qr: QuickReply; set: QuickReplySet }[] = [];
     for (const s of sets) {
       for (const qr of s.qrList) {
         if (!qr.isHidden) {
-          results.push({ qr, set: s })
+          results.push({ qr, set: s });
         }
       }
     }
-    return results
+    return results;
   },
-}))
+}));

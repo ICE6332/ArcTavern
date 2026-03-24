@@ -29,6 +29,7 @@ interface ChatState {
   selectChat: (chatId: number | null) => Promise<void>;
   createChat: (characterId: number, name?: string) => Promise<Chat>;
   deleteChat: (chatId: number) => Promise<void>;
+  refreshCurrentChat: () => Promise<void>;
   generate: (type: GenerationType, config: GenerationConfig, message?: string) => Promise<void>;
   sendMessage: (content: string, config: GenerationConfig) => Promise<void>;
   regenerate: (config: GenerationConfig) => Promise<void>;
@@ -134,6 +135,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentChatId: get().currentChatId,
       remaining: get().chats.length,
     });
+  },
+
+  refreshCurrentChat: async () => {
+    const chatId = get().currentChatId;
+    if (!chatId) return;
+
+    try {
+      const messages = await chatApi.getMessages(chatId);
+      set({ messages, error: null });
+      chatDebug("refreshCurrentChat.success", {
+        chatId,
+        messageCount: messages.length,
+      });
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error, "Failed to refresh messages") });
+      chatError("refreshCurrentChat.error", error, { chatId });
+    }
   },
 
   generate: async (type, config, message) => {

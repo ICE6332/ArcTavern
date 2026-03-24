@@ -9,10 +9,7 @@ import { StreamingText } from "./streaming-text";
 import { OpenUiMessage } from "./openui-message";
 import { StructuredMessage } from "./structured-message";
 import { isOpenUiLang } from "@/lib/openui";
-import {
-  isStructuredResponse,
-  type PartialStructuredResponse,
-} from "@/lib/openui/structured-types";
+import { type PartialStructuredResponse } from "@/lib/openui/structured-types";
 import type { ActionEvent } from "@openuidev/react-lang";
 import { DotsLoader } from "@/components/ui/loader";
 import {

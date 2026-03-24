@@ -1,21 +1,21 @@
-import type { SlashCommand } from "../types"
-import { useQuickReplyStore } from "@/stores/quick-reply-store"
-import { executeSlashCommand } from "../executor"
+import type { SlashCommand } from "../types";
+import { useQuickReplyStore } from "@/stores/quick-reply-store";
+import { executeSlashCommand } from "../executor";
 
 export const qrCommands: SlashCommand[] = [
   {
     name: "qr",
     callback: async (args, unnamed, ctx) => {
-      const store = useQuickReplyStore.getState()
-      const label = args.label ?? unnamed.trim()
-      const message = args.message
+      const store = useQuickReplyStore.getState();
+      const label = args.label ?? unnamed.trim();
+      const message = args.message;
 
       if (message) {
         // Create a new QR in the first set (or "Default" set)
-        let targetSet = store.sets[0]
+        let targetSet = store.sets[0];
         if (!targetSet) {
-          store.addSet("Default")
-          targetSet = useQuickReplyStore.getState().sets[0]
+          store.addSet("Default");
+          targetSet = useQuickReplyStore.getState().sets[0];
         }
         if (targetSet) {
           store.addQr(targetSet.name, {
@@ -28,22 +28,23 @@ export const qrCommands: SlashCommand[] = [
             executeOnChatChange: false,
             executeOnNewChat: false,
             executeBeforeGeneration: false,
-          })
+          });
         }
-        return label
+        return `__echo__:Saved quick reply "${label}"`;
       }
 
       // Execute a QR by label
       for (const s of store.sets) {
-        const qr = s.qrList.find(
-          (q) => q.label.toLowerCase() === label.toLowerCase(),
-        )
+        const qr = s.qrList.find((q) => q.label.toLowerCase() === label.toLowerCase());
         if (qr) {
-          const result = await executeSlashCommand(qr.message, ctx.chatId)
-          return result.result
+          const result = await executeSlashCommand(qr.message, ctx.chatId);
+          if (result.error) {
+            return `__echo__:${result.error}`;
+          }
+          return result.result;
         }
       }
-      return ""
+      return "";
     },
     helpString: "Execute or create a quick reply",
     aliases: [],
@@ -52,27 +53,25 @@ export const qrCommands: SlashCommand[] = [
       { name: "label", description: "QR button label", isRequired: false },
       { name: "message", description: "Slash command script (creates new QR)", isRequired: false },
     ],
-    unnamedArgumentList: [
-      { description: "QR label to execute", isRequired: false },
-    ],
+    unnamedArgumentList: [{ description: "QR label to execute", isRequired: false }],
   },
   {
     name: "qr-set",
     callback: (args) => {
-      const store = useQuickReplyStore.getState()
-      const name = args.name ?? ""
-      const action = args.action ?? "list"
+      const store = useQuickReplyStore.getState();
+      const name = args.name ?? "";
+      const action = args.action ?? "list";
 
       switch (action) {
         case "create":
-          if (name) store.addSet(name)
-          return name
+          if (name) store.addSet(name);
+          return name;
         case "delete":
-          if (name) store.removeSet(name)
-          return ""
+          if (name) store.removeSet(name);
+          return "";
         case "list":
         default:
-          return store.sets.map((s) => `${s.name} (${s.qrList.length} items)`).join("\n")
+          return store.sets.map((s) => `${s.name} (${s.qrList.length} items)`).join("\n");
       }
     },
     helpString: "Manage quick reply sets",
@@ -90,4 +89,4 @@ export const qrCommands: SlashCommand[] = [
     ],
     unnamedArgumentList: [],
   },
-]
+];

@@ -45,9 +45,9 @@ export function QuickReplyEditor() {
   const handleSaveQr = () => {
     if (!editingQr || !editingQr.qr.label || !editingQr.qr.message) return;
     if (editingQr.qr.id) {
-      updateQr(editingQr.setName, editingQr.qr.id, editingQr.qr)
+      updateQr(editingQr.setName, editingQr.qr.id, editingQr.qr);
     } else {
-      addQr(editingQr.setName, editingQr.qr as Omit<QuickReply, "id">)
+      addQr(editingQr.setName, editingQr.qr as Omit<QuickReply, "id">);
     }
     setEditingQr(null);
   };
@@ -89,9 +89,7 @@ export function QuickReplyEditor() {
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{s.name}</span>
-              <span className="text-xs text-muted-foreground">
-                ({s.qrList.length} items)
-              </span>
+              <span className="text-xs text-muted-foreground">({s.qrList.length} items)</span>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -163,9 +161,7 @@ export function QuickReplyEditor() {
       {/* QR Editor Modal */}
       {editingQr && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <h4 className="text-sm font-medium">
-            {editingQr.qr.id ? "Edit" : "New"} Quick Reply
-          </h4>
+          <h4 className="text-sm font-medium">{editingQr.qr.id ? "Edit" : "New"} Quick Reply</h4>
 
           <div className="space-y-2">
             <input

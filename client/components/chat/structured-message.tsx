@@ -101,15 +101,23 @@ export function StructuredMessage({ data, onAction, onCommandAction }: Structure
               {block.options.map((option, oi) => {
                 if (typeof option === "string") {
                   return (
-                    <Button key={oi} variant="outline" size="sm" onClick={() => onAction?.(option, option)}>
+                    <Button
+                      key={oi}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onAction?.(option, option)}
+                    >
                       {option}
                     </Button>
                   );
                 }
                 // ChoiceAction: button that executes a slash command
                 const variant =
-                  option.style === "primary" ? "default" :
-                  option.style === "danger" ? "destructive" : "outline";
+                  option.style === "primary"
+                    ? "default"
+                    : option.style === "danger"
+                      ? "destructive"
+                      : "outline";
                 return (
                   <Button
                     key={oi}
