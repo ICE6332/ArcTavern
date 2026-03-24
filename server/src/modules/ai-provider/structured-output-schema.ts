@@ -25,9 +25,15 @@ const CodeBlockSchema = z.object({
   language: z.string().optional(),
 });
 
+const ChoiceActionSchema = z.object({
+  label: z.string(),
+  command: z.string(),
+  style: z.enum(['default', 'primary', 'danger']).optional(),
+});
+
 const ChoicesBlockSchema = z.object({
   role: z.literal('choices'),
-  options: z.array(z.string()),
+  options: z.array(z.union([z.string(), ChoiceActionSchema])),
 });
 
 const SeparatorBlockSchema = z.object({
@@ -86,7 +92,10 @@ Block types:
    { "role": "code", "content": "console.log('hello')", "language": "javascript" }
 
 5. choices — interactive option buttons the user can click:
-   { "role": "choices", "options": ["Option A", "Option B"] }
+   Simple text options: { "role": "choices", "options": ["Option A", "Option B"] }
+   Action options (execute slash commands on click):
+   { "role": "choices", "options": [{ "label": "Fight", "command": "/setvar key=action fight | /gen Describe the fight", "style": "primary" }] }
+   You can mix simple strings and action objects in the same options array.
 
 6. separator — horizontal line to separate sections:
    { "role": "separator" }

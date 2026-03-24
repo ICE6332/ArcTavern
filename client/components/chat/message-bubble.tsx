@@ -50,6 +50,7 @@ interface MessageBubbleProps {
   onOpenUiAction?: (event: ActionEvent) => void;
   structuredContent?: PartialStructuredResponse | null;
   onStructuredAction?: (label: string, value: string) => void;
+  onStructuredCommandAction?: (command: string) => void;
 }
 
 function ActionButton({
@@ -102,6 +103,7 @@ export function MessageBubble({
   onOpenUiAction,
   structuredContent,
   onStructuredAction,
+  onStructuredCommandAction,
 }: MessageBubbleProps) {
   const isUser = role === "user";
 
@@ -148,6 +150,7 @@ export function MessageBubble({
             data={structuredContent}
             isStreaming={isStreaming}
             onAction={onStructuredAction}
+            onCommandAction={onStructuredCommandAction}
           />
         ) : isStreaming && !content && !structuredContent ? (
           <DotsLoader size="md" className="text-muted-foreground" />

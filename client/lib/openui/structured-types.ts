@@ -23,9 +23,15 @@ export interface CodeBlock {
   language?: string;
 }
 
+export interface ChoiceAction {
+  label: string;
+  command: string;
+  style?: "default" | "primary" | "danger";
+}
+
 export interface ChoicesBlock {
   role: "choices";
-  options: string[];
+  options: (string | ChoiceAction)[];
 }
 
 export interface SeparatorBlock {
@@ -68,7 +74,7 @@ export interface PartialBlock {
   level?: string;
   content?: string;
   language?: string;
-  options?: string[];
+  options?: (string | ChoiceAction)[];
   items?: string[];
   value?: number;
   label?: string;

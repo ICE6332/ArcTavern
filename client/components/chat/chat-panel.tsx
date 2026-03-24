@@ -20,6 +20,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { useTranslation } from "@/lib/i18n";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserIcon, FileImportIcon, Add01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { executeSlashCommand } from "@/lib/slash-commands/executor";
 
 const GREETINGS = [
   "欢迎回来~ 今天也要开心地聊天呀",
@@ -174,6 +175,14 @@ export function ChatPanel() {
     void sendMessage(content, generationConfig);
   };
 
+  const handleCommandAction = useCallback(
+    (command: string) => {
+      if (!currentChatId) return;
+      void executeSlashCommand(command, currentChatId);
+    },
+    [currentChatId],
+  );
+
   if (!selectedId || !currentChatId) {
     return <WelcomeScreen />;
   }
@@ -237,6 +246,7 @@ export function ChatPanel() {
                 onOpenUiAction={handleOpenUiAction}
                 structuredContent={showSwipeStreaming ? streamingStructured : persistedStructured}
                 onStructuredAction={(label) => void sendMessage(label, generationConfig)}
+                onStructuredCommandAction={handleCommandAction}
                 onRegenerate={
                   isLastAssistant && !isGenerating
                     ? () => void generateSwipe(generationConfig)
@@ -259,6 +269,7 @@ export function ChatPanel() {
                 onOpenUiAction={handleOpenUiAction}
                 structuredContent={streamingStructured}
                 onStructuredAction={(label) => void sendMessage(label, generationConfig)}
+                onStructuredCommandAction={handleCommandAction}
               />
             )}
 
@@ -282,6 +293,7 @@ export function ChatPanel() {
         onStop={stopGeneration}
         onContinue={() => void continueMessage(generationConfig)}
         onImpersonate={() => void impersonate(generationConfig)}
+        chatId={currentChatId ?? undefined}
         canContinue={hasAssistantMessage}
         isGenerating={isGenerating}
         disabled={false}

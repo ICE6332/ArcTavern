@@ -13,7 +13,6 @@ import {
   CodeBlockFilename,
   CodeBlockActions,
   CodeBlockCopyButton,
-  CodeBlockContent,
 } from "@/components/ai-elements/code-block";
 import { Task, TaskTrigger, TaskContent, TaskItem } from "@/components/ai-elements/task";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
@@ -33,9 +32,10 @@ interface StructuredMessageProps {
   data: PartialStructuredResponse;
   isStreaming?: boolean;
   onAction?: (label: string, value: string) => void;
+  onCommandAction?: (command: string) => void;
 }
 
-export function StructuredMessage({ data, isStreaming, onAction }: StructuredMessageProps) {
+export function StructuredMessage({ data, onAction, onCommandAction }: StructuredMessageProps) {
   if (!data.blocks?.length) return null;
 
   return (
@@ -98,11 +98,31 @@ export function StructuredMessage({ data, isStreaming, onAction }: StructuredMes
         if (block.role === "choices" && block.options?.length) {
           return (
             <div key={i} className="flex flex-wrap gap-1.5">
-              {block.options.map((option, oi) => (
-                <Button key={oi} variant="outline" size="sm" onClick={() => onAction?.(option, option)}>
-                  {option}
-                </Button>
-              ))}
+              {block.options.map((option, oi) => {
+                if (typeof option === "string") {
+                  return (
+                    <Button key={oi} variant="outline" size="sm" onClick={() => onAction?.(option, option)}>
+                      {option}
+                    </Button>
+                  );
+                }
+                // ChoiceAction: button that executes a slash command
+                const variant =
+                  option.style === "primary" ? "default" :
+                  option.style === "danger" ? "destructive" : "outline";
+                return (
+                  <Button
+                    key={oi}
+                    variant={variant}
+                    size="sm"
+                    onClick={() => onCommandAction?.(option.command)}
+                    title={option.command}
+                  >
+                    <span className="mr-1 text-xs opacity-60">⚡</span>
+                    {option.label}
+                  </Button>
+                );
+              })}
             </div>
           );
         }
