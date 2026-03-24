@@ -88,8 +88,8 @@ export class AiProviderService {
         return createAnthropic({ apiKey, baseURL: reverseProxy })(model);
       case 'google': {
         let googleBase = reverseProxy;
-        if (googleBase && !/\/v1(beta)?$/.test(googleBase)) {
-          googleBase = `${googleBase.replace(/\/+$/, '')}/v1beta`;
+        if (googleBase && !/\/v1beta$/.test(googleBase)) {
+          googleBase = `${googleBase.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
         }
         return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
       }
@@ -109,8 +109,8 @@ export class AiProviderService {
         const baseURL = this.normalizeBaseUrl(reverseProxy!);
         switch (format) {
           case 'google': {
-            // Google native SDK expects baseURL ending with /v1beta or /v1
-            const googleBase = /\/v1(beta)?$/.test(baseURL) ? baseURL : `${baseURL.replace(/\/+$/, '')}/v1beta`;
+            // Google native SDK expects baseURL ending with /v1beta; force it
+            const googleBase = /\/v1beta$/.test(baseURL) ? baseURL : `${baseURL.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
             return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
           }
           case 'openai':
