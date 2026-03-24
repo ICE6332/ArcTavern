@@ -86,8 +86,13 @@ export class AiProviderService {
         return createOpenAI({ apiKey, baseURL: reverseProxy })(model);
       case 'anthropic':
         return createAnthropic({ apiKey, baseURL: reverseProxy })(model);
-      case 'google':
-        return createGoogleGenerativeAI({ apiKey, baseURL: reverseProxy })(model);
+      case 'google': {
+        let googleBase = reverseProxy;
+        if (googleBase && !/\/v1(beta)?$/.test(googleBase)) {
+          googleBase = `${googleBase.replace(/\/+$/, '')}/v1beta`;
+        }
+        return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
+      }
       case 'openrouter':
         return createOpenAI({
           apiKey,
