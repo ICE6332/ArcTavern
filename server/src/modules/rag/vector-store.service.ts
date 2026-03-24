@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import lancedb from '@lancedb/lancedb';
+import * as lancedb from '@lancedb/lancedb';
 import path from 'path';
 import fs from 'fs';
 import type { VectorRecord } from './types';
@@ -14,7 +14,7 @@ function toRecords(items: VectorRecord[]): LanceRecord[] {
 export class VectorStoreService implements OnModuleInit {
   private db!: lancedb.Connection;
   private readonly logger = new Logger(VectorStoreService.name);
-  private readonly DB_PATH = path.resolve(__dirname, '../../../../data/lancedb');
+  private readonly DB_PATH = path.resolve(__dirname, '../../../data/lancedb');
 
   async onModuleInit() {
     if (!fs.existsSync(this.DB_PATH)) {

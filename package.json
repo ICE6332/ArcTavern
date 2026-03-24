@@ -7,7 +7,7 @@
     "server"
   ],
   "scripts": {
-    "dev:clean-ports": "powershell -ExecutionPolicy Bypass -File ./scripts/kill-dev-ports.ps1 -StartPort 3000 -EndPort 3999",
+    "dev:clean-ports": "powershell -ExecutionPolicy Bypass -File ./scripts/kill-dev-ports.ps1 -Ports 5000,5001",
     "dev": "pnpm dev:clean-ports && pnpm --parallel --filter @arctravern/client --filter @arctravern/server dev",
     "dev:client": "pnpm --filter @arctravern/client dev",
     "dev:server": "pnpm --filter @arctravern/server dev",

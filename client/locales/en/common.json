@@ -20,6 +20,7 @@
   "settings": {
     "connection": "Connection",
     "prompts": "Prompts",
+    "memory": "Memory",
     "provider": "Provider",
     "model": "Model",
     "apiKey": "API Key",
@@ -151,5 +152,31 @@
     "openrouter": "OpenRouter",
     "mistral": "Mistral",
     "custom": "Custom"
+  },
+  "memory": {
+    "enableRag": "Enable RAG Memory",
+    "embeddingProvider": "Embedding Provider",
+    "embeddingModel": "Embedding Model (blank = default)",
+    "embeddingUrl": "Embedding API URL (blank = default)",
+    "embeddingUrlPlaceholder": "https://... (optional)",
+    "scope": "Memory Scope",
+    "scopeChat": "Current Chat Only",
+    "scopeCharacter": "All Chats (per character)",
+    "maxResults": "Max Results",
+    "minSimilarity": "Min Similarity",
+    "tokenBudget": "Token Budget",
+    "insertionPosition": "Insertion Position",
+    "insertionDepth": "Insertion Depth",
+    "chunkSize": "Chunk Size",
+    "chunkOverlap": "Chunk Overlap",
+    "posBeforeChar": "Before Character",
+    "posAfterChar": "After Character",
+    "posAtDepth": "At Depth",
+    "providerAuto": "Auto (use chat provider)",
+    "providerLocal": "Local (jina-v2-zh, 161MB)",
+    "downloadModel": "Download Model",
+    "downloading": "Downloading...",
+    "modelReady": "Model Ready",
+    "modelNotDownloaded": "Model not downloaded"
   }
 }

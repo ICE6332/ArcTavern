@@ -303,6 +303,7 @@ export interface RagSettings {
   enabled: boolean;
   embeddingProvider: string;
   embeddingModel: string;
+  embeddingReverseProxy: string;
   scope: "chat" | "character";
   maxResults: number;
   minScore: number;
@@ -332,6 +333,20 @@ export const ragApi = {
   deleteCharacterVectors: (characterId: number) =>
     request<{ deleted: boolean }>(`/rag/character/${characterId}/vectors`, {
       method: "DELETE",
+    }),
+};
+
+export interface LocalModelStatus {
+  downloaded: boolean;
+  loading: boolean;
+  modelId: string;
+}
+
+export const localEmbeddingApi = {
+  getStatus: () => request<LocalModelStatus>("/embedding/local/status"),
+  download: () =>
+    request<{ success: boolean }>("/embedding/local/download", {
+      method: "POST",
     }),
 };
 

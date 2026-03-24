@@ -1,14 +1,12 @@
 param(
-  [int]$StartPort = 3000,
-  [int]$EndPort = 3999
+  [int[]]$Ports = @(5000, 5001)
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
 
 function Get-ListenersInRange {
   param(
-    [int]$FromPort,
-    [int]$ToPort
+    [int[]]$PortList
   )
 
   $rows = @()
@@ -17,7 +15,7 @@ function Get-ListenersInRange {
     if ($line -match '^TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)$') {
       $portNum = [int]$matches[1]
       $procId = [int]$matches[2]
-      if ($portNum -ge $FromPort -and $portNum -le $ToPort -and $procId -gt 0 -and $procId -ne 4) {
+      if ($PortList -contains $portNum -and $procId -gt 0 -and $procId -ne 4) {
         $rows += [PSCustomObject]@{
           Port = $portNum
           ProcId = $procId
@@ -48,11 +46,16 @@ function Stop-ProcSafely {
   }
 }
 
-$initial = Get-ListenersInRange -FromPort $StartPort -ToPort $EndPort
+$initial = Get-ListenersInRange -PortList $Ports
 $targets = $initial | Sort-Object ProcId -Unique
 
 $results = @()
 foreach ($target in $targets) {
+  # Skip Docker processes to avoid breaking Docker Desktop
+  try {
+    $proc = Get-Process -Id $target.ProcId -ErrorAction Stop
+    if ($proc.ProcessName -like '*docker*') { continue }
+  } catch {}
   $results += Stop-ProcSafely -ProcId $target.ProcId
 }
 
@@ -79,9 +82,9 @@ foreach ($lockFile in $lockFiles) {
 }
 
 Start-Sleep -Milliseconds 300
-$remaining = Get-ListenersInRange -FromPort $StartPort -ToPort $EndPort
+$remaining = Get-ListenersInRange -PortList $Ports
 
-Write-Output "RANGE=$StartPort-$EndPort"
+Write-Output "PORTS=$($Ports -join ',')"
 Write-Output "KILLED_OR_ATTEMPTED:"
 if ($results.Count -eq 0) {
   Write-Output "(none)"

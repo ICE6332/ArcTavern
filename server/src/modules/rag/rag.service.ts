@@ -66,6 +66,7 @@ export class RagService {
         provider,
         model,
         input: [queryText],
+        reverseProxy: settings.embeddingReverseProxy || undefined,
       });
 
       const queryVector = embeddingResponse.embeddings[0];

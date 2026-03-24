@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { aiApi, secretApi, type Provider, type RagSettings } from "@/lib/api";
+import { aiApi, secretApi, localEmbeddingApi, type Provider, type RagSettings, type LocalModelStatus } from "@/lib/api";
 import { DEFAULT_MODELS, useConnectionStore } from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,7 +226,7 @@ export function SettingsPanel() {
                   className="h-7 px-2 text-xs"
                   onClick={() => setSettingsTab("connection")}
                 >
-                  Connection
+                  {t("settings.connection")}
                 </Button>
                 <Button
                   variant={settingsTab === "prompts" ? "default" : "ghost"}
@@ -234,7 +234,7 @@ export function SettingsPanel() {
                   className="h-7 px-2 text-xs"
                   onClick={() => setSettingsTab("prompts")}
                 >
-                  Prompts
+                  {t("settings.prompts")}
                 </Button>
                 <Button
                   variant={settingsTab === "memory" ? "default" : "ghost"}
@@ -242,7 +242,7 @@ export function SettingsPanel() {
                   className="h-7 px-2 text-xs"
                   onClick={() => setSettingsTab("memory")}
                 >
-                  Memory
+                  {t("settings.memory")}
                 </Button>
               </div>
             </div>
@@ -570,7 +570,8 @@ export function SettingsPanel() {
 }
 
 const EMBEDDING_PROVIDERS = [
-  { value: "", label: "Auto (use chat provider)" },
+  { value: "", labelKey: "memory.providerAuto" },
+  { value: "local", labelKey: "memory.providerLocal" },
   { value: "openai", label: "OpenAI" },
   { value: "google", label: "Google" },
   { value: "mistral", label: "Mistral" },
@@ -578,21 +579,45 @@ const EMBEDDING_PROVIDERS = [
 ];
 
 const INSERTION_POSITIONS = [
-  { value: "before_char", label: "Before Character" },
-  { value: "after_char", label: "After Character" },
-  { value: "at_depth", label: "At Depth" },
+  { value: "before_char", labelKey: "memory.posBeforeChar" },
+  { value: "after_char", labelKey: "memory.posAfterChar" },
+  { value: "at_depth", labelKey: "memory.posAtDepth" },
 ];
 
 function MemorySettings() {
   const rag = useRagStore();
   const fetchSettings = rag.fetchSettings;
+  const { t } = useTranslation();
+  const [localStatus, setLocalStatus] = useState<LocalModelStatus | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     void fetchSettings();
   }, [fetchSettings]);
 
+  const isLocal = rag.settings?.embeddingProvider === "local";
+
+  useEffect(() => {
+    if (isLocal) {
+      void localEmbeddingApi.getStatus().then(setLocalStatus);
+    }
+  }, [isLocal]);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await localEmbeddingApi.download();
+      const status = await localEmbeddingApi.getStatus();
+      setLocalStatus(status);
+    } catch {
+      toast.error({ title: t("messages.failed") });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (rag.loading || !rag.settings) {
-    return <div className="text-xs text-muted-foreground">Loading...</div>;
+    return <div className="text-xs text-muted-foreground">{t("messages.loading")}</div>;
   }
 
   const s = rag.settings;
@@ -603,7 +628,7 @@ function MemorySettings() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <Label className="text-xs">Enable RAG Memory</Label>
+        <Label className="text-xs">{t("memory.enableRag")}</Label>
         <input
           type="checkbox"
           checked={s.enabled}
@@ -615,7 +640,7 @@ function MemorySettings() {
       <Separator />
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">Embedding Provider</Label>
+        <Label className="text-xs">{t("memory.embeddingProvider")}</Label>
         <Select
           value={s.embeddingProvider}
           onValueChange={(v) => update({ embeddingProvider: v ?? "" })}
@@ -627,25 +652,56 @@ function MemorySettings() {
           <SelectContent>
             {EMBEDDING_PROVIDERS.map((p) => (
               <SelectItem key={p.value} value={p.value}>
-                {p.label}
+                {p.labelKey ? t(p.labelKey) : p.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">Embedding Model (blank = default)</Label>
-        <Input
-          value={s.embeddingModel}
-          onChange={(e) => update({ embeddingModel: e.target.value })}
-          placeholder="e.g. text-embedding-3-small"
-          disabled={!s.enabled}
-        />
-      </div>
+      {isLocal && (
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 p-2">
+          {downloading || localStatus?.loading ? (
+            <span className="text-xs text-muted-foreground">{t("memory.downloading")}</span>
+          ) : localStatus?.downloaded ? (
+            <span className="text-xs text-green-500">{t("memory.modelReady")}</span>
+          ) : (
+            <>
+              <span className="text-xs text-muted-foreground">{t("memory.modelNotDownloaded")}</span>
+              <Button size="sm" variant="outline" className="ml-auto h-6 text-xs" onClick={handleDownload}>
+                {t("memory.downloadModel")}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {!isLocal && (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">{t("memory.embeddingModel")}</Label>
+            <Input
+              value={s.embeddingModel}
+              onChange={(e) => update({ embeddingModel: e.target.value })}
+              placeholder="e.g. text-embedding-3-small"
+              disabled={!s.enabled}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">{t("memory.embeddingUrl")}</Label>
+            <Input
+              value={s.embeddingReverseProxy ?? ""}
+              onChange={(e) => update({ embeddingReverseProxy: e.target.value })}
+              placeholder={t("memory.embeddingUrlPlaceholder")}
+              disabled={!s.enabled}
+            />
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">Memory Scope</Label>
+        <Label className="text-xs">{t("memory.scope")}</Label>
         <Select
           value={s.scope}
           onValueChange={(v) => update({ scope: v as "chat" | "character" })}
@@ -655,8 +711,8 @@ function MemorySettings() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="chat">Current Chat Only</SelectItem>
-            <SelectItem value="character">All Chats (per character)</SelectItem>
+            <SelectItem value="chat">{t("memory.scopeChat")}</SelectItem>
+            <SelectItem value="character">{t("memory.scopeCharacter")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -664,7 +720,7 @@ function MemorySettings() {
       <Separator />
 
       <SliderField
-        label="Max Results"
+        label={t("memory.maxResults")}
         value={s.maxResults}
         onChange={(v) => update({ maxResults: v })}
         min={1}
@@ -674,7 +730,7 @@ function MemorySettings() {
       />
 
       <SliderField
-        label="Min Similarity"
+        label={t("memory.minSimilarity")}
         value={s.minScore}
         onChange={(v) => update({ minScore: v })}
         min={0}
@@ -683,7 +739,7 @@ function MemorySettings() {
       />
 
       <SliderField
-        label="Token Budget"
+        label={t("memory.tokenBudget")}
         value={s.maxTokenBudget}
         onChange={(v) => update({ maxTokenBudget: v })}
         min={128}
@@ -695,7 +751,7 @@ function MemorySettings() {
       <Separator />
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">Insertion Position</Label>
+        <Label className="text-xs">{t("memory.insertionPosition")}</Label>
         <Select
           value={s.insertionPosition}
           onValueChange={(v) =>
@@ -709,7 +765,7 @@ function MemorySettings() {
           <SelectContent>
             {INSERTION_POSITIONS.map((p) => (
               <SelectItem key={p.value} value={p.value}>
-                {p.label}
+                {t(p.labelKey)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -718,7 +774,7 @@ function MemorySettings() {
 
       {s.insertionPosition === "at_depth" && (
         <SliderField
-          label="Insertion Depth"
+          label={t("memory.insertionDepth")}
           value={s.insertionDepth}
           onChange={(v) => update({ insertionDepth: v })}
           min={1}
@@ -731,7 +787,7 @@ function MemorySettings() {
       <Separator />
 
       <SliderField
-        label="Chunk Size"
+        label={t("memory.chunkSize")}
         value={s.chunkSize}
         onChange={(v) => update({ chunkSize: v })}
         min={200}
@@ -741,7 +797,7 @@ function MemorySettings() {
       />
 
       <SliderField
-        label="Chunk Overlap"
+        label={t("memory.chunkOverlap")}
         value={s.chunkOverlap}
         onChange={(v) => update({ chunkOverlap: v })}
         min={0}

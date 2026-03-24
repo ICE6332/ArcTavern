@@ -25,6 +25,7 @@ export interface RagSettings {
   enabled: boolean;
   embeddingProvider: string;
   embeddingModel: string;
+  embeddingReverseProxy: string;
   scope: 'chat' | 'character';
   maxResults: number;
   minScore: number;
@@ -39,6 +40,7 @@ export const DEFAULT_RAG_SETTINGS: RagSettings = {
   enabled: false,
   embeddingProvider: '',
   embeddingModel: '',
+  embeddingReverseProxy: '',
   scope: 'character',
   maxResults: 10,
   minScore: 0.3,

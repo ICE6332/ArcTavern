@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { SecretService } from '../secret/secret.service';
+import { LocalEmbeddingService } from './local-embedding.service';
 import {
   CompletionRequest,
   CompletionResponse,
@@ -56,7 +57,10 @@ export class AiProviderService {
   private modelCache = new Map<string, { models: ModelInfo[]; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  constructor(private readonly secretService: SecretService) {}
+  constructor(
+    private readonly secretService: SecretService,
+    private readonly localEmbedding: LocalEmbeddingService,
+  ) {}
 
   async getApiKey(provider: string): Promise<string> {
     const secretKey = SECRET_KEY_MAP[provider];
@@ -89,7 +93,7 @@ export class AiProviderService {
           apiKey,
           baseURL: reverseProxy || 'https://openrouter.ai/api/v1',
           headers: {
-            'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
+            'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:5000',
             'X-Title': process.env.OPENROUTER_APP_NAME || 'Arctravern',
           },
         })(model);
@@ -276,6 +280,15 @@ export class AiProviderService {
   }
 
   async embed(req: EmbeddingRequest): Promise<EmbeddingResponse> {
+    if (req.provider === 'local') {
+      const result = await this.localEmbedding.embed(req.input);
+      return {
+        embeddings: result.embeddings,
+        model: 'jina-embeddings-v2-base-zh',
+        dimensions: result.dimensions,
+      };
+    }
+
     const apiKey = await this.getApiKey(req.provider);
     const model = this.createEmbeddingModel(req.provider, req.model, apiKey, req.reverseProxy);
 

@@ -14,6 +14,9 @@ server/dist/
 # Database
 server/data/*.db
 
+# Local embedding models
+server/data/models/
+
 # Environment
 .env
 .env.*

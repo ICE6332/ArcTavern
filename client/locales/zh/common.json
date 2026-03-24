@@ -20,6 +20,7 @@
   "settings": {
     "connection": "连接",
     "prompts": "提示词",
+    "memory": "记忆",
     "provider": "提供商",
     "model": "模型",
     "apiKey": "API 密钥",
@@ -151,5 +152,31 @@
     "openrouter": "OpenRouter",
     "mistral": "Mistral",
     "custom": "自定义"
+  },
+  "memory": {
+    "enableRag": "启用 RAG 记忆",
+    "embeddingProvider": "嵌入模型提供商",
+    "embeddingModel": "嵌入模型（留空 = 默认）",
+    "embeddingUrl": "嵌入 API 地址（留空 = 默认）",
+    "embeddingUrlPlaceholder": "https://...（可选）",
+    "scope": "记忆范围",
+    "scopeChat": "仅当前聊天",
+    "scopeCharacter": "所有聊天（按角色）",
+    "maxResults": "最大结果数",
+    "minSimilarity": "最小相似度",
+    "tokenBudget": "Token 预算",
+    "insertionPosition": "插入位置",
+    "insertionDepth": "插入深度",
+    "chunkSize": "分块大小",
+    "chunkOverlap": "分块重叠",
+    "posBeforeChar": "角色描述前",
+    "posAfterChar": "角色描述后",
+    "posAtDepth": "指定深度",
+    "providerAuto": "自动（使用聊天提供商）",
+    "providerLocal": "本地（jina-v2-zh, 161MB）",
+    "downloadModel": "下载模型",
+    "downloading": "下载中...",
+    "modelReady": "模型就绪",
+    "modelNotDownloaded": "模型未下载"
   }
 }

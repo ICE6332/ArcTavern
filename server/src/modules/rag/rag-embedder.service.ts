@@ -63,6 +63,7 @@ export class RagEmbedderService {
       provider,
       model,
       input: chunks,
+      reverseProxy: settings.embeddingReverseProxy || undefined,
     });
 
     const records: VectorRecord[] = chunks.map((chunk, i) => ({
