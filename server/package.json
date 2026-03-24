@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "rimraf dist && nest start --watch",
     "build": "nest build",
     "check": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/main.js",
@@ -42,6 +42,7 @@
     "@nestjs/schematics": "^11.0.5",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.0",
+    "rimraf": "^6.1.3",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6",
