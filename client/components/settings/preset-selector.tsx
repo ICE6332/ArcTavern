@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePresetStore } from "@/stores/preset-store";
 import { detectPresetType } from "@/lib/preset-type-detector";
-import { presetApi, type Preset } from "@/lib/api";
+import { presetApi, type Preset } from "@/lib/api/preset";
 import { Button } from "@/components/ui/button";
 import {
   Select,

@@ -1,11 +1,6 @@
 import { create } from "zustand";
-import {
-  chatApi,
-  type Chat,
-  type CompletionRequest,
-  type GenerationType,
-  type Message,
-} from "@/lib/api";
+import { chatApi, type Chat, type Message } from "@/lib/api/chat";
+import type { CompletionRequest, GenerationType } from "@/lib/api/types";
 import { chatDebug, chatError } from "@/lib/chat-debug";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
 
@@ -41,9 +36,90 @@ interface ChatState {
   deleteMessage: (messageId: number) => Promise<void>;
 }
 
+type StreamingSnapshot = {
+  streamingContent: string;
+  streamingReasoning: string;
+  streamingStructured: PartialStructuredResponse | null;
+};
+
+const emptyStreamingSnapshot = (): StreamingSnapshot => ({
+  streamingContent: "",
+  streamingReasoning: "",
+  streamingStructured: null,
+});
+
 let abortController: AbortController | null = null;
+let scheduledFlushHandle: number | ReturnType<typeof setTimeout> | null = null;
+let scheduledFlushMode: "raf" | "timeout" | null = null;
+const streamingBuffer: StreamingSnapshot = emptyStreamingSnapshot();
+
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
+
+function clearStreamingBuffer() {
+  streamingBuffer.streamingContent = "";
+  streamingBuffer.streamingReasoning = "";
+  streamingBuffer.streamingStructured = null;
+}
+
+function cancelScheduledStreamingFlush() {
+  if (scheduledFlushHandle === null) {
+    return;
+  }
+
+  if (scheduledFlushMode === "raf" && typeof window !== "undefined") {
+    window.cancelAnimationFrame(scheduledFlushHandle as number);
+  } else {
+    clearTimeout(scheduledFlushHandle as ReturnType<typeof setTimeout>);
+  }
+
+  scheduledFlushHandle = null;
+  scheduledFlushMode = null;
+}
+
+function flushStreamingState(set: (partial: Partial<ChatState>) => void) {
+  scheduledFlushHandle = null;
+  scheduledFlushMode = null;
+  set({ ...streamingBuffer });
+}
+
+function scheduleStreamingFlush(set: (partial: Partial<ChatState>) => void) {
+  if (scheduledFlushHandle !== null) {
+    return;
+  }
+
+  if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+    scheduledFlushMode = "raf";
+    scheduledFlushHandle = window.requestAnimationFrame(() => flushStreamingState(set));
+    return;
+  }
+
+  scheduledFlushMode = "timeout";
+  scheduledFlushHandle = setTimeout(() => flushStreamingState(set), 16);
+}
+
+function resetStreamingState(set: (partial: Partial<ChatState>) => void) {
+  cancelScheduledStreamingFlush();
+  clearStreamingBuffer();
+  set(emptyStreamingSnapshot());
+}
+
+function applyStreamingState(
+  set: (partial: Partial<ChatState>) => void,
+  data: Partial<StreamingSnapshot>,
+) {
+  if (data.streamingContent !== undefined) {
+    streamingBuffer.streamingContent = data.streamingContent;
+  }
+  if (data.streamingReasoning !== undefined) {
+    streamingBuffer.streamingReasoning = data.streamingReasoning;
+  }
+  if (data.streamingStructured !== undefined) {
+    streamingBuffer.streamingStructured = data.streamingStructured;
+  }
+
+  scheduleStreamingFlush(set);
+}
 
 export const useChatStore = create<ChatState>((set, get) => ({
   chats: [],
@@ -51,9 +127,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isGenerating: false,
   generationType: null,
-  streamingContent: "",
-  streamingReasoning: "",
-  streamingStructured: null,
+  ...emptyStreamingSnapshot(),
   error: null,
 
   fetchChats: async (characterId) => {
@@ -73,6 +147,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       chatDebug("selectChat.skip.same", { chatId });
       return;
     }
+
     const previousChatId = get().currentChatId;
     chatDebug("selectChat.start", { from: previousChatId, to: chatId });
 
@@ -84,14 +159,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     }
 
+    cancelScheduledStreamingFlush();
+    clearStreamingBuffer();
     set({
       currentChatId: chatId,
       messages: [],
-      streamingContent: "",
-      streamingReasoning: "",
       isGenerating: false,
       error: null,
+      ...emptyStreamingSnapshot(),
     });
+
     if (chatId) {
       try {
         const messages = await chatApi.getMessages(chatId);
@@ -190,6 +267,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         genStarted: null,
         genFinished: null,
         extra: {},
+        structuredContent: null,
         createdAt: new Date().toISOString(),
       };
       set({ messages: [...optimisticMessages, optimistic] });
@@ -202,14 +280,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     abortController?.abort();
     abortController = new AbortController();
+    cancelScheduledStreamingFlush();
+    clearStreamingBuffer();
 
     set({
       isGenerating: true,
       generationType: type,
-      streamingContent: "",
-      streamingReasoning: "",
-      streamingStructured: null,
       error: null,
+      ...emptyStreamingSnapshot(),
     });
 
     try {
@@ -247,10 +325,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (chunk.error) {
           throw new Error(chunk.error);
         }
+
         if (chunk.content) {
           chunkCount += 1;
           fullContent += chunk.content;
-          set({ streamingContent: fullContent });
+          applyStreamingState(set, { streamingContent: fullContent });
           if (chunkCount <= 3 || chunkCount % 20 === 0) {
             chatDebug("generate.chunk", {
               generationChatId,
@@ -259,16 +338,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
             });
           }
         }
+
         if (chunk.reasoning) {
           fullReasoning += chunk.reasoning;
-          set({ streamingReasoning: fullReasoning });
+          applyStreamingState(set, { streamingReasoning: fullReasoning });
         }
+
         if (chunk.structured) {
-          set({ streamingStructured: chunk.structured as PartialStructuredResponse });
+          applyStreamingState(set, {
+            streamingStructured: chunk.structured as PartialStructuredResponse,
+          });
         }
       }
 
       const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
+      cancelScheduledStreamingFlush();
+      clearStreamingBuffer();
       if (get().currentChatId !== generationChatId) {
         chatDebug("generate.skipApply.chatChanged", {
           generationChatId,
@@ -280,9 +365,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: freshMessages,
         isGenerating: false,
         generationType: null,
-        streamingContent: "",
-        streamingReasoning: "",
-        streamingStructured: null,
+        ...emptyStreamingSnapshot(),
       });
       chatDebug("generate.success", {
         type,
@@ -302,6 +385,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         chatDebug("generate.aborted", { type, currentChatId: generationChatId });
       }
       const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
+      cancelScheduledStreamingFlush();
+      clearStreamingBuffer();
       if (get().currentChatId !== generationChatId) {
         chatDebug("generate.skipErrorApply.chatChanged", {
           generationChatId,
@@ -313,9 +398,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: freshMessages,
         isGenerating: false,
         generationType: null,
-        streamingContent: "",
-        streamingReasoning: "",
-        streamingStructured: null,
+        ...emptyStreamingSnapshot(),
       });
       chatDebug("generate.postErrorSync", {
         currentChatId: generationChatId,
@@ -371,15 +454,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     chatDebug("stopGeneration.start", { chatId });
     abortController?.abort();
     abortController = null;
+    cancelScheduledStreamingFlush();
+    clearStreamingBuffer();
     if (chatId) {
       await chatApi.stop(chatId).catch(() => undefined);
     }
     set({
       isGenerating: false,
       generationType: null,
-      streamingContent: "",
-      streamingReasoning: "",
-      streamingStructured: null,
+      ...emptyStreamingSnapshot(),
     });
     chatDebug("stopGeneration.done", { chatId });
   },

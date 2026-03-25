@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGroupStore } from "@/stores/group-store";
 import { useConnectionStore } from "@/stores/connection-store";
-import { groupApi } from "@/lib/api";
+import { groupApi } from "@/lib/api/group";
 import { MemberSelector } from "./member-selector";
 
 interface GroupChatPanelProps {

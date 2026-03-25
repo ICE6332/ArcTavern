@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useGroupStore } from "@/stores/group-store";
 import { useCharacterStore } from "@/stores/character-store";
-import type { Group } from "@/lib/api";
+import type { Group } from "@/lib/api/group";
 
 interface GroupEditorProps {
   group?: Group | null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useMemo, useCallback, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { useConnectionStore } from "@/stores/connection-store";
@@ -10,14 +11,11 @@ import { useVariableStore } from "@/stores/variable-store";
 import { chatDebug } from "@/lib/chat-debug";
 import { getOpenUiSystemPrompt } from "@/lib/openui";
 import type { ActionEvent } from "@openuidev/react-lang";
-import {
-  isStructuredResponse,
-  type PartialStructuredResponse,
-} from "@/lib/openui/structured-types";
 import { toast } from "@/lib/toast";
 import { useSidebar } from "@/components/ui/sidebar";
 import { consumeSlashCommandResult } from "@/lib/slash-commands/consume-result";
 import { ChatInput } from "./chat-input";
+import { ChatMessageRow } from "./chat-message-row";
 import { MessageBubble } from "./message-bubble";
 import { QuickReplyBar } from "./quick-reply-bar";
 import { DotsLoader } from "@/components/ui/loader";
@@ -42,6 +40,7 @@ export function ChatPanel() {
   const {
     messages,
     isGenerating,
+    generationType,
     streamingContent,
     streamingReasoning,
     streamingStructured,
@@ -57,10 +56,50 @@ export function ChatPanel() {
     selectChat,
     createChat,
     deleteChat,
-  } = useChatStore();
-  const selectedId = useCharacterStore((s) => s.selectedId);
-  const characters = useCharacterStore((s) => s.characters);
-  const connection = useConnectionStore();
+  } = useChatStore(
+    useShallow((s) => ({
+      messages: s.messages,
+      isGenerating: s.isGenerating,
+      generationType: s.generationType,
+      streamingContent: s.streamingContent,
+      streamingReasoning: s.streamingReasoning,
+      streamingStructured: s.streamingStructured,
+      currentChatId: s.currentChatId,
+      sendMessage: s.sendMessage,
+      stopGeneration: s.stopGeneration,
+      generateSwipe: s.generateSwipe,
+      continueMessage: s.continueMessage,
+      impersonate: s.impersonate,
+      swipe: s.swipe,
+      deleteMessage: s.deleteMessage,
+      refreshCurrentChat: s.refreshCurrentChat,
+      selectChat: s.selectChat,
+      createChat: s.createChat,
+      deleteChat: s.deleteChat,
+    })),
+  );
+  const { selectedId, characters } = useCharacterStore(
+    useShallow((s) => ({
+      selectedId: s.selectedId,
+      characters: s.characters,
+    })),
+  );
+  const connection = useConnectionStore(
+    useShallow((s) => ({
+      provider: s.provider,
+      model: s.model,
+      temperature: s.temperature,
+      maxTokens: s.maxTokens,
+      topP: s.topP,
+      topK: s.topK,
+      frequencyPenalty: s.frequencyPenalty,
+      presencePenalty: s.presencePenalty,
+      reverseProxy: s.reverseProxy,
+      maxContext: s.maxContext,
+      openUiEnabled: s.openUiEnabled,
+      customApiFormat: s.customApiFormat,
+    })),
+  );
   const promptComponents = usePromptManagerStore((s) => s.components);
   const quickRepliesLoaded = useQuickReplyStore((s) => s.loaded);
   const loadQuickReplies = useQuickReplyStore((s) => s.loadSets);
@@ -71,7 +110,7 @@ export function ChatPanel() {
   const shouldAutoScrollRef = useRef(true);
 
   const selectedChar = characters.find((c) => c.id === selectedId);
-  const generationType = useChatStore((s) => s.generationType);
+  const selectedCharName = selectedChar?.name;
   const isSwipeGenerating =
     isGenerating && (generationType === "swipe" || generationType === "regenerate");
   const latestAssistantMessageId = useMemo(() => {
@@ -129,7 +168,22 @@ export function ChatPanel() {
       structuredOutput: openUiEnabled,
       customApiFormat: connection.provider === "custom" ? connection.customApiFormat : undefined,
     }),
-    [connection, promptOrder, customPrompts, openUiEnabled],
+    [
+      connection.customApiFormat,
+      connection.frequencyPenalty,
+      connection.maxContext,
+      connection.maxTokens,
+      connection.model,
+      connection.presencePenalty,
+      connection.provider,
+      connection.reverseProxy,
+      connection.temperature,
+      connection.topK,
+      connection.topP,
+      customPrompts,
+      openUiEnabled,
+      promptOrder,
+    ],
   );
 
   useEffect(() => {
@@ -223,6 +277,31 @@ export function ChatPanel() {
     [currentChatId, generationConfig, sendMessage],
   );
 
+  const handleSwipe = useCallback(
+    (messageId: number, direction: "left" | "right") => {
+      void swipe(messageId, direction);
+    },
+    [swipe],
+  );
+
+  const handleDeleteMessage = useCallback(
+    (messageId: number) => {
+      void deleteMessage(messageId);
+    },
+    [deleteMessage],
+  );
+
+  const handleStructuredAction = useCallback(
+    (label: string) => {
+      void handleSend(label);
+    },
+    [handleSend],
+  );
+
+  const handleGenerateSwipe = useCallback(() => {
+    void generateSwipe(generationConfig);
+  }, [generateSwipe, generationConfig]);
+
   const handleDeleteCurrentChat = useCallback(async () => {
     if (!currentChatId) return;
 
@@ -285,7 +364,7 @@ export function ChatPanel() {
   return (
     <main className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-10 shrink-0 items-center border-b border-border px-4">
-        <span className="text-sm font-medium">{selectedChar?.name ?? t("chat.defaultTitle")}</span>
+        <span className="text-sm font-medium">{selectedCharName ?? t("chat.defaultTitle")}</span>
       </div>
 
       <div
@@ -298,56 +377,23 @@ export function ChatPanel() {
             const isLastAssistant = msg.role === "assistant" && msg.id === latestAssistantMessageId;
             const showSwipeStreaming = isLastAssistant && isSwipeGenerating;
 
-            // For persisted structured messages, parse the JSON content back
-            let persistedStructured: PartialStructuredResponse | undefined;
-            if (!showSwipeStreaming && msg.extra?.format === "structured" && msg.content) {
-              try {
-                const parsed: unknown = JSON.parse(msg.content);
-                if (isStructuredResponse(parsed)) {
-                  persistedStructured = parsed;
-                } else if (Array.isArray(parsed)) {
-                  // Model returned bare blocks array — wrap it
-                  persistedStructured = { blocks: parsed };
-                }
-              } catch {
-                // Not valid JSON — render as plain text
-              }
-            }
-
             return (
-              <MessageBubble
+              <ChatMessageRow
                 key={msg.id}
-                messageId={msg.id}
-                role={msg.role}
-                name={msg.name || (msg.role === "assistant" ? selectedChar?.name : undefined)}
-                content={
-                  showSwipeStreaming
-                    ? streamingContent || ""
-                    : persistedStructured
-                      ? ""
-                      : msg.content
-                }
-                reasoning={showSwipeStreaming ? streamingReasoning || undefined : msg.reasoning}
-                isStreaming={showSwipeStreaming}
-                swipeId={msg.swipeId}
-                swipes={msg.swipes}
-                onSwipe={(messageId, direction) => {
-                  void swipe(messageId, direction);
-                }}
-                onDelete={(messageId) => {
-                  void deleteMessage(messageId);
-                }}
+                message={msg}
+                assistantName={selectedCharName}
+                isSwipeStreaming={showSwipeStreaming}
+                streamingContent={showSwipeStreaming ? streamingContent : ""}
+                streamingReasoning={showSwipeStreaming ? streamingReasoning : ""}
+                streamingStructured={showSwipeStreaming ? streamingStructured : null}
                 openUiEnabled={openUiEnabled}
+                onSwipe={handleSwipe}
+                onDelete={handleDeleteMessage}
                 onOpenUiAction={handleOpenUiAction}
-                structuredContent={showSwipeStreaming ? streamingStructured : persistedStructured}
-                onStructuredAction={(label) => void handleSend(label)}
-                onStructuredCommandAction={(command) => {
-                  void runSlashCommand(command);
-                }}
+                onStructuredAction={handleStructuredAction}
+                onStructuredCommandAction={runSlashCommand}
                 onRegenerate={
-                  isLastAssistant && !isGenerating
-                    ? () => void generateSwipe(generationConfig)
-                    : undefined
+                  isLastAssistant && !isGenerating ? handleGenerateSwipe : undefined
                 }
               />
             );
@@ -358,17 +404,15 @@ export function ChatPanel() {
             (streamingContent || streamingReasoning || streamingStructured) && (
               <MessageBubble
                 role="assistant"
-                name={selectedChar?.name}
+                name={selectedCharName}
                 content={streamingContent}
                 reasoning={streamingReasoning}
                 isStreaming
                 openUiEnabled={openUiEnabled}
                 onOpenUiAction={handleOpenUiAction}
                 structuredContent={streamingStructured}
-                onStructuredAction={(label) => void handleSend(label)}
-                onStructuredCommandAction={(command) => {
-                  void runSlashCommand(command);
-                }}
+                onStructuredAction={handleStructuredAction}
+                onStructuredCommandAction={runSlashCommand}
               />
             )}
 
@@ -379,7 +423,7 @@ export function ChatPanel() {
             !streamingStructured && (
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">
-                  {selectedChar?.name ?? "Assistant"}
+                  {selectedCharName ?? "Assistant"}
                 </p>
                 <DotsLoader size="md" className="text-muted-foreground" />
               </div>
@@ -427,9 +471,7 @@ function WelcomeScreen() {
       <div className="flex max-w-2xl flex-col items-center gap-8 text-center">
         <div className="space-y-3">
           <h1 className="text-3xl font-semibold tracking-tight">
-            <Shimmer duration={3} spread={1.5}>
-              {`✦ ${greeting}`}
-            </Shimmer>
+            <Shimmer duration={3} spread={1.5}>{`✦ ${greeting}`}</Shimmer>
           </h1>
           <p className="text-sm text-muted-foreground">在侧边栏选一个角色，开启你的奇妙对话吧</p>
         </div>

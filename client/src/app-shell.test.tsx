@@ -62,8 +62,24 @@ vi.mock("@/lib/i18n", () => ({
 }));
 
 vi.mock("@/stores/character-store", () => ({
-  useCharacterStore: (selector?: (state: { fetchCharacters: typeof fetchCharacters }) => unknown) =>
-    selector ? selector({ fetchCharacters }) : { fetchCharacters },
+  useCharacterStore: (
+    selector?: (state: {
+      fetchCharacters: typeof fetchCharacters;
+      characters: Array<{ id: number; name: string }>;
+      selectedId: number | null;
+    }) => unknown,
+  ) =>
+    selector
+      ? selector({
+          fetchCharacters,
+          characters: [{ id: 1, name: "Astra" }],
+          selectedId: 1,
+        })
+      : {
+          fetchCharacters,
+          characters: [{ id: 1, name: "Astra" }],
+          selectedId: 1,
+        },
 }));
 
 vi.mock("@/stores/tag-store", () => ({

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { worldInfoApi, type WorldInfoBook, type WorldInfoEntry } from "@/lib/api";
+import { worldInfoApi, type WorldInfoBook, type WorldInfoEntry } from "@/lib/api/world-info";
 
 interface WorldInfoState {
   books: WorldInfoBook[];

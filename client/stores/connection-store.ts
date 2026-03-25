@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Provider } from "@/lib/api/types";
 
-export type Provider = "openai" | "anthropic" | "google" | "openrouter" | "mistral" | "custom";
 export type CustomApiFormat = "openai-compatible" | "google" | "openai" | "anthropic";
 
 interface ConnectionState {

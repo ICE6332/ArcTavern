@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { aiApi, secretApi, localEmbeddingApi, type Provider, type RagSettings, type LocalModelStatus } from "@/lib/api";
+import { aiApi, localEmbeddingApi, type LocalModelStatus } from "@/lib/api/ai";
+import { secretApi } from "@/lib/api/secret";
+import type { RagSettings } from "@/lib/api/rag";
+import type { Provider } from "@/lib/api/types";
 import { DEFAULT_MODELS, useConnectionStore } from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
