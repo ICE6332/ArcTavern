@@ -24,6 +24,7 @@ import {
   CharacterCardParserService,
   TavernCardV2,
 } from './character-card-parser.service';
+import { WorldInfoService } from '../world-info/world-info.service';
 
 interface UploadedBinaryFile {
   buffer: Buffer;
@@ -36,6 +37,7 @@ export class CharacterController {
   constructor(
     private readonly characterService: CharacterService,
     private readonly characterCardParser: CharacterCardParserService,
+    private readonly worldInfoService: WorldInfoService,
   ) {}
 
   private readonly defaultAvatarPng = Buffer.from(
@@ -171,7 +173,67 @@ export class CharacterController {
     }
 
     const created = await this.characterService.create(this.fromCard(card));
-    return created;
+
+    // Auto-create world info book from character_book if present
+    const charBook = card.data.character_book as
+      | { name?: string; description?: string; entries?: Array<Record<string, unknown>> }
+      | null
+      | undefined;
+    if (charBook?.entries?.length) {
+      try {
+        const book = await this.worldInfoService.importBook({
+          name: charBook.name || `${card.data.name} Lorebook`,
+          description: charBook.description ?? '',
+          entries: charBook.entries.map((e) => this.mapCardEntryToWI(e)),
+        });
+        await this.characterService.update(created.id, { worldInfoBookId: book.id });
+      } catch (err) {
+        console.warn('Failed to auto-import character lorebook:', err);
+      }
+    }
+
+    return this.characterService.findOne(created.id) ?? created;
+  }
+
+  private mapCardEntryToWI(e: Record<string, unknown>): Record<string, unknown> {
+    const toJsonArray = (val: unknown): string => {
+      if (Array.isArray(val)) return JSON.stringify(val);
+      if (typeof val === 'string') {
+        try { const parsed = JSON.parse(val); if (Array.isArray(parsed)) return val; } catch { /* ignore */ }
+        return JSON.stringify(val.split(',').map((s: string) => s.trim()).filter(Boolean));
+      }
+      return '[]';
+    };
+
+    const positionMap: Record<number, string> = {
+      0: 'before_char', 1: 'after_char', 2: 'before_example',
+      3: 'after_example', 4: 'at_depth', 5: 'before_an', 6: 'after_an',
+    };
+
+    return {
+      keys: toJsonArray(e.keys ?? e.key),
+      secondary_keys: toJsonArray(e.secondary_keys ?? e.keysecondary),
+      content: e.content ?? '',
+      comment: e.comment ?? e.name ?? '',
+      enabled: (e.enabled === false || e.disable === true) ? 0 : 1,
+      insertion_order: e.insertion_order ?? e.order ?? 100,
+      case_sensitive: e.case_sensitive ? 1 : 0,
+      priority: e.priority ?? 10,
+      position: typeof e.position === 'number'
+        ? (positionMap[e.position] ?? 'before_char')
+        : (e.position ?? 'before_char'),
+      constant: e.constant ? 1 : 0,
+      selective: e.selective ? 1 : 0,
+      select_logic: e.select_logic ?? e.selectiveLogic ?? 0,
+      depth: e.depth ?? 4,
+      probability: e.probability ?? 100,
+      use_probability: e.use_probability ?? (e.useProbability ?? 1),
+      extensions: typeof e.extensions === 'object' ? JSON.stringify(e.extensions) : (e.extensions ?? '{}'),
+      role: e.role ?? 0,
+      sticky: e.sticky ?? 0,
+      cooldown: e.cooldown ?? 0,
+      delay: e.delay ?? 0,
+    };
   }
 
   @Post('export/:id')

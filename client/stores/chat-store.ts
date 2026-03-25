@@ -7,6 +7,7 @@ import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
 type GenerationConfig = Omit<CompletionRequest, "messages" | "stream"> & {
   userName?: string;
   maxContext?: number;
+  worldInfoBookIds?: number[];
 };
 
 interface ChatState {

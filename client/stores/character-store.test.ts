@@ -46,6 +46,7 @@ function createCharacterFixture(id: number, name: string): Character {
     specVersion: "2.0",
     extensions: {},
     characterBook: null,
+    worldInfoBookId: null,
     createdAt: "",
     updatedAt: "",
   };

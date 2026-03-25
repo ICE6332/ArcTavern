@@ -1,7 +1,7 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { LocalEmbeddingService } from './local-embedding.service';
 
-@Controller('api/embedding/local')
+@Controller('embedding/local')
 export class LocalEmbeddingController {
   constructor(private readonly localEmbedding: LocalEmbeddingService) {}
 

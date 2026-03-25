@@ -6,9 +6,12 @@ interface WorldInfoState {
   selectedBookId: number | null;
   entries: WorldInfoEntry[];
   loading: boolean;
+  activeBookIds: number[];
 
   fetchBooks: () => Promise<void>;
   selectBook: (id: number | null) => Promise<void>;
+  toggleBookActive: (id: number) => void;
+  setActiveBookIds: (ids: number[]) => void;
   createBook: (data: { name: string; description?: string }) => Promise<WorldInfoBook>;
   updateBook: (id: number, data: Partial<WorldInfoBook>) => Promise<void>;
   deleteBook: (id: number) => Promise<void>;
@@ -27,6 +30,7 @@ export const useWorldInfoStore = create<WorldInfoState>()((set, get) => ({
   selectedBookId: null,
   entries: [],
   loading: false,
+  activeBookIds: [],
 
   fetchBooks: async () => {
     set({ loading: true });
@@ -86,6 +90,18 @@ export const useWorldInfoStore = create<WorldInfoState>()((set, get) => ({
   deleteEntry: async (entryId) => {
     await worldInfoApi.deleteEntry(entryId);
     set((s) => ({ entries: s.entries.filter((e) => e.id !== entryId) }));
+  },
+
+  toggleBookActive: (id) => {
+    set((s) => ({
+      activeBookIds: s.activeBookIds.includes(id)
+        ? s.activeBookIds.filter((bid) => bid !== id)
+        : [...s.activeBookIds, id],
+    }));
+  },
+
+  setActiveBookIds: (ids) => {
+    set({ activeBookIds: ids });
   },
 
   importBook: async (data) => {

@@ -25,6 +25,7 @@ import { useTranslation } from "@/lib/i18n";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserIcon, FileImportIcon, Add01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import { executeSlashCommand } from "@/lib/slash-commands/executor";
+import { useWorldInfoStore } from "@/stores/world-info-store";
 
 const GREETINGS = [
   "欢迎回来~ 今天也要开心地聊天呀",
@@ -105,6 +106,7 @@ export function ChatPanel() {
   const loadQuickReplies = useQuickReplyStore((s) => s.loadSets);
   const loadGlobalVariables = useVariableStore((s) => s.loadGlobalVariables);
   const loadChatVariables = useVariableStore((s) => s.loadChatVariables);
+  const activeBookIds = useWorldInfoStore((s) => s.activeBookIds);
   const { toggleSidebar } = useSidebar();
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -167,8 +169,15 @@ export function ChatPanel() {
       customPrompts,
       structuredOutput: openUiEnabled,
       customApiFormat: connection.provider === "custom" ? connection.customApiFormat : undefined,
+      worldInfoBookIds: (() => {
+        const ids = [...activeBookIds];
+        const charBookId = selectedChar?.worldInfoBookId;
+        if (charBookId && !ids.includes(charBookId)) ids.unshift(charBookId);
+        return ids.length > 0 ? ids : undefined;
+      })(),
     }),
     [
+      activeBookIds,
       connection.customApiFormat,
       connection.frequencyPenalty,
       connection.maxContext,
@@ -183,6 +192,7 @@ export function ChatPanel() {
       customPrompts,
       openUiEnabled,
       promptOrder,
+      selectedChar?.worldInfoBookId,
     ],
   );
 

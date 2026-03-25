@@ -21,6 +21,7 @@ export interface CharacterRow {
   spec_version: string;
   extensions: string;
   character_book: string | null;
+  world_info_book_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,6 +94,7 @@ export class CharacterService {
       creator: 'creator', creatorNotes: 'creator_notes',
       characterVersion: 'character_version',
       tags: 'tags', extensions: 'extensions', characterBook: 'character_book',
+      worldInfoBookId: 'world_info_book_id',
     };
     const sets: string[] = [];
     const values: unknown[] = [];

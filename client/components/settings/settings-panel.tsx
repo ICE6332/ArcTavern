@@ -29,6 +29,7 @@ import {
 import { PromptManager } from "./prompt-manager";
 import { PresetSelector } from "./preset-selector";
 import { QuickReplyEditor } from "./quick-reply-editor";
+import { WorldInfoSettings } from "./world-info-settings";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguageStore, type Language } from "@/stores/language-store";
 import { useRagStore } from "@/stores/rag-store";
@@ -36,7 +37,7 @@ import { toast } from "@/lib/toast";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 
-type SettingsTab = "connection" | "prompts" | "memory";
+type SettingsTab = "connection" | "prompts" | "worldinfo" | "memory";
 
 const PROVIDERS: { value: Provider; label: string }[] = [
   { value: "openai", label: "providers.openai" },
@@ -240,6 +241,14 @@ export function SettingsPanel() {
                   {t("settings.prompts")}
                 </Button>
                 <Button
+                  variant={settingsTab === "worldinfo" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setSettingsTab("worldinfo")}
+                >
+                  {t("settings.worldInfo")}
+                </Button>
+                <Button
                   variant={settingsTab === "memory" ? "default" : "ghost"}
                   size="sm"
                   className="h-7 px-2 text-xs"
@@ -251,7 +260,9 @@ export function SettingsPanel() {
             </div>
 
             <div className="min-w-[320px] flex-1 overflow-y-auto p-4">
-              {settingsTab === "prompts" ? (
+              {settingsTab === "worldinfo" ? (
+                <WorldInfoSettings />
+              ) : settingsTab === "prompts" ? (
                 <div className="flex flex-col gap-4">
                   <PromptManager />
 

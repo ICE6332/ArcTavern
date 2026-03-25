@@ -236,6 +236,10 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
       ['extra', "TEXT DEFAULT '{}'"],
     ]);
 
+    this.ensureColumns('characters', [
+      ['world_info_book_id', 'INTEGER DEFAULT NULL'],
+    ]);
+
     this.ensureColumns('chats', [
       ['group_id', 'TEXT'],
     ]);

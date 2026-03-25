@@ -21,6 +21,7 @@ export interface Character {
   specVersion: string;
   extensions: Record<string, unknown>;
   characterBook: Record<string, unknown> | null;
+  worldInfoBookId: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +58,7 @@ function mapCharacter(rawInput: unknown): Character {
       coalesceRaw(raw, "character_book", "characterBook") ?? null,
       null,
     ),
+    worldInfoBookId: raw.world_info_book_id != null ? Number(raw.world_info_book_id) : null,
     createdAt: fromRaw(coalesceRaw(raw, "created_at", "createdAt"), ""),
     updatedAt: fromRaw(coalesceRaw(raw, "updated_at", "updatedAt"), ""),
   };
