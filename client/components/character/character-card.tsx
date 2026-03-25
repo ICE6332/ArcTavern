@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Character, Tag } from "@/lib/api";
-import { tagApi } from "@/lib/api";
+import { characterApi, type Character } from "@/lib/api/character";
+import { tagApi, type Tag } from "@/lib/api/tag";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
-import { characterApi } from "@/lib/api";
 import { TagBadge } from "@/components/tags/tag-badge";
 
 interface CharacterCardProps {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { Tag } from "@/lib/api";
+import type { Tag } from "@/lib/api/tag";
 
 interface TagBadgeProps {
   tag: Tag;

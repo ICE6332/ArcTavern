@@ -1,5 +1,5 @@
 import type { SlashCommand } from "../types";
-import { chatApi } from "@/lib/api";
+import { chatApi } from "@/lib/api/chat";
 
 export const chatCommands: SlashCommand[] = [
   {

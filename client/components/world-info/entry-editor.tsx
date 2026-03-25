@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useWorldInfoStore } from "@/stores/world-info-store";
-import type { WorldInfoEntry } from "@/lib/api";
+import type { WorldInfoEntry } from "@/lib/api/world-info";
 
 interface EntryEditorProps {
   entry: WorldInfoEntry;

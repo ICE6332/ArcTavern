@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { personaApi, type Persona } from "@/lib/api";
+import { personaApi, type Persona } from "@/lib/api/persona";
 
 interface PersonaState {
   personas: Persona[];

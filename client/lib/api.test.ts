@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { characterApi, getApiBase } from "./api";
+import { getApiBase } from "./api/core/http";
+import { characterApi } from "./api/character";
 
 describe("getApiBase", () => {
   afterEach(() => {

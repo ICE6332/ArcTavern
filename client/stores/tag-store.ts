@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { tagApi, type Tag } from "@/lib/api";
+import { tagApi, type Tag } from "@/lib/api/tag";
 
 interface TagState {
   tags: Tag[];

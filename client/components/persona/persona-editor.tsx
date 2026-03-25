@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/lib/i18n";
 import { usePersonaStore } from "@/stores/persona-store";
-import type { Persona } from "@/lib/api";
+import type { Persona } from "@/lib/api/persona";
 
 interface PersonaEditorProps {
   persona?: Persona | null;

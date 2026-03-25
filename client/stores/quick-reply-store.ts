@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { settingsApi } from "@/lib/api";
+import { settingsApi } from "@/lib/api/settings";
 
 export interface QuickReply {
   id: number;

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ragApi, type RagSettings } from "@/lib/api";
+import { ragApi, type RagSettings } from "@/lib/api/rag";
 
 interface RagState {
   settings: RagSettings | null;

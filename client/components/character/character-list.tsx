@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Character } from "@/lib/api";
+import type { Character } from "@/lib/api/character";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CharacterCard } from "./character-card";

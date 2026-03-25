@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWorldInfoStore } from "@/stores/world-info-store";
-import type { WorldInfoEntry } from "@/lib/api";
+import type { WorldInfoEntry } from "@/lib/api/world-info";
 
 interface EntryListProps {
   onEditEntry: (entry: WorldInfoEntry) => void;

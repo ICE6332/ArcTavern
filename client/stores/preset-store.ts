@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { presetApi, type Preset } from "@/lib/api";
+import { presetApi, type Preset } from "@/lib/api/preset";
 import { useConnectionStore } from "./connection-store";
 import { usePromptManagerStore } from "./prompt-manager-store";
 

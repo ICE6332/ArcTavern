@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Character } from "@/lib/api";
+import type { Character } from "@/lib/api/character";
 import { useTranslation } from "@/lib/i18n";
 import { useCharacterStore } from "@/stores/character-store";
 import { Button } from "@/components/ui/button";

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Character } from "@/lib/api";
+import type { Character } from "@/lib/api/character";
 
 const { characterApiMock } = vi.hoisted(() => ({
   characterApiMock: {
@@ -14,8 +14,8 @@ const { characterApiMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/lib/api", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
+vi.mock("@/lib/api/character", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/api/character")>("@/lib/api/character");
 
   return {
     ...actual,
