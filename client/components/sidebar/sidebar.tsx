@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useCharacterStore } from "@/stores/character-store";
 import { useChatStore } from "@/stores/chat-store";
 import { useGroupStore } from "@/stores/group-store";
+import { useConnectionStore } from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { CharacterList } from "@/components/character/character-list";
 import { CharacterImport } from "@/components/character/character-import";
@@ -41,9 +42,12 @@ export function Sidebar() {
     duplicateCharacter,
     exportCharacter,
   } = useCharacterStore();
-  const { chats, fetchChats, selectChat, createChat, deleteChat, currentChatId } = useChatStore();
+  const { chats, fetchChats, selectChat, createChat, deleteChat, generateTitle, currentChatId } =
+    useChatStore();
   const { createGroup, selectGroup } = useGroupStore();
+  const { provider, model, reverseProxy } = useConnectionStore();
   const [tab, setTab] = useState<SidebarTab>("characters");
+  const [generatingTitleFor, setGeneratingTitleFor] = useState<number | null>(null);
 
   const selectedCharacter = useMemo(
     () => characters.find((c) => c.id === selectedId) ?? null,
@@ -102,6 +106,24 @@ export function Sidebar() {
 
     const created = await createChat(selectedId);
     await selectChat(created.id);
+  };
+
+  const handleGenerateTitle = async (chatId: number) => {
+    if (!provider || !model) {
+      toast.error({ title: t("sidebar.titleGenNoProvider") ?? "Configure AI provider first" });
+      return;
+    }
+    setGeneratingTitleFor(chatId);
+    try {
+      const title = await generateTitle(chatId, { provider, model, reverseProxy: reverseProxy || undefined });
+      if (title) {
+        toast.success({ title: t("sidebar.titleGenerated") ?? "Title generated" });
+      } else {
+        toast.error({ title: t("sidebar.titleGenFailed") ?? "Failed to generate title" });
+      }
+    } finally {
+      setGeneratingTitleFor(null);
+    }
   };
 
   return (
@@ -231,14 +253,26 @@ export function Sidebar() {
                         {chat.updatedAt ? new Date(chat.updatedAt).toLocaleString() : ""}
                       </p>
                     </button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-1 text-[10px] text-muted-foreground hover:text-destructive"
-                      onClick={() => void handleDeleteChat(chat.id)}
-                    >
-                      {t("actions.delete")}
-                    </Button>
+                    <div className="flex gap-0.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1 text-[10px] text-muted-foreground hover:text-primary"
+                        disabled={generatingTitleFor === chat.id}
+                        onClick={() => void handleGenerateTitle(chat.id)}
+                        title={t("sidebar.generateTitle") ?? "Generate title"}
+                      >
+                        {generatingTitleFor === chat.id ? "..." : "AI"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1 text-[10px] text-muted-foreground hover:text-destructive"
+                        onClick={() => void handleDeleteChat(chat.id)}
+                      >
+                        {t("actions.delete")}
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}

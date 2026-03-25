@@ -25,6 +25,8 @@ interface ChatState {
   selectChat: (chatId: number | null) => Promise<void>;
   createChat: (characterId: number, name?: string) => Promise<Chat>;
   deleteChat: (chatId: number) => Promise<void>;
+  updateChatName: (chatId: number, name: string) => Promise<void>;
+  generateTitle: (chatId: number, config: { provider: string; model: string; reverseProxy?: string; customApiFormat?: string }) => Promise<string | null>;
   refreshCurrentChat: () => Promise<void>;
   generate: (type: GenerationType, config: GenerationConfig, message?: string) => Promise<void>;
   sendMessage: (content: string, config: GenerationConfig) => Promise<void>;
@@ -213,6 +215,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentChatId: get().currentChatId,
       remaining: get().chats.length,
     });
+  },
+
+  updateChatName: async (chatId, name) => {
+    const updated = await chatApi.updateChat(chatId, { name });
+    set((s) => ({
+      chats: s.chats.map((c) => (c.id === chatId ? updated : c)),
+    }));
+  },
+
+  generateTitle: async (chatId, config) => {
+    try {
+      const { title } = await chatApi.generateTitle(chatId, config);
+      set((s) => ({
+        chats: s.chats.map((c) => (c.id === chatId ? { ...c, name: title } : c)),
+      }));
+      return title;
+    } catch {
+      return null;
+    }
   },
 
   refreshCurrentChat: async () => {

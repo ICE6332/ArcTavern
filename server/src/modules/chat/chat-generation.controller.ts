@@ -404,6 +404,63 @@ export class ChatGenerationController {
     }
   }
 
+  @Post('chat/:chatId/generate-title')
+  async generateTitle(
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Body() body: Pick<CompletionRequest, 'provider' | 'model' | 'reverseProxy' | 'customApiFormat'>,
+  ) {
+    const chat = await this.chatService.findOne(chatId);
+    if (!chat) throw new NotFoundException('Chat not found');
+
+    const character = await this.characterService.findOne(chat.character_id);
+    if (!character) throw new NotFoundException('Character not found');
+
+    if (!body.provider || !body.model) {
+      throw new BadRequestException('provider and model are required');
+    }
+
+    const allMessages = await this.chatService.getMessages(chatId);
+    const recentMessages = allMessages
+      .filter((m) => !m.is_hidden && (m.role === 'user' || m.role === 'assistant'))
+      .slice(-10);
+
+    if (recentMessages.length === 0) {
+      return { title: character.name };
+    }
+
+    const excerpt = recentMessages
+      .map((m) => `${m.role === 'user' ? 'User' : character.name}: ${m.content.slice(0, 200)}`)
+      .join('\n');
+
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: `Generate a short, descriptive chat title (under 30 characters) for the following conversation with the character "${character.name}". Return ONLY the title text, no quotes, no explanation.`,
+      },
+      {
+        role: 'user',
+        content: excerpt,
+      },
+    ];
+
+    try {
+      const result = await this.aiProviderService.complete({
+        ...body,
+        messages,
+        maxTokens: 60,
+        temperature: 0.7,
+        stream: false,
+      });
+      const title = result.content.trim().replace(/^["']|["']$/g, '').slice(0, 100);
+      await this.chatService.updateName(chatId, title);
+      return { title };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Title generation failed';
+      this.logger.error(`[generateTitle] Error: ${message}`);
+      throw new BadRequestException(message);
+    }
+  }
+
   @Post('chat/:chatId/stop')
   stop(@Param('chatId', ParseIntPipe) chatId: number) {
     this.chatDebug('stop.request', { chatId });

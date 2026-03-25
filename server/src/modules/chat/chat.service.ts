@@ -47,6 +47,16 @@ export class ChatService {
     return (await this.findOne(lastId))!;
   }
 
+  async updateName(id: number, name: string): Promise<ChatRow | null> {
+    const chat = await this.findOne(id);
+    if (!chat) return null;
+    this.db.run(
+      "UPDATE chats SET name = ?, updated_at = datetime('now') WHERE id = ?",
+      [name, id],
+    );
+    return this.findOne(id);
+  }
+
   async remove(id: number): Promise<ChatRow | null> {
     const chat = await this.findOne(id);
     if (chat) this.db.run('DELETE FROM chats WHERE id = ?', [id]);

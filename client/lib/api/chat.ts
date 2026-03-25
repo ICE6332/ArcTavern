@@ -111,6 +111,22 @@ export const chatApi = {
     const item = await request<unknown>(`/chats/${id}`, { method: "DELETE" });
     return mapChat(item);
   },
+  async updateChat(id: number, data: { name?: string }) {
+    const item = await request<unknown>(`/chats/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return mapChat(item);
+  },
+  async generateTitle(
+    chatId: number,
+    config: { provider: string; model: string; reverseProxy?: string; customApiFormat?: string },
+  ) {
+    return request<{ title: string }>(`/chat/${chatId}/generate-title`, {
+      method: "POST",
+      body: JSON.stringify(config),
+    });
+  },
   async getMessages(chatId: number) {
     const items = await request<unknown[]>(`/chats/${chatId}/messages`);
     return items.map(mapMessage);
