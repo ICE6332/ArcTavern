@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useCallback, useState } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
@@ -8,12 +8,9 @@ import { useConnectionStore } from "@/stores/connection-store";
 import { usePromptManagerStore } from "@/stores/prompt-manager-store";
 import { useQuickReplyStore } from "@/stores/quick-reply-store";
 import { useVariableStore } from "@/stores/variable-store";
+import { useWorldInfoStore } from "@/stores/world-info-store";
 import { chatDebug } from "@/lib/chat-debug";
-import { getOpenUiSystemPrompt } from "@/lib/openui";
-import type { ActionEvent } from "@openuidev/react-lang";
-import { toast } from "@/lib/toast";
 import { useSidebar } from "@/components/ui/sidebar";
-import { consumeSlashCommandResult } from "@/lib/slash-commands/consume-result";
 import { ChatInput } from "./chat-input";
 import { ChatMessageRow } from "./chat-message-row";
 import { MessageBubble } from "./message-bubble";
@@ -24,8 +21,8 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { useTranslation } from "@/lib/i18n";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserIcon, FileImportIcon, Add01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
-import { executeSlashCommand } from "@/lib/slash-commands/executor";
-import { useWorldInfoStore } from "@/stores/world-info-store";
+import { useGenerationConfig } from "@/hooks/use-generation-config";
+import { useChatActions } from "@/hooks/use-chat-actions";
 
 const GREETINGS = [
   "欢迎回来~ 今天也要开心地聊天呀",
@@ -122,79 +119,41 @@ export function ChatPanel() {
     return null;
   }, [messages]);
   const hasAssistantMessage = latestAssistantMessageId !== null;
-
   const openUiEnabled = connection.openUiEnabled;
 
-  const promptOrder = useMemo(() => {
-    const order = [...promptComponents]
-      .sort((a, b) => a.position - b.position)
-      .map((c) => ({ identifier: c.id, enabled: c.enabled }));
-    if (openUiEnabled) {
-      order.push({ identifier: "openui_instructions", enabled: true });
-    }
-    return order;
-  }, [promptComponents, openUiEnabled]);
+  const { generationConfig } = useGenerationConfig({
+    connection,
+    promptComponents,
+    activeBookIds,
+    selectedChar,
+  });
 
-  const customPrompts = useMemo(() => {
-    const prompts = promptComponents
-      .filter((c) => c.enabled && c.content !== undefined && c.content.trim() !== "")
-      .map((c) => ({
-        identifier: c.id,
-        role: c.role,
-        content: c.content!,
-      }));
-    if (openUiEnabled) {
-      prompts.push({
-        identifier: "openui_instructions",
-        role: "system",
-        content: getOpenUiSystemPrompt(),
-      });
-    }
-    return prompts;
-  }, [promptComponents, openUiEnabled]);
-
-  const generationConfig = useMemo(
-    () => ({
-      provider: connection.provider,
-      model: connection.model,
-      temperature: connection.temperature,
-      maxTokens: connection.maxTokens,
-      topP: connection.topP,
-      topK: connection.topK,
-      frequencyPenalty: connection.frequencyPenalty,
-      presencePenalty: connection.presencePenalty,
-      reverseProxy: connection.reverseProxy || undefined,
-      maxContext: connection.maxContext,
-      promptOrder,
-      customPrompts,
-      structuredOutput: openUiEnabled,
-      customApiFormat: connection.provider === "custom" ? connection.customApiFormat : undefined,
-      worldInfoBookIds: (() => {
-        const ids = [...activeBookIds];
-        const charBookId = selectedChar?.worldInfoBookId;
-        if (charBookId && !ids.includes(charBookId)) ids.unshift(charBookId);
-        return ids.length > 0 ? ids : undefined;
-      })(),
-    }),
-    [
-      activeBookIds,
-      connection.customApiFormat,
-      connection.frequencyPenalty,
-      connection.maxContext,
-      connection.maxTokens,
-      connection.model,
-      connection.presencePenalty,
-      connection.provider,
-      connection.reverseProxy,
-      connection.temperature,
-      connection.topK,
-      connection.topP,
-      customPrompts,
-      openUiEnabled,
-      promptOrder,
-      selectedChar?.worldInfoBookId,
-    ],
-  );
+  const {
+    handleOpenUiAction,
+    handleSend,
+    handleSwipe,
+    handleDeleteMessage,
+    handleStructuredAction,
+    handleGenerateSwipe,
+    runSlashCommand,
+  } = useChatActions({
+    currentChatId,
+    selectedId,
+    generationConfig,
+    sendMessage,
+    continueMessage,
+    impersonate,
+    stopGeneration,
+    swipe,
+    deleteMessage,
+    generateSwipe,
+    refreshCurrentChat,
+    selectChat,
+    createChat,
+    deleteChat,
+    toggleSidebar,
+    t,
+  });
 
   useEffect(() => {
     if (!scrollRef.current || !shouldAutoScrollRef.current) return;
@@ -246,127 +205,6 @@ export function ChatPanel() {
     shouldAutoScrollRef.current = distanceFromBottom < 80;
   };
 
-  const displayCommandOutput = useCallback((text: string, kind: "info" | "error" = "info") => {
-    const content = text.trim();
-    if (!content) return;
-
-    const [title, ...rest] = content.split("\n");
-    const description = rest.join("\n").trim() || undefined;
-
-    if (kind === "error") {
-      toast.error({ title, description });
-      return;
-    }
-
-    toast.success({ title, description });
-  }, []);
-
-  const handleOpenUiAction = useCallback(
-    (event: ActionEvent) => {
-      if (event.type === "continue_conversation") {
-        void sendMessage(event.humanFriendlyMessage, generationConfig);
-      } else if (event.type === "open_url") {
-        const url = event.params.url as unknown;
-        if (typeof url === "string") {
-          window.open(url, "_blank", "noopener");
-        }
-      }
-    },
-    [sendMessage, generationConfig],
-  );
-
-  const handleSend = useCallback(
-    async (content: string) => {
-      if (!currentChatId || !content.trim()) return;
-      chatDebug("panel.send", {
-        currentChatId,
-        contentLength: content.trim().length,
-      });
-      await sendMessage(content, generationConfig);
-    },
-    [currentChatId, generationConfig, sendMessage],
-  );
-
-  const handleSwipe = useCallback(
-    (messageId: number, direction: "left" | "right") => {
-      void swipe(messageId, direction);
-    },
-    [swipe],
-  );
-
-  const handleDeleteMessage = useCallback(
-    (messageId: number) => {
-      void deleteMessage(messageId);
-    },
-    [deleteMessage],
-  );
-
-  const handleStructuredAction = useCallback(
-    (label: string) => {
-      void handleSend(label);
-    },
-    [handleSend],
-  );
-
-  const handleGenerateSwipe = useCallback(() => {
-    void generateSwipe(generationConfig);
-  }, [generateSwipe, generationConfig]);
-
-  const handleDeleteCurrentChat = useCallback(async () => {
-    if (!currentChatId) return;
-
-    await deleteChat(currentChatId);
-
-    const nextChats = useChatStore.getState().chats;
-    if (nextChats.length > 0) {
-      await selectChat(nextChats[0].id);
-      return;
-    }
-
-    if (!selectedId) {
-      await selectChat(null);
-      return;
-    }
-
-    const created = await createChat(selectedId);
-    await selectChat(created.id);
-  }, [createChat, currentChatId, deleteChat, selectChat, selectedId]);
-
-  const runSlashCommand = useCallback(
-    async (command: string) => {
-      if (!currentChatId) {
-        displayCommandOutput(t("chat.openChatBeforeSlash"), "error");
-        return;
-      }
-
-      const result = await executeSlashCommand(command, currentChatId);
-      await consumeSlashCommandResult(result, {
-        onDisplay: displayCommandOutput,
-        onSendMessage: handleSend,
-        onImpersonate: () => impersonate(generationConfig),
-        onContinue: () => continueMessage(generationConfig),
-        onStop: stopGeneration,
-        onDeleteCurrentChat: handleDeleteCurrentChat,
-        onCloseChat: () => selectChat(null),
-        onTogglePanels: toggleSidebar,
-        onRefreshChat: refreshCurrentChat,
-      });
-    },
-    [
-      continueMessage,
-      currentChatId,
-      displayCommandOutput,
-      generationConfig,
-      handleDeleteCurrentChat,
-      handleSend,
-      impersonate,
-      refreshCurrentChat,
-      selectChat,
-      stopGeneration,
-      toggleSidebar,
-    ],
-  );
-
   if (!selectedId || !currentChatId) {
     return <WelcomeScreen />;
   }
@@ -402,9 +240,7 @@ export function ChatPanel() {
                 onOpenUiAction={handleOpenUiAction}
                 onStructuredAction={handleStructuredAction}
                 onStructuredCommandAction={runSlashCommand}
-                onRegenerate={
-                  isLastAssistant && !isGenerating ? handleGenerateSwipe : undefined
-                }
+                onRegenerate={isLastAssistant && !isGenerating ? handleGenerateSwipe : undefined}
               />
             );
           })}

@@ -3,6 +3,7 @@ import { chatApi, type Chat, type Message } from "@/lib/api/chat";
 import type { CompletionRequest, GenerationType } from "@/lib/api/types";
 import { chatDebug, chatError } from "@/lib/chat-debug";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
+import { getErrorMessage } from "@/lib/utils";
 
 type GenerationConfig = Omit<CompletionRequest, "messages" | "stream"> & {
   userName?: string;
@@ -26,7 +27,10 @@ interface ChatState {
   createChat: (characterId: number, name?: string) => Promise<Chat>;
   deleteChat: (chatId: number) => Promise<void>;
   updateChatName: (chatId: number, name: string) => Promise<void>;
-  generateTitle: (chatId: number, config: { provider: string; model: string; reverseProxy?: string; customApiFormat?: string }) => Promise<string | null>;
+  generateTitle: (
+    chatId: number,
+    config: { provider: string; model: string; reverseProxy?: string; customApiFormat?: string },
+  ) => Promise<string | null>;
   refreshCurrentChat: () => Promise<void>;
   generate: (type: GenerationType, config: GenerationConfig, message?: string) => Promise<void>;
   sendMessage: (content: string, config: GenerationConfig) => Promise<void>;
@@ -55,9 +59,6 @@ let abortController: AbortController | null = null;
 let scheduledFlushHandle: number | ReturnType<typeof setTimeout> | null = null;
 let scheduledFlushMode: "raf" | "timeout" | null = null;
 const streamingBuffer: StreamingSnapshot = emptyStreamingSnapshot();
-
-const getErrorMessage = (error: unknown, fallback: string): string =>
-  error instanceof Error ? error.message : fallback;
 
 function clearStreamingBuffer() {
   streamingBuffer.streamingContent = "";
@@ -99,12 +100,6 @@ function scheduleStreamingFlush(set: (partial: Partial<ChatState>) => void) {
 
   scheduledFlushMode = "timeout";
   scheduledFlushHandle = setTimeout(() => flushStreamingState(set), 16);
-}
-
-function resetStreamingState(set: (partial: Partial<ChatState>) => void) {
-  cancelScheduledStreamingFlush();
-  clearStreamingBuffer();
-  set(emptyStreamingSnapshot());
 }
 
 function applyStreamingState(
