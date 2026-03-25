@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useGroupStore } from "@/stores/group-store";
 import { useConnectionStore } from "@/stores/connection-store";
 import { groupApi } from "@/lib/api/group";
+import { useTranslation } from "@/lib/i18n";
 import { MemberSelector } from "./member-selector";
 
 interface GroupChatPanelProps {
@@ -15,6 +16,7 @@ interface GroupChatPanelProps {
 }
 
 export function GroupChatPanel({ groupId, chatId, onNewMessage }: GroupChatPanelProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
@@ -76,14 +78,16 @@ export function GroupChatPanel({ groupId, chatId, onNewMessage }: GroupChatPanel
       {isManualMode && <MemberSelector groupId={groupId} onSelect={(id) => setManualCharId(id)} />}
 
       {isGenerating && currentSpeaker && (
-        <div className="text-xs text-muted-foreground">{currentSpeaker} is typing...</div>
+        <div className="text-xs text-muted-foreground">
+          {currentSpeaker} {t("group.typing")}
+        </div>
       )}
 
       <div className="flex gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
+          placeholder={t("group.typeMessage")}
           className="h-9 text-sm"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
@@ -95,7 +99,7 @@ export function GroupChatPanel({ groupId, chatId, onNewMessage }: GroupChatPanel
         />
         {isGenerating ? (
           <Button size="sm" variant="destructive" onClick={handleStop}>
-            Stop
+            {t("actions.stop")}
           </Button>
         ) : (
           <Button
@@ -104,7 +108,7 @@ export function GroupChatPanel({ groupId, chatId, onNewMessage }: GroupChatPanel
               void handleGenerate();
             }}
           >
-            Send
+            {t("actions.send")}
           </Button>
         )}
       </div>

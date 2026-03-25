@@ -335,7 +335,7 @@ export function ChatPanel() {
   const runSlashCommand = useCallback(
     async (command: string) => {
       if (!currentChatId) {
-        displayCommandOutput("Open a chat before running slash commands.", "error");
+        displayCommandOutput(t("chat.openChatBeforeSlash"), "error");
         return;
       }
 

@@ -14,6 +14,7 @@ import {
 import { useGroupStore } from "@/stores/group-store";
 import { useCharacterStore } from "@/stores/character-store";
 import type { Group } from "@/lib/api/group";
+import { useTranslation } from "@/lib/i18n";
 
 interface GroupEditorProps {
   group?: Group | null;
@@ -21,6 +22,7 @@ interface GroupEditorProps {
 }
 
 export function GroupEditor({ group, onClose }: GroupEditorProps) {
+  const { t } = useTranslation();
   const { createGroup, updateGroup, members, addMember, removeMember } = useGroupStore();
   const { characters } = useCharacterStore();
 
@@ -43,27 +45,31 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
   return (
     <div className="space-y-3 p-3">
       <div className="space-y-1">
-        <Label>Group Name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" />
+        <Label>{t("group.groupName")}</Label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t("group.groupNamePlaceholder")}
+        />
       </div>
       <div className="space-y-1">
-        <Label>Turn Strategy</Label>
+        <Label>{t("group.turnStrategy")}</Label>
         <Select value={strategy} onValueChange={(value) => setStrategy(value ?? "0")}>
           <SelectTrigger className="h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">Natural</SelectItem>
-            <SelectItem value="1">List (Round-robin)</SelectItem>
-            <SelectItem value="2">Manual</SelectItem>
-            <SelectItem value="3">Random Pool</SelectItem>
+            <SelectItem value="0">{t("group.natural")}</SelectItem>
+            <SelectItem value="1">{t("group.listRoundRobin")}</SelectItem>
+            <SelectItem value="2">{t("group.manual")}</SelectItem>
+            <SelectItem value="3">{t("group.randomPool")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {group && (
         <div className="space-y-2">
-          <Label>Members</Label>
+          <Label>{t("group.members")}</Label>
           <div className="space-y-1">
             {members.map((m) => {
               const char = characters.find((c) => c.id === m.characterId);
@@ -92,7 +98,7 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
               }}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Add member..." />
+                <SelectValue placeholder={t("group.addMember")} />
               </SelectTrigger>
               <SelectContent>
                 {availableChars.map((c) => (
@@ -113,10 +119,10 @@ export function GroupEditor({ group, onClose }: GroupEditorProps) {
             void handleSave();
           }}
         >
-          {group ? "Update" : "Create"}
+          {group ? t("actions.update") : t("actions.create")}
         </Button>
         <Button size="sm" variant="outline" onClick={onClose}>
-          Cancel
+          {t("actions.cancel")}
         </Button>
       </div>
     </div>

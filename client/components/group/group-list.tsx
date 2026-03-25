@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { useGroupStore } from "@/stores/group-store";
 
 interface GroupListProps {
@@ -10,18 +11,19 @@ interface GroupListProps {
 }
 
 export function GroupList({ onSelectGroup, onCreateGroup }: GroupListProps) {
+  const { t } = useTranslation();
   const { groups, selectedGroupId, fetchGroups, deleteGroup } = useGroupStore();
 
   useEffect(() => {
-    fetchGroups();
+    void fetchGroups();
   }, [fetchGroups]);
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Groups</h3>
+        <h3 className="text-sm font-medium">{t("group.title")}</h3>
         <Button size="sm" variant="outline" onClick={onCreateGroup}>
-          + New
+          {t("actions.new")}
         </Button>
       </div>
       <div className="space-y-1">
@@ -45,7 +47,9 @@ export function GroupList({ onSelectGroup, onCreateGroup }: GroupListProps) {
             </button>
           </div>
         ))}
-        {groups.length === 0 && <p className="text-xs text-muted-foreground">No groups yet</p>}
+        {groups.length === 0 && (
+          <p className="text-xs text-muted-foreground">{t("group.noGroups")}</p>
+        )}
       </div>
     </div>
   );

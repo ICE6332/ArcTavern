@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export interface LoaderProps {
@@ -28,6 +29,7 @@ export function CircularLoader({
   className?: string;
   size?: "sm" | "md" | "lg";
 }) {
+  const { t } = useTranslation();
   const sizeClasses = {
     sm: "size-4",
     md: "size-5",
@@ -37,7 +39,7 @@ export function CircularLoader({
   return (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label={t("ui.loading")}
       className={cn("inline-flex items-center justify-center", className)}
     >
       <svg
@@ -60,7 +62,7 @@ export function CircularLoader({
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         />
       </svg>
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{t("ui.loading")}</span>
     </div>
   );
 }
@@ -72,6 +74,7 @@ export function DotsLoader({
   className?: string;
   size?: "sm" | "md" | "lg";
 }) {
+  const { t } = useTranslation();
   const dotSizes = {
     sm: "h-1.5 w-1.5",
     md: "h-2 w-2",
@@ -87,7 +90,7 @@ export function DotsLoader({
   return (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label={t("ui.loading")}
       className={cn(
         "inline-flex items-center justify-center gap-1",
         containerSizes[size],
@@ -104,7 +107,7 @@ export function DotsLoader({
           style={{ animationDelay: `${i * 0.16}s` }}
         />
       ))}
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{t("ui.loading")}</span>
     </div>
   );
 }
@@ -116,6 +119,7 @@ export function TypingLoader({
   className?: string;
   size?: "sm" | "md" | "lg";
 }) {
+  const { t } = useTranslation();
   const dotSizes = {
     sm: "h-1 w-1",
     md: "h-1.5 w-1.5",
@@ -131,7 +135,7 @@ export function TypingLoader({
   return (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label={t("ui.loading")}
       className={cn(
         "inline-flex items-center justify-center gap-1",
         containerSizes[size],
@@ -148,13 +152,13 @@ export function TypingLoader({
           style={{ animationDelay: `${i * 0.2}s` }}
         />
       ))}
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{t("ui.loading")}</span>
     </div>
   );
 }
 
 export function TextShimmerLoader({
-  text = "Thinking",
+  text,
   className,
   size = "md",
 }: {
@@ -162,21 +166,23 @@ export function TextShimmerLoader({
   className?: string;
   size?: "sm" | "md" | "lg";
 }) {
+  const { t } = useTranslation();
   const textSizes = {
     sm: "text-xs",
     md: "text-sm",
     lg: "text-base",
   };
+  const label = text ?? t("ui.thinking");
 
   return (
-    <div role="status" aria-label={text} className={cn("inline-flex items-center", className)}>
+    <div role="status" aria-label={label} className={cn("inline-flex items-center", className)}>
       <span
         className={cn(
           "animate-[shimmer-text_3s_ease-in-out_infinite] bg-[linear-gradient(90deg,var(--muted-foreground)_0%,var(--foreground)_50%,var(--muted-foreground)_100%)] bg-[length:250%_100%] bg-clip-text text-transparent",
           textSizes[size],
         )}
       >
-        {text}
+        {label}
       </span>
     </div>
   );
@@ -184,22 +190,24 @@ export function TextShimmerLoader({
 
 export function TextDotsLoader({
   className,
-  text = "Thinking",
+  text,
   size = "md",
 }: {
   className?: string;
   text?: string;
   size?: "sm" | "md" | "lg";
 }) {
+  const { t } = useTranslation();
   const textSizes = {
     sm: "text-xs",
     md: "text-sm",
     lg: "text-base",
   };
+  const label = text ?? t("ui.thinking");
 
   return (
-    <div role="status" aria-label={text} className={cn("inline-flex items-baseline", className)}>
-      <span className={cn("text-current", textSizes[size])}>{text}</span>
+    <div role="status" aria-label={label} className={cn("inline-flex items-baseline", className)}>
+      <span className={cn("text-current", textSizes[size])}>{label}</span>
       <span className="ml-0.5 inline-flex">
         <span
           className="animate-[loading-dots_1.4s_ease-in-out_infinite] text-current"

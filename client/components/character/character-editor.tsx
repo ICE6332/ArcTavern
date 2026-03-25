@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Character } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useCharacterStore } from "@/stores/character-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ interface CharacterEditorProps {
 }
 
 export function CharacterEditor({ character }: CharacterEditorProps) {
+  const { t } = useTranslation();
   const updateCharacter = useCharacterStore((s) => s.updateCharacter);
   const updateAvatar = useCharacterStore((s) => s.updateAvatar);
   const [tab, setTab] = useState<Tab>("basic");
@@ -38,7 +40,7 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
   );
 
   if (!character) {
-    return <div className="text-xs text-muted-foreground">Select a character to edit</div>;
+    return <div className="text-xs text-muted-foreground">{t("character.selectToEdit")}</div>;
   }
 
   const patch = (value: Partial<Character>) => setForm((prev) => ({ ...prev, ...value }));
@@ -83,7 +85,7 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           className="h-7 px-2 text-xs"
           onClick={() => setTab("basic")}
         >
-          Basic
+          {t("character.tabBasic")}
         </Button>
         <Button
           variant={tab === "advanced" ? "default" : "ghost"}
@@ -91,7 +93,7 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           className="h-7 px-2 text-xs"
           onClick={() => setTab("advanced")}
         >
-          Advanced
+          {t("character.tabAdvanced")}
         </Button>
         <Button
           variant={tab === "book" ? "default" : "ghost"}
@@ -99,7 +101,7 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           className="h-7 px-2 text-xs"
           onClick={() => setTab("book")}
         >
-          Book
+          {t("character.tabBook")}
         </Button>
       </div>
 
@@ -108,41 +110,41 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           <Input
             value={form.name ?? ""}
             onChange={(e) => patch({ name: e.target.value })}
-            placeholder="Name"
+            placeholder={t("character.name")}
             className="h-8 text-xs"
           />
           <Textarea
             value={form.description ?? ""}
             onChange={(e) => patch({ description: e.target.value })}
-            placeholder="Description"
+            placeholder={t("character.description")}
             className="min-h-[56px] text-xs"
           />
           <Textarea
             value={form.personality ?? ""}
             onChange={(e) => patch({ personality: e.target.value })}
-            placeholder="Personality"
+            placeholder={t("character.personality")}
             className="min-h-[56px] text-xs"
           />
           <Textarea
             value={form.scenario ?? ""}
             onChange={(e) => patch({ scenario: e.target.value })}
-            placeholder="Scenario"
+            placeholder={t("character.scenario")}
             className="min-h-[56px] text-xs"
           />
           <Textarea
             value={form.firstMes ?? ""}
             onChange={(e) => patch({ firstMes: e.target.value })}
-            placeholder="First message"
+            placeholder={t("character.firstMessage")}
             className="min-h-[56px] text-xs"
           />
           <Textarea
             value={form.mesExample ?? ""}
             onChange={(e) => patch({ mesExample: e.target.value })}
-            placeholder="Message examples"
+            placeholder={t("character.messageExamples")}
             className="min-h-[56px] text-xs"
           />
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            Avatar
+            {t("character.avatar")}
             <input
               type="file"
               accept="image/*"
@@ -160,43 +162,43 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           <Textarea
             value={form.systemPrompt ?? ""}
             onChange={(e) => patch({ systemPrompt: e.target.value })}
-            placeholder="System prompt"
+            placeholder={t("character.systemPrompt")}
             className="min-h-[56px] text-xs"
           />
           <Textarea
             value={form.postHistoryInstructions ?? ""}
             onChange={(e) => patch({ postHistoryInstructions: e.target.value })}
-            placeholder="Post history instructions"
+            placeholder={t("character.postHistoryInstructions")}
             className="min-h-[56px] text-xs"
           />
           <Textarea
             value={greetingsText}
             onChange={(e) => patch({ alternateGreetings: e.target.value.split("\n") })}
-            placeholder="Alternate greetings (one per line)"
+            placeholder={t("character.alternateGreetings")}
             className="min-h-[56px] text-xs"
           />
           <Input
             value={form.creator ?? ""}
             onChange={(e) => patch({ creator: e.target.value })}
-            placeholder="Creator"
+            placeholder={t("character.creator")}
             className="h-8 text-xs"
           />
           <Input
             value={form.creatorNotes ?? ""}
             onChange={(e) => patch({ creatorNotes: e.target.value })}
-            placeholder="Creator notes"
+            placeholder={t("character.creatorNotes")}
             className="h-8 text-xs"
           />
           <Input
             value={form.characterVersion ?? ""}
             onChange={(e) => patch({ characterVersion: e.target.value })}
-            placeholder="Character version"
+            placeholder={t("character.characterVersion")}
             className="h-8 text-xs"
           />
           <Input
             value={tagsText}
             onChange={(e) => patch({ tags: e.target.value.split(",") })}
-            placeholder="Tags (comma separated)"
+            placeholder={t("character.tags")}
             className="h-8 text-xs"
           />
         </div>
@@ -206,7 +208,7 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
         <Textarea
           value={bookJson}
           onChange={(e) => setBookJson(e.target.value)}
-          placeholder="Character book JSON"
+          placeholder={t("character.characterBook")}
           className="min-h-[180px] font-mono text-xs"
         />
       )}
@@ -220,7 +222,7 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
           }}
           disabled={saving}
         >
-          {saving ? "Saving..." : "Save"}
+          {saving ? t("messages.saving") : t("actions.save")}
         </Button>
       </div>
     </div>

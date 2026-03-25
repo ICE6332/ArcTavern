@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { useWorldInfoStore } from "@/stores/world-info-store";
 
 interface WorldInfoListProps {
@@ -10,6 +11,7 @@ interface WorldInfoListProps {
 }
 
 export function WorldInfoList({ onSelectBook, onCreateBook }: WorldInfoListProps) {
+  const { t } = useTranslation();
   const { books, selectedBookId, fetchBooks, deleteBook } = useWorldInfoStore();
 
   useEffect(() => {
@@ -19,9 +21,9 @@ export function WorldInfoList({ onSelectBook, onCreateBook }: WorldInfoListProps
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Lorebooks</h3>
+        <h3 className="text-sm font-medium">{t("worldInfo.title")}</h3>
         <Button size="sm" variant="outline" onClick={onCreateBook}>
-          + New
+          {t("actions.new")}
         </Button>
       </div>
       <div className="space-y-1">
@@ -45,7 +47,9 @@ export function WorldInfoList({ onSelectBook, onCreateBook }: WorldInfoListProps
             </button>
           </div>
         ))}
-        {books.length === 0 && <p className="text-xs text-muted-foreground">No lorebooks yet</p>}
+        {books.length === 0 && (
+          <p className="text-xs text-muted-foreground">{t("worldInfo.noBooks")}</p>
+        )}
       </div>
     </div>
   );

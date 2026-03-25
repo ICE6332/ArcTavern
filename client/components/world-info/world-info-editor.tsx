@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/lib/i18n";
 import { useWorldInfoStore } from "@/stores/world-info-store";
 
 interface WorldInfoEditorProps {
@@ -12,6 +13,7 @@ interface WorldInfoEditorProps {
 }
 
 export function WorldInfoEditor({ onClose }: WorldInfoEditorProps) {
+  const { t } = useTranslation();
   const { books, selectedBookId, createBook, updateBook } = useWorldInfoStore();
   const book = selectedBookId ? books.find((b) => b.id === selectedBookId) : null;
 
@@ -33,11 +35,15 @@ export function WorldInfoEditor({ onClose }: WorldInfoEditorProps) {
   return (
     <div className="space-y-3 p-3">
       <div className="space-y-1">
-        <Label>Book Name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Lorebook name" />
+        <Label>{t("worldInfo.bookName")}</Label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t("worldInfo.bookNamePlaceholder")}
+        />
       </div>
       <div className="space-y-1">
-        <Label>Description</Label>
+        <Label>{t("character.description")}</Label>
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
       </div>
       <div className="flex gap-2">
@@ -47,10 +53,10 @@ export function WorldInfoEditor({ onClose }: WorldInfoEditorProps) {
             void handleSave();
           }}
         >
-          {book ? "Update" : "Create"}
+          {book ? t("actions.update") : t("actions.create")}
         </Button>
         <Button size="sm" variant="outline" onClick={onClose}>
-          Cancel
+          {t("actions.cancel")}
         </Button>
       </div>
     </div>

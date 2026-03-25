@@ -96,7 +96,7 @@ export function SettingsPanel() {
       toast.success({ title: t("settings.apiKeySaved") });
     } catch (err) {
       toast.error({
-        title: "Failed to save API key",
+        title: t("settings.failedToSaveApiKey"),
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -107,11 +107,11 @@ export function SettingsPanel() {
   const handleTestConnection = async () => {
     if (conn.provider === "custom") {
       if (!conn.reverseProxy.trim()) {
-        toast.error({ title: "Please enter custom API endpoint first" });
+        toast.error({ title: t("settings.pleaseEnterEndpointFirst") });
         return;
       }
       if (!customReadyForTest) {
-        toast.error({ title: "Please detect connection and models first" });
+        toast.error({ title: t("settings.pleaseDetectConnectionFirst") });
         return;
       }
     }
@@ -144,11 +144,11 @@ export function SettingsPanel() {
     const keyInput = apiKey.trim();
 
     if (!baseUrl) {
-      toast.error({ title: "Please enter API endpoint" });
+      toast.error({ title: t("settings.pleaseEnterEndpoint") });
       return;
     }
     if (!keyInput && !conn.apiKeyConfigured.custom) {
-      toast.error({ title: "Please enter API key and save it first" });
+      toast.error({ title: t("settings.pleaseEnterApiKeySaveFirst") });
       return;
     }
 
@@ -172,24 +172,24 @@ export function SettingsPanel() {
             conn.setModel(modelIds[0]);
           }
           toast.success({
-            title: "Connection detected",
+            title: t("settings.connectionDetected"),
             description: `${result.message} · ${modelIds.length} models`,
           });
         } else {
           conn.setModel("");
           toast.success({
-            title: "Connection detected",
+            title: t("settings.connectionDetected"),
             description: `${result.message} · no models returned`,
           });
         }
       } else {
         conn.setCustomModels([]);
-        toast.error({ title: "Detection failed", description: result.message });
+        toast.error({ title: t("settings.detectionFailed"), description: result.message });
       }
     } catch (error: unknown) {
       conn.setCustomModels([]);
       toast.error({
-        title: "Detection failed",
+        title: t("settings.detectionFailed"),
         description: getErrorMessage(error, "Connection failed"),
       });
     } finally {
@@ -268,12 +268,16 @@ export function SettingsPanel() {
 
                   <Separator />
 
-                  <p className="text-xs font-medium text-muted-foreground">System Prompt Preset</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {t("settings.systemPromptPreset")}
+                  </p>
                   <PresetSelector apiType="sysprompt" />
 
                   <Separator />
 
-                  <p className="text-xs font-medium text-muted-foreground">Context Template</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {t("settings.contextTemplate")}
+                  </p>
                   <PresetSelector apiType="context" />
 
                   <Separator />
@@ -307,9 +311,9 @@ export function SettingsPanel() {
                     <Label className="text-xs">{t("settings.model")}</Label>
                     {conn.provider === "custom" && conn.customModels.length > 0 ? (
                       <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
-                        <ComboboxInput placeholder="Search models..." />
+                        <ComboboxInput placeholder={t("settings.searchModels")} />
                         <ComboboxContent>
-                          <ComboboxEmpty>No models found.</ComboboxEmpty>
+                          <ComboboxEmpty>{t("settings.noModelsFound")}</ComboboxEmpty>
                           <ComboboxList>
                             {conn.customModels.map((m) => (
                               <ComboboxItem key={m} value={m}>
@@ -321,9 +325,9 @@ export function SettingsPanel() {
                       </Combobox>
                     ) : models.length > 0 ? (
                       <Combobox value={conn.model} onValueChange={(v) => conn.setModel(v ?? "")}>
-                        <ComboboxInput placeholder="Search models..." />
+                        <ComboboxInput placeholder={t("settings.searchModels")} />
                         <ComboboxContent>
-                          <ComboboxEmpty>No models found.</ComboboxEmpty>
+                          <ComboboxEmpty>{t("settings.noModelsFound")}</ComboboxEmpty>
                           <ComboboxList>
                             {models.map((m) => (
                               <ComboboxItem key={m} value={m}>
@@ -339,7 +343,7 @@ export function SettingsPanel() {
                         onChange={(e) => conn.setModel(e.target.value)}
                         placeholder={
                           conn.provider === "custom"
-                            ? "Detect connection to load model list"
+                            ? t("settings.detectConnectionModels")
                             : t("settings.modelName")
                         }
                         className="h-9"
@@ -347,7 +351,7 @@ export function SettingsPanel() {
                     )}
                     {conn.provider === "custom" && conn.customModels.length === 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Step 1: Detect connection & models. Step 2: Test connection.
+                        {t("settings.customDetectHint")}
                       </p>
                     )}
                   </div>
@@ -393,7 +397,7 @@ export function SettingsPanel() {
                   {conn.provider === "custom" && (
                     <>
                       <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">API Format</Label>
+                        <Label className="text-xs">{t("settings.apiFormat")}</Label>
                         <select
                           value={conn.customApiFormat}
                           onChange={(e) =>
@@ -407,10 +411,14 @@ export function SettingsPanel() {
                           }
                           className="h-9 rounded-md border border-border bg-background px-3 text-sm"
                         >
-                          <option value="openai-compatible">OpenAI Compatible</option>
-                          <option value="google">Google Gemini (Native)</option>
-                          <option value="openai">OpenAI (Native)</option>
-                          <option value="anthropic">Anthropic (Native)</option>
+                          <option value="openai-compatible">
+                            {t("settings.apiFormatOpenAiCompatible")}
+                          </option>
+                          <option value="google">{t("settings.apiFormatGoogleNative")}</option>
+                          <option value="openai">{t("settings.apiFormatOpenAiNative")}</option>
+                          <option value="anthropic">
+                            {t("settings.apiFormatAnthropicNative")}
+                          </option>
                         </select>
                       </div>
                       <Button
@@ -422,7 +430,9 @@ export function SettingsPanel() {
                         }}
                         disabled={detecting || !canDetectCustom}
                       >
-                        {detecting ? "Detecting..." : "Detect Connection & Models"}
+                        {detecting
+                          ? t("settings.detecting")
+                          : t("settings.detectConnectionModels")}
                       </Button>
                     </>
                   )}
@@ -441,7 +451,9 @@ export function SettingsPanel() {
 
                   <Separator />
 
-                  <p className="text-xs font-medium text-muted-foreground">Completion Preset</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {t("settings.completionPreset")}
+                  </p>
                   <PresetSelector apiType="openai" />
 
                   <Separator />
@@ -500,7 +512,7 @@ export function SettingsPanel() {
                     step={0.05}
                   />
                   <SliderField
-                    label="Top A"
+                    label={t("settings.topA")}
                     value={conn.topA}
                     onChange={conn.setTopA}
                     min={0}
@@ -508,7 +520,7 @@ export function SettingsPanel() {
                     step={0.01}
                   />
                   <SliderField
-                    label="Min P"
+                    label={t("settings.minP")}
                     value={conn.minP}
                     onChange={conn.setMinP}
                     min={0}
@@ -516,7 +528,7 @@ export function SettingsPanel() {
                     step={0.01}
                   />
                   <SliderField
-                    label="Rep. Penalty"
+                    label={t("settings.repPenalty")}
                     value={conn.repetitionPenalty}
                     onChange={conn.setRepetitionPenalty}
                     min={1}
@@ -524,7 +536,7 @@ export function SettingsPanel() {
                     step={0.05}
                   />
                   <SliderField
-                    label="Max Context"
+                    label={t("settings.maxContext")}
                     value={conn.maxContext}
                     onChange={conn.setMaxContext}
                     min={512}
@@ -533,7 +545,7 @@ export function SettingsPanel() {
                     isInt
                   />
                   <SliderField
-                    label="Seed (-1=random)"
+                    label={t("settings.seed")}
                     value={conn.seed}
                     onChange={conn.setSeed}
                     min={-1}
@@ -546,9 +558,9 @@ export function SettingsPanel() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
-                      <Label className="text-xs">Generative UI (OpenUI)</Label>
+                      <Label className="text-xs">{t("settings.generativeUi")}</Label>
                       <span className="text-[0.625rem] text-muted-foreground">
-                        AI can respond with interactive components
+                        {t("settings.generativeUiHint")}
                       </span>
                     </div>
                     <input

@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/lib/i18n";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,7 @@ interface PromptDraft {
 }
 
 export function PromptComponentEditorCard({ component, onBack }: PromptComponentEditorCardProps) {
+  const { t } = useTranslation();
   const { updateComponent, removeCustomComponent } = usePromptManagerStore();
   const [draft, setDraft] = useState<PromptDraft>({
     name: component.name,
@@ -60,7 +62,7 @@ export function PromptComponentEditorCard({ component, onBack }: PromptComponent
 
   const handleDelete = () => {
     if (component.isBuiltIn) return;
-    const confirmed = window.confirm(`Delete prompt "${component.name}"?`);
+    const confirmed = window.confirm(`${t("promptManager.deleteConfirm")} "${component.name}"?`);
     if (!confirmed) return;
     removeCustomComponent(component.id);
     onBack();
@@ -69,31 +71,31 @@ export function PromptComponentEditorCard({ component, onBack }: PromptComponent
   return (
     <Card size="sm" className="border-border/70">
       <CardHeader className="border-b border-border/70">
-        <CardTitle className="text-xs">Prompt Editor</CardTitle>
+        <CardTitle className="text-xs">{t("promptManager.editorTitle")}</CardTitle>
         <CardDescription className="text-[11px]">
-          Edit this prompt block and save it back to the current preset layout.
+          {t("promptManager.editorDescription")}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-3">
         <div className="space-y-1">
-          <Label className="text-[11px]">Identifier</Label>
+          <Label className="text-[11px]">{t("promptManager.identifier")}</Label>
           <div className="rounded-md border border-border/70 bg-input/20 px-2 py-1 text-[11px] text-muted-foreground">
             {component.id}
           </div>
         </div>
 
         <div className="space-y-1">
-          <Label className="text-[11px]">Name</Label>
+          <Label className="text-[11px]">{t("promptManager.name")}</Label>
           <Input
             value={draft.name}
             onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Prompt name"
+            placeholder={t("promptManager.namePlaceholder")}
           />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-[11px]">Role</Label>
+          <Label className="text-[11px]">{t("promptManager.role")}</Label>
           <Select
             value={draft.role}
             onValueChange={(value) =>
@@ -121,20 +123,20 @@ export function PromptComponentEditorCard({ component, onBack }: PromptComponent
             onChange={(e) => setDraft((prev) => ({ ...prev, enabled: e.target.checked }))}
             className="h-3.5 w-3.5"
           />
-          Enabled in prompt order
+          {t("promptManager.enabledInOrder")}
         </label>
 
         <div className="space-y-1">
-          <Label className="text-[11px]">Content</Label>
+          <Label className="text-[11px]">{t("promptManager.content")}</Label>
           {isMarker ? (
             <div className="rounded-md border border-border/70 bg-input/20 px-2 py-2 text-[11px] text-muted-foreground">
-              Marker prompt blocks are placeholders and do not store editable content.
+              {t("promptManager.markerReadonly")}
             </div>
           ) : (
             <Textarea
               value={draft.content}
               onChange={(e) => setDraft((prev) => ({ ...prev, content: e.target.value }))}
-              placeholder="Prompt content"
+              placeholder={t("promptManager.contentPlaceholder")}
               className="min-h-24 text-[11px]"
             />
           )}
@@ -150,13 +152,13 @@ export function PromptComponentEditorCard({ component, onBack }: PromptComponent
               className="h-6 px-2 text-[10px] text-destructive"
               onClick={handleDelete}
             >
-              Delete
+              {t("actions.delete")}
             </Button>
           )}
         </div>
         <div className="ml-auto flex gap-1">
           <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={onBack}>
-            Back
+            {t("promptManager.back")}
           </Button>
           <Button
             size="sm"
@@ -165,7 +167,7 @@ export function PromptComponentEditorCard({ component, onBack }: PromptComponent
             onClick={handleSave}
             disabled={!draft.name.trim()}
           >
-            Save
+            {t("actions.save")}
           </Button>
         </div>
       </CardFooter>

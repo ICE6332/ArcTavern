@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { StreamingText } from "./streaming-text";
 import { OpenUiMessage } from "./openui-message";
 import { StructuredMessage } from "./structured-message";
@@ -102,6 +103,7 @@ export function MessageBubble({
   onStructuredAction,
   onStructuredCommandAction,
 }: MessageBubbleProps) {
+  const { t } = useTranslation();
   const isUser = role === "user";
 
   const handleCopy = () => {
@@ -128,7 +130,7 @@ export function MessageBubble({
 
       {reasoning && (
         <ChainOfThought className="mb-2">
-          <ChainOfThoughtHeader>Reasoning</ChainOfThoughtHeader>
+          <ChainOfThoughtHeader>{t("chat.reasoning")}</ChainOfThoughtHeader>
           <ChainOfThoughtContent>
             <div
               className={`${markdownStyles} whitespace-pre-wrap break-words text-muted-foreground`}
@@ -166,14 +168,18 @@ export function MessageBubble({
 
       {!isStreaming && (
         <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100 has-[:focus-visible]:opacity-100">
-          <ActionButton icon={Copy01Icon} label="Copy" onClick={handleCopy} />
+          <ActionButton icon={Copy01Icon} label={t("actions.copy")} onClick={handleCopy} />
 
           {onRegenerate && (
-            <ActionButton icon={RefreshIcon} label="Regenerate" onClick={onRegenerate} />
+            <ActionButton
+              icon={RefreshIcon}
+              label={t("actions.regenerate")}
+              onClick={onRegenerate}
+            />
           )}
 
-          <ActionButton icon={ThumbsUpIcon} label="Good" onClick={() => {}} />
-          <ActionButton icon={ThumbsDownIcon} label="Bad" onClick={() => {}} />
+          <ActionButton icon={ThumbsUpIcon} label={t("chat.feedbackGood")} onClick={() => {}} />
+          <ActionButton icon={ThumbsDownIcon} label={t("chat.feedbackBad")} onClick={() => {}} />
 
           {messageId && swipes.length > 1 && onSwipe && (
             <div className="ml-1 flex items-center gap-0.5">
@@ -202,7 +208,7 @@ export function MessageBubble({
           {messageId && onDelete && (
             <ActionButton
               icon={Delete01Icon}
-              label="Delete"
+              label={t("actions.delete")}
               onClick={() => onDelete(messageId)}
               variant="destructive"
             />

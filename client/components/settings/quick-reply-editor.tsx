@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 import { useQuickReplyStore, type QuickReply } from "@/stores/quick-reply-store";
 
 export function QuickReplyEditor() {
+  const { t } = useTranslation();
   const { sets, loaded, loadSets, addSet, removeSet, addQr, removeQr, updateQr } =
     useQuickReplyStore();
   const [newSetName, setNewSetName] = useState("");
@@ -53,17 +55,17 @@ export function QuickReplyEditor() {
   };
 
   const triggerFields = [
-    { key: "executeOnStartup", label: "On Startup" },
-    { key: "executeOnUser", label: "After User Message" },
-    { key: "executeOnAi", label: "After AI Reply" },
-    { key: "executeOnChatChange", label: "On Chat Change" },
-    { key: "executeOnNewChat", label: "On New Chat" },
-    { key: "executeBeforeGeneration", label: "Before Generation" },
+    { key: "executeOnStartup", label: t("quickReplies.onStartup") },
+    { key: "executeOnUser", label: t("quickReplies.afterUserMessage") },
+    { key: "executeOnAi", label: t("quickReplies.afterAiReply") },
+    { key: "executeOnChatChange", label: t("quickReplies.onChatChange") },
+    { key: "executeOnNewChat", label: t("quickReplies.onNewChat") },
+    { key: "executeBeforeGeneration", label: t("quickReplies.beforeGeneration") },
   ] as const;
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium">Quick Replies</h3>
+      <h3 className="text-sm font-medium">{t("quickReplies.title")}</h3>
 
       {/* Add Set */}
       <div className="flex gap-2">
@@ -71,12 +73,12 @@ export function QuickReplyEditor() {
           type="text"
           value={newSetName}
           onChange={(e) => setNewSetName(e.target.value)}
-          placeholder="New set name..."
+          placeholder={t("quickReplies.newSetPlaceholder")}
           className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
           onKeyDown={(e) => e.key === "Enter" && handleAddSet()}
         />
         <Button size="sm" onClick={handleAddSet}>
-          Add Set
+          {t("quickReplies.addSet")}
         </Button>
       </div>
 
@@ -89,7 +91,9 @@ export function QuickReplyEditor() {
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{s.name}</span>
-              <span className="text-xs text-muted-foreground">({s.qrList.length} items)</span>
+              <span className="text-xs text-muted-foreground">
+                ({s.qrList.length} {t("quickReplies.items")})
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -101,7 +105,7 @@ export function QuickReplyEditor() {
                   handleAddQr(s.name);
                 }}
               >
-                + Add
+                + {t("quickReplies.add")}
               </Button>
               <Button
                 variant="ghost"
@@ -112,7 +116,7 @@ export function QuickReplyEditor() {
                   removeSet(s.name);
                 }}
               >
-                Delete
+                {t("actions.delete")}
               </Button>
             </div>
           </div>
@@ -137,7 +141,7 @@ export function QuickReplyEditor() {
                       className="h-6 text-xs"
                       onClick={() => setEditingQr({ setName: s.name, qr: { ...qr } })}
                     >
-                      Edit
+                      {t("quickReplies.edit")}
                     </Button>
                     <Button
                       variant="ghost"
@@ -151,7 +155,7 @@ export function QuickReplyEditor() {
                 </div>
               ))}
               {s.qrList.length === 0 && (
-                <p className="text-xs text-muted-foreground">No quick replies yet.</p>
+                <p className="text-xs text-muted-foreground">{t("quickReplies.empty")}</p>
               )}
             </div>
           )}
@@ -161,7 +165,9 @@ export function QuickReplyEditor() {
       {/* QR Editor Modal */}
       {editingQr && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <h4 className="text-sm font-medium">{editingQr.qr.id ? "Edit" : "New"} Quick Reply</h4>
+          <h4 className="text-sm font-medium">
+            {editingQr.qr.id ? t("quickReplies.editQuickReply") : t("quickReplies.newQuickReply")}
+          </h4>
 
           <div className="space-y-2">
             <input
@@ -173,7 +179,7 @@ export function QuickReplyEditor() {
                   qr: { ...editingQr.qr, label: e.target.value },
                 })
               }
-              placeholder="Button label"
+              placeholder={t("quickReplies.buttonLabel")}
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
             />
             <textarea
@@ -184,14 +190,16 @@ export function QuickReplyEditor() {
                   qr: { ...editingQr.qr, message: e.target.value },
                 })
               }
-              placeholder="Slash command script (e.g. /setvar key=mood happy | /gen)"
+              placeholder={t("quickReplies.scriptPlaceholder")}
               rows={3}
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-xs"
             />
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Auto-execute triggers</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {t("quickReplies.autoExecuteTriggers")}
+            </p>
             {triggerFields.map(({ key, label }) => (
               <label key={key} className="flex items-center gap-2">
                 <Switch
@@ -210,10 +218,10 @@ export function QuickReplyEditor() {
 
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSaveQr}>
-              Save
+              {t("actions.save")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditingQr(null)}>
-              Cancel
+              {t("actions.cancel")}
             </Button>
           </div>
         </div>

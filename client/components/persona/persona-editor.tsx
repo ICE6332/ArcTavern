@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/lib/i18n";
 import { usePersonaStore } from "@/stores/persona-store";
 import type { Persona } from "@/lib/api";
 
@@ -14,6 +15,7 @@ interface PersonaEditorProps {
 }
 
 export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
+  const { t } = useTranslation();
   const { createPersona, updatePersona, deletePersona } = usePersonaStore();
 
   const [name, setName] = useState(persona?.name ?? "");
@@ -40,15 +42,19 @@ export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
   return (
     <div className="space-y-3 p-3">
       <div className="space-y-1">
-        <Label>Name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Persona name" />
+        <Label>{t("persona.name")}</Label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t("persona.namePlaceholder")}
+        />
       </div>
       <div className="space-y-1">
-        <Label>Description</Label>
+        <Label>{t("persona.description")}</Label>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe this persona..."
+          placeholder={t("persona.descriptionPlaceholder")}
           rows={4}
         />
       </div>
@@ -58,7 +64,7 @@ export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
           checked={isDefault}
           onChange={(e) => setIsDefault(e.target.checked)}
         />
-        Set as default persona
+        {t("persona.setDefault")}
       </label>
       <div className="flex gap-2">
         <Button
@@ -67,7 +73,7 @@ export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
             void handleSave();
           }}
         >
-          {persona ? "Update" : "Create"}
+          {persona ? t("actions.update") : t("actions.create")}
         </Button>
         {persona && (
           <Button
@@ -77,11 +83,11 @@ export function PersonaEditor({ persona, onClose }: PersonaEditorProps) {
               void handleDelete();
             }}
           >
-            Delete
+            {t("actions.delete")}
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={onClose}>
-          Cancel
+          {t("actions.cancel")}
         </Button>
       </div>
     </div>

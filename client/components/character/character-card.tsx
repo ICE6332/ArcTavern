@@ -78,7 +78,10 @@ export function CharacterCard({
             )}
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
-            {character.creator ? `by ${character.creator}` : t("character.noCreator")} ·{" "}
+            {character.creator
+              ? `${t("character.by")} ${character.creator}`
+              : t("character.noCreator")}{" "}
+            ·{" "}
             {character.updatedAt
               ? new Date(character.updatedAt).toLocaleDateString()
               : t("character.notApplicable")}
@@ -105,7 +108,7 @@ export function CharacterCard({
                 onDuplicate();
               }}
             >
-              Duplicate
+              {t("actions.duplicate")}
             </Button>
           )}
           {onExport && (
@@ -118,7 +121,7 @@ export function CharacterCard({
                 onExport();
               }}
             >
-              Export
+              {t("actions.export")}
             </Button>
           )}
           {onDelete && (
@@ -131,7 +134,7 @@ export function CharacterCard({
                 onDelete();
               }}
             >
-              Delete
+              {t("actions.delete")}
             </Button>
           )}
         </div>

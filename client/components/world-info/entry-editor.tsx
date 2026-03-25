@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/lib/i18n";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ interface EntryEditorProps {
 }
 
 export function EntryEditor({ entry, onClose }: EntryEditorProps) {
+  const { t } = useTranslation();
   const { updateEntry } = useWorldInfoStore();
 
   const [keys, setKeys] = useState(entry.keys.join(", "));
@@ -75,7 +77,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
   return (
     <div className="max-h-[70vh] space-y-3 overflow-y-auto p-3">
       <div className="space-y-1">
-        <Label>Comment / Title</Label>
+        <Label>{t("worldInfo.comment")}</Label>
         <Input
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -83,11 +85,11 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
         />
       </div>
       <div className="space-y-1">
-        <Label>Primary Keys (comma-separated)</Label>
+        <Label>{t("worldInfo.primaryKeysComma")}</Label>
         <Input value={keys} onChange={(e) => setKeys(e.target.value)} className="h-8 text-xs" />
       </div>
       <div className="space-y-1">
-        <Label>Content</Label>
+        <Label>{t("worldInfo.content")}</Label>
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -99,7 +101,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
       <div className="flex flex-wrap gap-3">
         <label className="flex items-center gap-1 text-xs">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />{" "}
-          Enabled
+          {t("worldInfo.enabled")}
         </label>
         <label className="flex items-center gap-1 text-xs">
           <input
@@ -107,7 +109,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
             checked={constant}
             onChange={(e) => setConstant(e.target.checked)}
           />{" "}
-          Constant
+          {t("worldInfo.constant")}
         </label>
         <label className="flex items-center gap-1 text-xs">
           <input
@@ -115,14 +117,14 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
             checked={selective}
             onChange={(e) => setSelective(e.target.checked)}
           />{" "}
-          Selective
+          {t("worldInfo.selective")}
         </label>
       </div>
 
       {selective && (
         <>
           <div className="space-y-1">
-            <Label>Secondary Keys</Label>
+            <Label>{t("worldInfo.secondaryKeys")}</Label>
             <Input
               value={secondaryKeys}
               onChange={(e) => setSecondaryKeys(e.target.value)}
@@ -130,7 +132,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
             />
           </div>
           <div className="space-y-1">
-            <Label>Logic</Label>
+            <Label>{t("worldInfo.selectLogic")}</Label>
             <Select value={String(selectLogic)} onValueChange={(v) => setSelectLogic(Number(v))}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
@@ -148,32 +150,32 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label>Position</Label>
+          <Label>{t("worldInfo.position")}</Label>
           <Select value={position} onValueChange={(value) => setPosition(value ?? "before_char")}>
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="before_char">Before Char</SelectItem>
-              <SelectItem value="after_char">After Char</SelectItem>
-              <SelectItem value="before_example">Before Examples</SelectItem>
-              <SelectItem value="after_example">After Examples</SelectItem>
-              <SelectItem value="at_depth">At Depth</SelectItem>
-              <SelectItem value="before_an">Before A/N</SelectItem>
-              <SelectItem value="after_an">After A/N</SelectItem>
+              <SelectItem value="before_char">{t("worldInfo.posBefore")}</SelectItem>
+              <SelectItem value="after_char">{t("worldInfo.posAfter")}</SelectItem>
+              <SelectItem value="before_example">{t("worldInfo.posBeforeExample")}</SelectItem>
+              <SelectItem value="after_example">{t("worldInfo.posAfterExample")}</SelectItem>
+              <SelectItem value="at_depth">{t("worldInfo.posAtDepth")}</SelectItem>
+              <SelectItem value="before_an">{t("worldInfo.posBeforeAN")}</SelectItem>
+              <SelectItem value="after_an">{t("worldInfo.posAfterAN")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Role</Label>
+          <Label>{t("worldInfo.role")}</Label>
           <Select value={String(role)} onValueChange={(v) => setRole(Number(v))}>
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">System</SelectItem>
-              <SelectItem value="1">User</SelectItem>
-              <SelectItem value="2">Assistant</SelectItem>
+              <SelectItem value="0">{t("promptComponents.roles.system")}</SelectItem>
+              <SelectItem value="1">{t("promptComponents.roles.user")}</SelectItem>
+              <SelectItem value="2">{t("promptComponents.roles.assistant")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -181,7 +183,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
 
       <div className="grid grid-cols-3 gap-2">
         <div className="space-y-1">
-          <Label>Order</Label>
+          <Label>{t("worldInfo.order")}</Label>
           <Input
             type="number"
             value={insertionOrder}
@@ -190,7 +192,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label>Priority</Label>
+          <Label>{t("worldInfo.priority")}</Label>
           <Input
             type="number"
             value={priority}
@@ -199,7 +201,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label>Depth</Label>
+          <Label>{t("worldInfo.depth")}</Label>
           <Input
             type="number"
             value={depth}
@@ -211,7 +213,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
 
       <div className="grid grid-cols-3 gap-2">
         <div className="space-y-1">
-          <Label>Probability %</Label>
+          <Label>{t("worldInfo.probability")}</Label>
           <Input
             type="number"
             value={probability}
@@ -220,7 +222,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label>Sticky</Label>
+          <Label>{t("worldInfo.sticky")}</Label>
           <Input
             type="number"
             value={sticky}
@@ -229,7 +231,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label>Cooldown</Label>
+          <Label>{t("worldInfo.cooldown")}</Label>
           <Input
             type="number"
             value={cooldown}
@@ -241,7 +243,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label>Delay</Label>
+          <Label>{t("worldInfo.delay")}</Label>
           <Input
             type="number"
             value={delay}
@@ -250,7 +252,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label>Group</Label>
+          <Label>{t("worldInfo.groupName")}</Label>
           <Input
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
@@ -266,10 +268,10 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
             void handleSave();
           }}
         >
-          Save
+          {t("actions.save")}
         </Button>
         <Button size="sm" variant="outline" onClick={onClose}>
-          Cancel
+          {t("actions.cancel")}
         </Button>
       </div>
     </div>
