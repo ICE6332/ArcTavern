@@ -15,10 +15,9 @@ describe("parseStructuredMessageContent", () => {
 
   it("wraps bare block arrays", () => {
     expect(
-      parseStructuredMessageContent(
-        JSON.stringify([{ role: "narration", text: "Hello" }]),
-        { format: "structured" },
-      ),
+      parseStructuredMessageContent(JSON.stringify([{ role: "narration", text: "Hello" }]), {
+        format: "structured",
+      }),
     ).toEqual({
       blocks: [{ role: "narration", text: "Hello" }],
     });

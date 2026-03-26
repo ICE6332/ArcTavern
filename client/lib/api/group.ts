@@ -36,10 +36,7 @@ function mapGroup(rawInput: unknown): Group {
     allowSelfResponses: Boolean(coalesceRaw(raw, "allow_self_responses", "allowSelfResponses")),
     activationStrategy: Number(coalesceRaw(raw, "activation_strategy", "activationStrategy") ?? 0),
     generationMode: Number(coalesceRaw(raw, "generation_mode", "generationMode") ?? 0),
-    disabledMembers: parseJson(
-      coalesceRaw(raw, "disabled_members", "disabledMembers") ?? "[]",
-      [],
-    ),
+    disabledMembers: parseJson(coalesceRaw(raw, "disabled_members", "disabledMembers") ?? "[]", []),
     fav: Boolean(raw.fav),
     currentChatId: fromRaw(coalesceRaw(raw, "current_chat_id", "currentChatId"), null),
     autoModeDelay: Number(coalesceRaw(raw, "auto_mode_delay", "autoModeDelay") ?? 5),

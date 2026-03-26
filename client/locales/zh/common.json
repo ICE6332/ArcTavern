@@ -321,5 +321,18 @@
     "posAtDepth": "指定深度",
     "posBeforeAN": "作者注释前",
     "posAfterAN": "作者注释后"
+  },
+  "welcomeScreen": {
+    "greeting1": "欢迎回来~ 今天也要开心地聊天呀",
+    "greeting2": "好想你呀，终于等到你来了",
+    "greeting3": "你来啦~ 世界都变得明亮了呢",
+    "greeting4": "每次见到你都好开心，今天聊点什么呢",
+    "greeting5": "等你好久了~ 快来和我聊聊天吧",
+    "greeting6": "又见面了呢，今天的你一定也很棒",
+    "hint": "在侧边栏选一个角色，开启你的奇妙对话吧",
+    "browseCharacters": "浏览角色",
+    "createCharacter": "创建角色",
+    "importCharacter": "导入角色",
+    "groupChat": "群组聊天"
   }
 }

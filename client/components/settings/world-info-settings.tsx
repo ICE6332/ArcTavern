@@ -91,12 +91,9 @@ export function WorldInfoSettings() {
     [selectBook],
   );
 
-  const openEntry = useCallback(
-    (bookId: number, entryId: number) => {
-      setNav({ level: "entry", bookId, entryId });
-    },
-    [],
-  );
+  const openEntry = useCallback((bookId: number, entryId: number) => {
+    setNav({ level: "entry", bookId, entryId });
+  }, []);
 
   const handleCreateBook = useCallback(async () => {
     const book = await createBook({ name: t("worldInfo.newBook") });
@@ -193,7 +190,12 @@ export function WorldInfoSettings() {
           </div>
         )}
 
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCreateEntry(nav.bookId)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => handleCreateEntry(nav.bookId)}
+        >
           <HugeiconsIcon icon={Add01Icon} size={14} className="mr-1" />
           {t("worldInfo.addEntry")}
         </Button>
@@ -234,7 +236,10 @@ export function WorldInfoSettings() {
                   {book.name}
                 </span>
                 {boundChar && (
-                  <span className="shrink-0 text-muted-foreground" title={`${t("worldInfo.boundTo")} ${boundChar}`}>
+                  <span
+                    className="shrink-0 text-muted-foreground"
+                    title={`${t("worldInfo.boundTo")} ${boundChar}`}
+                  >
                     <HugeiconsIcon icon={Link04Icon} size={12} />
                   </span>
                 )}
@@ -331,7 +336,11 @@ function EntryEditorView({
 
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">{t("worldInfo.comment")}</Label>
-        <Input value={comment} onChange={(e) => setComment(e.target.value)} className="h-8 text-sm" />
+        <Input
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="h-8 text-sm"
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -414,7 +423,12 @@ function EntryEditorView({
 
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">{t("worldInfo.position")}</Label>
-        <Select value={position} onValueChange={(v) => { if (v) setPosition(v); }}>
+        <Select
+          value={position}
+          onValueChange={(v) => {
+            if (v) setPosition(v);
+          }}
+        >
           <SelectTrigger className="h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -470,12 +484,7 @@ function EntryEditorView({
         <Button size="sm" className="h-7 flex-1 text-xs" onClick={handleSave} disabled={saving}>
           {saving ? t("messages.saving") : t("messages.save")}
         </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={onDelete}
-        >
+        <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={onDelete}>
           <HugeiconsIcon icon={Delete02Icon} size={14} />
         </Button>
       </div>

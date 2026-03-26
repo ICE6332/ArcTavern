@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
@@ -11,27 +11,16 @@ import { useVariableStore } from "@/stores/variable-store";
 import { useWorldInfoStore } from "@/stores/world-info-store";
 import { chatDebug } from "@/lib/chat-debug";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useChatScroll } from "@/hooks/use-chat-scroll";
 import { ChatInput } from "./chat-input";
 import { ChatMessageRow } from "./chat-message-row";
+import { ChatWelcomeScreen } from "./chat-welcome-screen";
 import { MessageBubble } from "./message-bubble";
 import { QuickReplyBar } from "./quick-reply-bar";
 import { DotsLoader } from "@/components/ui/loader";
-import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 import { useTranslation } from "@/lib/i18n";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { UserIcon, FileImportIcon, Add01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import { useGenerationConfig } from "@/hooks/use-generation-config";
 import { useChatActions } from "@/hooks/use-chat-actions";
-
-const GREETINGS = [
-  "欢迎回来~ 今天也要开心地聊天呀",
-  "好想你呀，终于等到你来了",
-  "你来啦~ 世界都变得明亮了呢",
-  "每次见到你都好开心，今天聊点什么呢",
-  "等你好久了~ 快来和我聊聊天吧",
-  "又见面了呢，今天的你一定也很棒",
-];
 
 export function ChatPanel() {
   const { t } = useTranslation();
@@ -105,8 +94,6 @@ export function ChatPanel() {
   const loadChatVariables = useVariableStore((s) => s.loadChatVariables);
   const activeBookIds = useWorldInfoStore((s) => s.activeBookIds);
   const { toggleSidebar } = useSidebar();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScrollRef = useRef(true);
 
   const selectedChar = characters.find((c) => c.id === selectedId);
   const selectedCharName = selectedChar?.name;
@@ -120,6 +107,12 @@ export function ChatPanel() {
   }, [messages]);
   const hasAssistantMessage = latestAssistantMessageId !== null;
   const openUiEnabled = connection.openUiEnabled;
+  const { scrollRef, handleScroll } = useChatScroll({
+    currentChatId,
+    messagesLength: messages.length,
+    streamingContent,
+    streamingReasoning,
+  });
 
   const { generationConfig } = useGenerationConfig({
     connection,
@@ -156,11 +149,6 @@ export function ChatPanel() {
   });
 
   useEffect(() => {
-    if (!scrollRef.current || !shouldAutoScrollRef.current) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, streamingContent, streamingReasoning]);
-
-  useEffect(() => {
     chatDebug("panel.state", {
       currentChatId,
       selectedCharacterId: selectedId,
@@ -179,10 +167,6 @@ export function ChatPanel() {
   ]);
 
   useEffect(() => {
-    shouldAutoScrollRef.current = true;
-  }, [currentChatId]);
-
-  useEffect(() => {
     void loadGlobalVariables();
   }, [loadGlobalVariables]);
 
@@ -198,15 +182,8 @@ export function ChatPanel() {
     }
   }, [currentChatId, loadChatVariables]);
 
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    shouldAutoScrollRef.current = distanceFromBottom < 80;
-  };
-
   if (!selectedId || !currentChatId) {
-    return <WelcomeScreen />;
+    return <ChatWelcomeScreen />;
   }
 
   return (
@@ -293,54 +270,6 @@ export function ChatPanel() {
         isGenerating={isGenerating}
         disabled={false}
       />
-    </main>
-  );
-}
-
-function WelcomeScreen() {
-  const { createCharacter, fetchCharacters } = useCharacterStore();
-  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
-
-  const handleCreateCharacter = async () => {
-    const created = await createCharacter({
-      name: "New Character",
-      description: "",
-    });
-    useCharacterStore.getState().selectCharacter(created.id);
-    const { createChat, selectChat } = useChatStore.getState();
-    const chat = await createChat(created.id);
-    await selectChat(chat.id);
-  };
-
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4">
-      <div className="flex max-w-2xl flex-col items-center gap-8 text-center">
-        <div className="space-y-3">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            <Shimmer duration={3} spread={1.5}>{`✦ ${greeting}`}</Shimmer>
-          </h1>
-          <p className="text-sm text-muted-foreground">在侧边栏选一个角色，开启你的奇妙对话吧</p>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <PromptSuggestion onClick={() => void fetchCharacters()}>
-            <HugeiconsIcon icon={UserIcon} size={14} strokeWidth={1.5} />
-            <span className="ml-1.5">浏览角色</span>
-          </PromptSuggestion>
-          <PromptSuggestion onClick={() => void handleCreateCharacter()}>
-            <HugeiconsIcon icon={Add01Icon} size={14} strokeWidth={1.5} />
-            <span className="ml-1.5">创建角色</span>
-          </PromptSuggestion>
-          <PromptSuggestion>
-            <HugeiconsIcon icon={FileImportIcon} size={14} strokeWidth={1.5} />
-            <span className="ml-1.5">导入角色</span>
-          </PromptSuggestion>
-          <PromptSuggestion>
-            <HugeiconsIcon icon={UserGroupIcon} size={14} strokeWidth={1.5} />
-            <span className="ml-1.5">群组聊天</span>
-          </PromptSuggestion>
-        </div>
-      </div>
     </main>
   );
 }

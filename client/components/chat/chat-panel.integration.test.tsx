@@ -117,7 +117,7 @@ vi.mock("@/stores/connection-store", () => ({
 
 vi.mock("@/stores/prompt-manager-store", () => ({
   usePromptManagerStore: (selector?: (state: { components: [] }) => unknown) =>
-    (selector ? selector({ components: [] }) : { components: [] }),
+    selector ? selector({ components: [] }) : { components: [] },
 }));
 
 vi.mock("@/stores/quick-reply-store", () => ({
@@ -166,7 +166,9 @@ vi.mock("./chat-message-row", () => ({
 }));
 
 vi.mock("./message-bubble", () => ({
-  MessageBubble: ({ content }: { content: string }) => <div data-testid="message-bubble">{content}</div>,
+  MessageBubble: ({ content }: { content: string }) => (
+    <div data-testid="message-bubble">{content}</div>
+  ),
 }));
 
 vi.mock("@/components/ui/sidebar", () => ({

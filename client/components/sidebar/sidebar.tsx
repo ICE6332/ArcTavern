@@ -115,7 +115,11 @@ export function Sidebar() {
     }
     setGeneratingTitleFor(chatId);
     try {
-      const title = await generateTitle(chatId, { provider, model, reverseProxy: reverseProxy || undefined });
+      const title = await generateTitle(chatId, {
+        provider,
+        model,
+        reverseProxy: reverseProxy || undefined,
+      });
       if (title) {
         toast.success({ title: t("sidebar.titleGenerated") ?? "Title generated" });
       } else {

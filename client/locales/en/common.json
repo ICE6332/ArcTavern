@@ -321,5 +321,18 @@
     "posAtDepth": "At Depth",
     "posBeforeAN": "Before A/N",
     "posAfterAN": "After A/N"
+  },
+  "welcomeScreen": {
+    "greeting1": "Welcome back! Let's have a great chat today",
+    "greeting2": "Glad you're here. Ready to pick up where we left off?",
+    "greeting3": "You made it! The world feels brighter already",
+    "greeting4": "Seeing you again always feels nice. What should we talk about?",
+    "greeting5": "I've been waiting for you. Let's start something fun",
+    "greeting6": "Back again! I bet today's conversation will be a good one",
+    "hint": "Choose a character from the sidebar to start your next conversation.",
+    "browseCharacters": "Browse characters",
+    "createCharacter": "Create character",
+    "importCharacter": "Import character",
+    "groupChat": "Group chat"
   }
 }
