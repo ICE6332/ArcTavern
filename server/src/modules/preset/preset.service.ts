@@ -51,17 +51,18 @@ export class PresetService implements OnModuleInit {
   }
 
   findByNameAndType(name: string, apiType: string): PresetRow | null {
-    return this.db.get<PresetRow>(
-      'SELECT * FROM presets WHERE name = ? AND api_type = ?',
-      [name, apiType],
-    );
+    return this.db.get<PresetRow>('SELECT * FROM presets WHERE name = ? AND api_type = ?', [
+      name,
+      apiType,
+    ]);
   }
 
   create(data: { name: string; apiType: string; data: string }): PresetRow {
-    const { lastId } = this.db.run(
-      'INSERT INTO presets (name, api_type, data) VALUES (?, ?, ?)',
-      [data.name, data.apiType, data.data],
-    );
+    const { lastId } = this.db.run('INSERT INTO presets (name, api_type, data) VALUES (?, ?, ?)', [
+      data.name,
+      data.apiType,
+      data.data,
+    ]);
     return this.findOne(lastId)!;
   }
 
@@ -101,26 +102,20 @@ export class PresetService implements OnModuleInit {
     const preset = this.findOne(id);
     if (!preset) return null;
     if (preset.is_default) {
-      throw new BadRequestException(
-        'Cannot delete default preset. Use restore instead.',
-      );
+      throw new BadRequestException('Cannot delete default preset. Use restore instead.');
     }
     this.db.run('DELETE FROM presets WHERE id = ?', [id]);
     return preset;
   }
 
   /** Import a preset — stores the full JSON blob */
-  importPreset(
-    name: string,
-    apiType: string,
-    data: Record<string, unknown>,
-  ): PresetRow {
+  importPreset(name: string, apiType: string, data: Record<string, unknown>): PresetRow {
     const existing = this.findByNameAndType(name, apiType);
     if (existing) {
-      this.db.run(
-        "UPDATE presets SET data = ?, updated_at = datetime('now') WHERE id = ?",
-        [JSON.stringify(data), existing.id],
-      );
+      this.db.run("UPDATE presets SET data = ?, updated_at = datetime('now') WHERE id = ?", [
+        JSON.stringify(data),
+        existing.id,
+      ]);
       return this.findOne(existing.id)!;
     }
     return this.create({ name, apiType, data: JSON.stringify(data) });
@@ -147,9 +142,7 @@ export class PresetService implements OnModuleInit {
     }
 
     const defaults = loadDefaultPresets();
-    const original = defaults.find(
-      (d) => d.name === preset.name && d.apiType === preset.api_type,
-    );
+    const original = defaults.find((d) => d.name === preset.name && d.apiType === preset.api_type);
 
     if (!original) {
       return { isDefault: true, preset: {} };

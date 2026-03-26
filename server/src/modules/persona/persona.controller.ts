@@ -54,16 +54,18 @@ export class PersonaController {
   }
 
   @Post()
-  async create(@Body() body: {
-    name: string;
-    description?: string;
-    position?: number;
-    depth?: number;
-    role?: number;
-    lorebookId?: number;
-    title?: string;
-    isDefault?: boolean;
-  }) {
+  async create(
+    @Body() body: {
+      name: string;
+      description?: string;
+      position?: number;
+      depth?: number;
+      role?: number;
+      lorebookId?: number;
+      title?: string;
+      isDefault?: boolean;
+    },
+  ) {
     return this.personaService.create(body);
   }
 

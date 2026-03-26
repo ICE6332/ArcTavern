@@ -32,9 +32,10 @@ export const MODEL_FIELD_TO_PROVIDER: Record<string, string> = {
 /**
  * Extract the active provider and model from an OpenAI preset's data blob.
  */
-export function resolveProviderAndModel(
-  presetData: Record<string, unknown>,
-): { provider: string; model: string } {
+export function resolveProviderAndModel(presetData: Record<string, unknown>): {
+  provider: string;
+  model: string;
+} {
   const source = (presetData.chat_completion_source as string) ?? 'openai';
   const provider = ST_SOURCE_TO_PROVIDER[source] ?? 'custom';
 

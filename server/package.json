@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "rimraf dist && nest start --watch",
     "build": "nest build",
-    "check": "tsc --noEmit -p tsconfig.json",
+    "check": "vp check",
+    "lint": "vp lint",
+    "fmt": "vp fmt",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
-    "test": "vitest run"
+    "test": "vp test run"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",

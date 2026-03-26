@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  NotFoundException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, NotFoundException } from '@nestjs/common';
 import { TagService } from './tag.service';
 
 @Controller('tags')
@@ -27,7 +18,15 @@ export class TagController {
   }
 
   @Post()
-  async create(@Body() body: { name: string; folderType?: string; sortOrder?: number; color?: string; color2?: string }) {
+  async create(
+    @Body() body: {
+      name: string;
+      folderType?: string;
+      sortOrder?: number;
+      color?: string;
+      color2?: string;
+    },
+  ) {
     return this.tagService.create(body);
   }
 

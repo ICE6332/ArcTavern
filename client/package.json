@@ -7,7 +7,7 @@
     "dev": "vp dev",
     "build": "vp build",
     "preview": "vp preview",
-    "lint": "eslint .",
+    "lint": "vp lint",
     "check": "vp check",
     "test": "vp test run"
   },
@@ -42,7 +42,6 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -51,14 +50,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.0",
-    "eslint": "^9",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.4.0",
     "jsdom": "^26.1.0",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "typescript-eslint": "^8.57.2",
     "vite": "^8.0.0",
     "vitest": "^3.2.4"
   }

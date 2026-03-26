@@ -40,20 +40,17 @@ export class ChatService {
   }
 
   async create(characterId: number, name?: string): Promise<ChatRow> {
-    const { lastId } = this.db.run(
-      'INSERT INTO chats (character_id, name) VALUES (?, ?)',
-      [characterId, name ?? ''],
-    );
+    const { lastId } = this.db.run('INSERT INTO chats (character_id, name) VALUES (?, ?)', [
+      characterId,
+      name ?? '',
+    ]);
     return (await this.findOne(lastId))!;
   }
 
   async updateName(id: number, name: string): Promise<ChatRow | null> {
     const chat = await this.findOne(id);
     if (!chat) return null;
-    this.db.run(
-      "UPDATE chats SET name = ?, updated_at = datetime('now') WHERE id = ?",
-      [name, id],
-    );
+    this.db.run("UPDATE chats SET name = ?, updated_at = datetime('now') WHERE id = ?", [name, id]);
     return this.findOne(id);
   }
 
@@ -64,10 +61,9 @@ export class ChatService {
   }
 
   async getMessages(chatId: number): Promise<MessageRow[]> {
-    return this.db.query<MessageRow>(
-      'SELECT * FROM messages WHERE chat_id = ? ORDER BY id ASC',
-      [chatId],
-    );
+    return this.db.query<MessageRow>('SELECT * FROM messages WHERE chat_id = ? ORDER BY id ASC', [
+      chatId,
+    ]);
   }
 
   async findMessageById(id: number): Promise<MessageRow | null> {
@@ -105,17 +101,26 @@ export class ChatService {
 
   async updateMessage(id: number, data: Record<string, unknown>): Promise<MessageRow | null> {
     const fieldMap: Record<string, string> = {
-      content: 'content', name: 'name', isHidden: 'is_hidden',
-      swipeId: 'swipe_id', swipes: 'swipes', genStarted: 'gen_started',
-      genFinished: 'gen_finished', extra: 'extra',
+      content: 'content',
+      name: 'name',
+      isHidden: 'is_hidden',
+      swipeId: 'swipe_id',
+      swipes: 'swipes',
+      genStarted: 'gen_started',
+      genFinished: 'gen_finished',
+      extra: 'extra',
     };
     const sets: string[] = [];
     const values: unknown[] = [];
     for (const [key, val] of Object.entries(data)) {
       const col = fieldMap[key];
-      if (col) { sets.push(`${col} = ?`); values.push(val); }
+      if (col) {
+        sets.push(`${col} = ?`);
+        values.push(val);
+      }
     }
-    if (sets.length === 0) return this.db.get<MessageRow>('SELECT * FROM messages WHERE id = ?', [id]);
+    if (sets.length === 0)
+      return this.db.get<MessageRow>('SELECT * FROM messages WHERE id = ?', [id]);
     values.push(id);
     this.db.run(`UPDATE messages SET ${sets.join(', ')} WHERE id = ?`, values);
     return this.db.get<MessageRow>('SELECT * FROM messages WHERE id = ?', [id]);

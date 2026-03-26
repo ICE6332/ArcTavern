@@ -113,14 +113,32 @@ describe('PromptBuilderService', () => {
     const service = new PromptBuilderService();
     const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
       ragContext: [
-        { content: 'memory 1', role: 'user', name: 'User', score: 0.9, messageId: 1, chatId: 1, createdAt: '' },
-        { content: 'memory 2', role: 'assistant', name: 'Alice', score: 0.8, messageId: 2, chatId: 1, createdAt: '' },
+        {
+          content: 'memory 1',
+          role: 'user',
+          name: 'User',
+          score: 0.9,
+          messageId: 1,
+          chatId: 1,
+          createdAt: '',
+        },
+        {
+          content: 'memory 2',
+          role: 'assistant',
+          name: 'Alice',
+          score: 0.8,
+          messageId: 2,
+          chatId: 1,
+          createdAt: '',
+        },
       ],
       ragInsertionPosition: 'after_char',
       ragMaxTokenBudget: 1024,
     });
 
-    const allContent = result.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+    const allContent = result
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
     expect(allContent).toContain('Relevant memories from past conversations');
     expect(allContent).toContain('[User]: memory 1');
     expect(allContent).toContain('[Alice]: memory 2');
@@ -130,13 +148,23 @@ describe('PromptBuilderService', () => {
     const service = new PromptBuilderService();
     const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
       ragContext: [
-        { content: 'early memory', role: 'user', name: 'User', score: 0.9, messageId: 1, chatId: 1, createdAt: '' },
+        {
+          content: 'early memory',
+          role: 'user',
+          name: 'User',
+          score: 0.9,
+          messageId: 1,
+          chatId: 1,
+          createdAt: '',
+        },
       ],
       ragInsertionPosition: 'before_char',
       ragMaxTokenBudget: 1024,
     });
 
-    const allContent = result.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+    const allContent = result
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
     expect(allContent).toContain('Relevant memories from past conversations');
     expect(allContent).toContain('[User]: early memory');
 
@@ -153,7 +181,9 @@ describe('PromptBuilderService', () => {
       ragInsertionPosition: 'after_char',
     });
 
-    const allContent = result.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+    const allContent = result
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
     expect(allContent).not.toContain('Relevant memories');
   });
 
@@ -175,8 +205,11 @@ describe('PromptBuilderService', () => {
       ragMaxTokenBudget: 256, // ~1024 chars
     });
 
-    const allContent = result.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
-    const ragBlock = allContent.split('Relevant memories from past conversations:\n')[1]?.split('\n\n')[0] ?? '';
+    const allContent = result
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
+    const ragBlock =
+      allContent.split('Relevant memories from past conversations:\n')[1]?.split('\n\n')[0] ?? '';
     // Should be truncated well under 50 * 200 chars
     expect(ragBlock.length).toBeLessThan(1200);
   });
@@ -194,7 +227,7 @@ describe('PromptBuilderService', () => {
       ],
     });
 
-    const contents = result.map((m) => typeof m.content === 'string' ? m.content : '');
+    const contents = result.map((m) => (typeof m.content === 'string' ? m.content : ''));
     // charDescription should come before main (custom order)
     const descIdx = contents.findIndex((c) => c.includes('Character Description'));
     const mainIdx = contents.findIndex((c) => c.includes('System prompt for'));
@@ -216,7 +249,9 @@ describe('PromptBuilderService', () => {
       ],
     });
 
-    const allContent = result.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+    const allContent = result
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
     expect(allContent).not.toContain('System prompt for');
     expect(allContent).not.toContain('Character Description');
     // Scenario should be present
@@ -252,7 +287,9 @@ describe('PromptBuilderService', () => {
       ],
     });
 
-    const allContent = result.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+    const allContent = result
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
     expect(allContent).toContain('Custom injection here');
   });
 });

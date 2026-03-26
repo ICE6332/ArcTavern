@@ -30,11 +30,7 @@ describe('AiProviderService', () => {
     const models = service.getModels();
 
     expect(Array.isArray(models)).toBe(true);
-    expect(
-      models.some(
-        (entry) => 'provider' in entry && entry.provider === 'openai',
-      ),
-    ).toBe(true);
+    expect(models.some((entry) => 'provider' in entry && entry.provider === 'openai')).toBe(true);
   });
 
   it('returns provider-scoped models', () => {
@@ -55,14 +51,12 @@ describe('AiProviderService', () => {
 
   it('does not duplicate /v1 for health-check models endpoint', async () => {
     const service = createService();
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ data: [{ id: 'gpt-4o-mini' }] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: 'gpt-4o-mini' }] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
 
     const result = await service.healthCheck({
       provider: 'custom',
@@ -70,24 +64,19 @@ describe('AiProviderService', () => {
       baseUrl: 'https://example.com/v1',
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://example.com/v1/models',
-      expect.any(Object),
-    );
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/v1/models', expect.any(Object));
     expect(result.status).toBe('ok');
     fetchMock.mockRestore();
   });
 
   it('uses saved key for health-check when apiKey is omitted', async () => {
     const service = createServiceWithKey('sk-saved');
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ data: [{ id: 'gpt-4o-mini' }] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: 'gpt-4o-mini' }] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
 
     const result = await service.healthCheck({
       provider: 'custom',
@@ -108,14 +97,12 @@ describe('AiProviderService', () => {
 
   it('does not duplicate /v1 for test-request chat endpoint', async () => {
     const service = createService();
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ id: 'chatcmpl-test' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ id: 'chatcmpl-test' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
 
     await service.testRequest({
       provider: 'custom',

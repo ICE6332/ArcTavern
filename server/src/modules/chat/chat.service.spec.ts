@@ -24,10 +24,10 @@ describe('ChatService', () => {
 
     const result = await service.create(1, 'New Chat');
 
-    expect(db.run).toHaveBeenCalledWith(
-      'INSERT INTO chats (character_id, name) VALUES (?, ?)',
-      [1, 'New Chat'],
-    );
+    expect(db.run).toHaveBeenCalledWith('INSERT INTO chats (character_id, name) VALUES (?, ?)', [
+      1,
+      'New Chat',
+    ]);
     expect(result).toEqual({ id: 9, character_id: 1, name: 'New Chat' });
   });
 

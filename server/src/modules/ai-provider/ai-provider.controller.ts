@@ -1,11 +1,7 @@
 import { Controller, Post, Body, Res, Get, Query } from '@nestjs/common';
 import { Response } from 'express';
 import { AiProviderService } from './ai-provider.service';
-import {
-  CompletionRequest,
-  HealthCheckRequest,
-  TestRequestPayload,
-} from './types';
+import { CompletionRequest, HealthCheckRequest, TestRequestPayload } from './types';
 
 @Controller(['ai', 'ai-provider'])
 export class AiProviderController {
@@ -38,9 +34,7 @@ export class AiProviderController {
   }
 
   @Post('tokenize')
-  async tokenize(
-    @Body() body: { text?: string; messages?: CompletionRequest['messages'] },
-  ) {
+  async tokenize(@Body() body: { text?: string; messages?: CompletionRequest['messages'] }) {
     return this.aiService.tokenize(body);
   }
 
@@ -55,10 +49,7 @@ export class AiProviderController {
   }
 
   @Get('models/discover')
-  async discoverModels(
-    @Query('provider') provider: string,
-    @Query('baseUrl') baseUrl: string,
-  ) {
+  async discoverModels(@Query('provider') provider: string, @Query('baseUrl') baseUrl: string) {
     if (!provider || !baseUrl) {
       throw new Error('provider and baseUrl are required');
     }
@@ -90,9 +81,7 @@ export class AiProviderController {
       res.write('data: [DONE]\n\n');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      res.write(
-        `data: ${JSON.stringify({ error: `[ERROR] ${message}` })}\n\n`,
-      );
+      res.write(`data: ${JSON.stringify({ error: `[ERROR] ${message}` })}\n\n`);
     } finally {
       res.end();
     }

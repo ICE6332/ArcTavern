@@ -84,7 +84,10 @@ export class GroupService {
     const values: unknown[] = [];
     for (const [key, val] of Object.entries(data)) {
       const col = fieldMap[key];
-      if (col) { sets.push(`${col} = ?`); values.push(val); }
+      if (col) {
+        sets.push(`${col} = ?`);
+        values.push(val);
+      }
     }
     if (sets.length === 0) return this.findOne(id);
     sets.push("updated_at = datetime('now')");
@@ -106,23 +109,27 @@ export class GroupService {
     );
   }
 
-  async addMember(groupId: string, characterId: number, sortOrder?: number): Promise<GroupMemberRow[]> {
+  async addMember(
+    groupId: string,
+    characterId: number,
+    sortOrder?: number,
+  ): Promise<GroupMemberRow[]> {
     const maxOrder = this.db.get<{ max_order: number }>(
       'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM group_members WHERE group_id = ?',
       [groupId],
     );
     this.db.run(
       'INSERT OR IGNORE INTO group_members (group_id, character_id, sort_order) VALUES (?, ?, ?)',
-      [groupId, characterId, sortOrder ?? ((maxOrder?.max_order ?? -1) + 1)],
+      [groupId, characterId, sortOrder ?? (maxOrder?.max_order ?? -1) + 1],
     );
     return this.getMembers(groupId);
   }
 
   async removeMember(groupId: string, characterId: number): Promise<GroupMemberRow[]> {
-    this.db.run(
-      'DELETE FROM group_members WHERE group_id = ? AND character_id = ?',
-      [groupId, characterId],
-    );
+    this.db.run('DELETE FROM group_members WHERE group_id = ? AND character_id = ?', [
+      groupId,
+      characterId,
+    ]);
     return this.getMembers(groupId);
   }
 
@@ -143,7 +150,9 @@ export class GroupService {
     const group = await this.findOne(groupId);
     if (!group) return [];
     let disabled: number[] = [];
-    try { disabled = JSON.parse(group.disabled_members); } catch {}
+    try {
+      disabled = JSON.parse(group.disabled_members);
+    } catch {}
     const members = await this.getMembers(groupId);
     return members.filter((m) => !disabled.includes(m.character_id));
   }

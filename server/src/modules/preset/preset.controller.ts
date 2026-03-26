@@ -1,6 +1,14 @@
 import {
-  Controller, Get, Post, Put, Delete,
-  Body, Param, Query, ParseIntPipe, NotFoundException,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { PresetService } from './preset.service';
 
@@ -15,9 +23,7 @@ export class PresetController {
 
   /** Import a preset (full JSON blob) — must be before :id routes */
   @Post('import')
-  importPreset(
-    @Body() body: { name: string; apiType: string; data: Record<string, unknown> },
-  ) {
+  importPreset(@Body() body: { name: string; apiType: string; data: Record<string, unknown> }) {
     return this.presetService.importPreset(body.name, body.apiType, body.data);
   }
 
@@ -56,10 +62,7 @@ export class PresetController {
   }
 
   @Put(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: Record<string, unknown>,
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, unknown>) {
     const existing = this.presetService.findOne(id);
     if (!existing) throw new NotFoundException('Preset not found');
     return this.presetService.update(id, body);

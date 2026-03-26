@@ -36,10 +36,7 @@ export class WorldInfoController {
   }
 
   @Put(':id')
-  async updateBook(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: Record<string, unknown>,
-  ) {
+  async updateBook(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, unknown>) {
     const existing = await this.worldInfoService.findBook(id);
     if (!existing) throw new NotFoundException('World info book not found');
     return this.worldInfoService.updateBook(id, body);
@@ -81,11 +78,7 @@ export class WorldInfoController {
 
   @Post('import')
   async importBook(
-    @Body() body: {
-      name: string;
-      description?: string;
-      entries: Array<Record<string, unknown>>;
-    },
+    @Body() body: { name: string; description?: string; entries: Array<Record<string, unknown>> },
   ) {
     return this.worldInfoService.importBook(body);
   }

@@ -127,9 +127,7 @@ export class CharacterCardParserService {
 
   private normalizeCard(input: unknown): TavernCardV2 {
     const inputRecord =
-      input && typeof input === 'object'
-        ? (input as Record<string, unknown>)
-        : null;
+      input && typeof input === 'object' ? (input as Record<string, unknown>) : null;
     const sourceCandidate = inputRecord?.data ?? input;
     if (!sourceCandidate || typeof sourceCandidate !== 'object') {
       throw new BadRequestException('Invalid TavernCard payload');
@@ -157,9 +155,7 @@ export class CharacterCardParserService {
     );
     const role = depthPrompt?.role;
     const depthPromptRole: 'system' | 'user' | 'assistant' =
-      role === 'system' || role === 'user' || role === 'assistant'
-        ? role
-        : 'system';
+      role === 'system' || role === 'user' || role === 'assistant' ? role : 'system';
 
     return {
       spec: 'chara_card_v2',
@@ -210,9 +206,7 @@ export class CharacterCardParserService {
         alternate_greetings: alternateGreetings,
         extensions: {
           talkativeness:
-            typeof safeExtensions.talkativeness === 'number'
-              ? safeExtensions.talkativeness
-              : 0.5,
+            typeof safeExtensions.talkativeness === 'number' ? safeExtensions.talkativeness : 0.5,
           fav: Boolean(safeExtensions.fav),
           world: typeof safeExtensions.world === 'string' ? safeExtensions.world : '',
           depth_prompt: depthPrompt
@@ -232,11 +226,8 @@ export class CharacterCardParserService {
           source.character_book && typeof source.character_book === 'object'
             ? {
                 ...(source.character_book as Record<string, unknown>),
-                entries: Array.isArray(
-                  (source.character_book as Record<string, unknown>).entries,
-                )
-                  ? ((source.character_book as Record<string, unknown>)
-                      .entries as unknown[])
+                entries: Array.isArray((source.character_book as Record<string, unknown>).entries)
+                  ? ((source.character_book as Record<string, unknown>).entries as unknown[])
                   : [],
               }
             : null,

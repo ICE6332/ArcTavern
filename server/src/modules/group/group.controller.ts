@@ -46,12 +46,14 @@ export class GroupController {
   }
 
   @Post()
-  async create(@Body() body: {
-    name: string;
-    avatarUrl?: string;
-    activationStrategy?: number;
-    generationMode?: number;
-  }) {
+  async create(
+    @Body() body: {
+      name: string;
+      avatarUrl?: string;
+      activationStrategy?: number;
+      generationMode?: number;
+    },
+  ) {
     return this.groupService.create(body);
   }
 
@@ -138,7 +140,9 @@ export class GroupController {
     let speakerId = body.characterId;
     if (!speakerId) {
       let disabled: number[] = [];
-      try { disabled = JSON.parse(group.disabled_members); } catch {}
+      try {
+        disabled = JSON.parse(group.disabled_members);
+      } catch {}
 
       const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
       const lastChar = lastAssistant?.name
@@ -147,7 +151,7 @@ export class GroupController {
 
       const selected = this.turnOrderService.selectNext(
         {
-          members: members.map(m => ({ characterId: m.character_id, sortOrder: m.sort_order })),
+          members: members.map((m) => ({ characterId: m.character_id, sortOrder: m.sort_order })),
           characters,
           recentMessages: messages,
           disabledMembers: disabled,

@@ -160,18 +160,29 @@ export class WorldInfoScannerService {
       const secondaryKeys = this.parseKeys(entry.secondary_keys);
       if (secondaryKeys.length === 0) return true;
 
-      const secondaryMatch = this.matchKeys(secondaryKeys, searchBuffer, caseSensitive, matchWholeWords);
+      const secondaryMatch = this.matchKeys(
+        secondaryKeys,
+        searchBuffer,
+        caseSensitive,
+        matchWholeWords,
+      );
       const logic = entry.select_logic ?? SelectLogic.AND_ANY;
 
       switch (logic) {
         case SelectLogic.AND_ANY:
           return primaryMatch && secondaryMatch;
         case SelectLogic.NOT_ALL:
-          return primaryMatch && !this.matchAllKeys(secondaryKeys, searchBuffer, caseSensitive, matchWholeWords);
+          return (
+            primaryMatch &&
+            !this.matchAllKeys(secondaryKeys, searchBuffer, caseSensitive, matchWholeWords)
+          );
         case SelectLogic.NOT_ANY:
           return primaryMatch && !secondaryMatch;
         case SelectLogic.AND_ALL:
-          return primaryMatch && this.matchAllKeys(secondaryKeys, searchBuffer, caseSensitive, matchWholeWords);
+          return (
+            primaryMatch &&
+            this.matchAllKeys(secondaryKeys, searchBuffer, caseSensitive, matchWholeWords)
+          );
         default:
           return primaryMatch && secondaryMatch;
       }

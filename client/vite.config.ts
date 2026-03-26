@@ -54,5 +54,16 @@ export default defineConfig({
   },
   lint: {
     ignorePatterns: [".next/**", "coverage/**", "dist/**", "node_modules/**", "out/**"],
+    options: { typeAware: true, typeCheck: true },
+    plugins: ["react"],
+  },
+  fmt: {
+    semi: true,
+    singleQuote: false,
+    printWidth: 100,
+    trailingComma: "all",
+  },
+  staged: {
+    "*.{ts,tsx}": "vp check --fix",
   },
 });

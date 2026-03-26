@@ -31,14 +31,21 @@ export class SecretService {
   async get(key: string): Promise<string | null> {
     const row = this.db.get<{ value: string }>('SELECT value FROM secrets WHERE key = ?', [key]);
     if (!row) return null;
-    try { return decrypt(row.value); } catch { return null; }
+    try {
+      return decrypt(row.value);
+    } catch {
+      return null;
+    }
   }
 
   async set(key: string, value: string) {
     const encrypted = encrypt(value);
     const existing = this.db.get('SELECT id FROM secrets WHERE key = ?', [key]);
     if (existing) {
-      this.db.run("UPDATE secrets SET value = ?, updated_at = datetime('now') WHERE key = ?", [encrypted, key]);
+      this.db.run("UPDATE secrets SET value = ?, updated_at = datetime('now') WHERE key = ?", [
+        encrypted,
+        key,
+      ]);
     } else {
       this.db.run('INSERT INTO secrets (key, value) VALUES (?, ?)', [key, encrypted]);
     }

@@ -30,18 +30,12 @@ describe('GroupTurnOrderService', () => {
   });
 
   it('LIST: round-robins to next member', () => {
-    const result = service.selectNext(
-      makeContext({ lastSpeakerId: 1 }),
-      ActivationStrategy.LIST,
-    );
+    const result = service.selectNext(makeContext({ lastSpeakerId: 1 }), ActivationStrategy.LIST);
     expect(result).toBe(2);
   });
 
   it('LIST: wraps around to first member', () => {
-    const result = service.selectNext(
-      makeContext({ lastSpeakerId: 3 }),
-      ActivationStrategy.LIST,
-    );
+    const result = service.selectNext(makeContext({ lastSpeakerId: 3 }), ActivationStrategy.LIST);
     expect(result).toBe(1);
   });
 

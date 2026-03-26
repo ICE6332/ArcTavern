@@ -86,14 +86,22 @@ export class CharacterService {
 
   async update(id: number, data: Record<string, unknown>): Promise<CharacterRow | null> {
     const fieldMap: Record<string, string> = {
-      name: 'name', avatar: 'avatar', description: 'description',
-      personality: 'personality', firstMes: 'first_mes', mesExample: 'mes_example',
-      scenario: 'scenario', systemPrompt: 'system_prompt',
+      name: 'name',
+      avatar: 'avatar',
+      description: 'description',
+      personality: 'personality',
+      firstMes: 'first_mes',
+      mesExample: 'mes_example',
+      scenario: 'scenario',
+      systemPrompt: 'system_prompt',
       postHistoryInstructions: 'post_history_instructions',
       alternateGreetings: 'alternate_greetings',
-      creator: 'creator', creatorNotes: 'creator_notes',
+      creator: 'creator',
+      creatorNotes: 'creator_notes',
       characterVersion: 'character_version',
-      tags: 'tags', extensions: 'extensions', characterBook: 'character_book',
+      tags: 'tags',
+      extensions: 'extensions',
+      characterBook: 'character_book',
       worldInfoBookId: 'world_info_book_id',
     };
     const sets: string[] = [];

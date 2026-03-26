@@ -45,11 +45,7 @@ export interface CompletionRequest {
   stream?: boolean;
   stop?: string[];
   tools?: ToolDefinition[];
-  toolChoice?:
-    | 'auto'
-    | 'none'
-    | 'required'
-    | { type: string; function: { name: string } };
+  toolChoice?: 'auto' | 'none' | 'required' | { type: string; function: { name: string } };
   assistantPrefill?: string;
   jsonSchema?: { name: string; description?: string; value: object };
   reasoningEffort?: string;

@@ -21,9 +21,7 @@ async function bootstrap() {
         return;
       }
 
-      const isLocalhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(
-        origin,
-      );
+      const isLocalhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
       if (isLocalhostOrigin) {
         callback(null, true);
         return;

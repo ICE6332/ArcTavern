@@ -20,10 +20,7 @@ import fs from 'fs';
 import path from 'path';
 import YAML from 'yaml';
 import { CharacterService } from './character.service';
-import {
-  CharacterCardParserService,
-  TavernCardV2,
-} from './character-card-parser.service';
+import { CharacterCardParserService, TavernCardV2 } from './character-card-parser.service';
 import { WorldInfoService } from '../world-info/world-info.service';
 
 interface UploadedBinaryFile {
@@ -111,9 +108,7 @@ export class CharacterController {
       characterVersion: card.data.character_version,
       tags: JSON.stringify(card.data.tags ?? []),
       extensions: JSON.stringify(card.data.extensions ?? {}),
-      characterBook: card.data.character_book
-        ? JSON.stringify(card.data.character_book)
-        : null,
+      characterBook: card.data.character_book ? JSON.stringify(card.data.character_book) : null,
       spec: card.spec,
       specVersion: card.spec_version,
     };
@@ -199,15 +194,30 @@ export class CharacterController {
     const toJsonArray = (val: unknown): string => {
       if (Array.isArray(val)) return JSON.stringify(val);
       if (typeof val === 'string') {
-        try { const parsed = JSON.parse(val); if (Array.isArray(parsed)) return val; } catch { /* ignore */ }
-        return JSON.stringify(val.split(',').map((s: string) => s.trim()).filter(Boolean));
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return val;
+        } catch {
+          /* ignore */
+        }
+        return JSON.stringify(
+          val
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean),
+        );
       }
       return '[]';
     };
 
     const positionMap: Record<number, string> = {
-      0: 'before_char', 1: 'after_char', 2: 'before_example',
-      3: 'after_example', 4: 'at_depth', 5: 'before_an', 6: 'after_an',
+      0: 'before_char',
+      1: 'after_char',
+      2: 'before_example',
+      3: 'after_example',
+      4: 'at_depth',
+      5: 'before_an',
+      6: 'after_an',
     };
 
     return {
@@ -215,20 +225,22 @@ export class CharacterController {
       secondary_keys: toJsonArray(e.secondary_keys ?? e.keysecondary),
       content: e.content ?? '',
       comment: e.comment ?? e.name ?? '',
-      enabled: (e.enabled === false || e.disable === true) ? 0 : 1,
+      enabled: e.enabled === false || e.disable === true ? 0 : 1,
       insertion_order: e.insertion_order ?? e.order ?? 100,
       case_sensitive: e.case_sensitive ? 1 : 0,
       priority: e.priority ?? 10,
-      position: typeof e.position === 'number'
-        ? (positionMap[e.position] ?? 'before_char')
-        : (e.position ?? 'before_char'),
+      position:
+        typeof e.position === 'number'
+          ? (positionMap[e.position] ?? 'before_char')
+          : (e.position ?? 'before_char'),
       constant: e.constant ? 1 : 0,
       selective: e.selective ? 1 : 0,
       select_logic: e.select_logic ?? e.selectiveLogic ?? 0,
       depth: e.depth ?? 4,
       probability: e.probability ?? 100,
-      use_probability: e.use_probability ?? (e.useProbability ?? 1),
-      extensions: typeof e.extensions === 'object' ? JSON.stringify(e.extensions) : (e.extensions ?? '{}'),
+      use_probability: e.use_probability ?? e.useProbability ?? 1,
+      extensions:
+        typeof e.extensions === 'object' ? JSON.stringify(e.extensions) : (e.extensions ?? '{}'),
       role: e.role ?? 0,
       sticky: e.sticky ?? 0,
       cooldown: e.cooldown ?? 0,
@@ -258,9 +270,7 @@ export class CharacterController {
     }
 
     const avatarPath = path.join(this.characterAvatarDir, `${id}.png`);
-    const basePng = fs.existsSync(avatarPath)
-      ? fs.readFileSync(avatarPath)
-      : this.defaultAvatarPng;
+    const basePng = fs.existsSync(avatarPath) ? fs.readFileSync(avatarPath) : this.defaultAvatarPng;
     const outputPng = this.characterCardParser.write(basePng, card);
 
     res.setHeader('Content-Type', 'image/png');
@@ -294,10 +304,7 @@ export class CharacterController {
   }
 
   @Put(':id')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: Record<string, unknown>,
-  ) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, unknown>) {
     const existing = await this.characterService.findOne(id);
     if (!existing) throw new NotFoundException('Character not found');
     return this.characterService.update(id, body);

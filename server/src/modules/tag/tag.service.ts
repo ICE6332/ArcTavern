@@ -92,10 +92,11 @@ export class TagService {
   }
 
   async unassignTag(entityType: string, entityId: string, tagId: string): Promise<void> {
-    this.db.run(
-      `DELETE FROM entity_tags WHERE entity_type = ? AND entity_id = ? AND tag_id = ?`,
-      [entityType, entityId, tagId],
-    );
+    this.db.run(`DELETE FROM entity_tags WHERE entity_type = ? AND entity_id = ? AND tag_id = ?`, [
+      entityType,
+      entityId,
+      tagId,
+    ]);
   }
 
   async getEntityTags(entityType: string, entityId: string): Promise<TagRow[]> {

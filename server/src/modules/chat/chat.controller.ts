@@ -51,10 +51,7 @@ export class ChatController {
   }
 
   @Put(':id')
-  async updateChat(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: { name?: string },
-  ) {
+  async updateChat(@Param('id', ParseIntPipe) id: number, @Body() body: { name?: string }) {
     const chat = await this.chatService.findOne(id);
     if (!chat) throw new NotFoundException('Chat not found');
     if (body.name !== undefined) {

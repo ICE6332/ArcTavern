@@ -19,10 +19,7 @@ export interface TurnOrderContext {
 
 @Injectable()
 export class GroupTurnOrderService {
-  selectNext(
-    context: TurnOrderContext,
-    strategy: ActivationStrategy,
-  ): number | null {
+  selectNext(context: TurnOrderContext, strategy: ActivationStrategy): number | null {
     const enabledMembers = context.members.filter(
       (m) => !context.disabledMembers.includes(m.characterId),
     );
@@ -63,9 +60,7 @@ export class GroupTurnOrderService {
     }
 
     // If all have spoken, pick any except last speaker
-    const othersExceptLast = members.filter(
-      (m) => m.characterId !== context.lastSpeakerId,
-    );
+    const othersExceptLast = members.filter((m) => m.characterId !== context.lastSpeakerId);
     if (othersExceptLast.length > 0) {
       return othersExceptLast[Math.floor(Math.random() * othersExceptLast.length)].characterId;
     }
@@ -87,9 +82,7 @@ export class GroupTurnOrderService {
     return sorted[nextIndex].characterId;
   }
 
-  private selectPooled(
-    members: Array<{ characterId: number; sortOrder: number }>,
-  ): number {
+  private selectPooled(members: Array<{ characterId: number; sortOrder: number }>): number {
     // Random selection
     return members[Math.floor(Math.random() * members.length)].characterId;
   }

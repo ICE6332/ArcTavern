@@ -56,13 +56,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
       ['extra', "TEXT DEFAULT '{}'"],
     ]);
 
-    this.ensureColumns('characters', [
-      ['world_info_book_id', 'INTEGER DEFAULT NULL'],
-    ]);
+    this.ensureColumns('characters', [['world_info_book_id', 'INTEGER DEFAULT NULL']]);
 
-    this.ensureColumns('chats', [
-      ['group_id', 'TEXT'],
-    ]);
+    this.ensureColumns('chats', [['group_id', 'TEXT']]);
 
     this.ensureColumns('presets', [
       ['is_default', 'INTEGER DEFAULT 0'],
@@ -71,7 +67,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
 
     // Unique index for preset name + api_type
     try {
-      this.sqlite.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_presets_name_type ON presets(name, api_type)');
+      this.sqlite.run(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_presets_name_type ON presets(name, api_type)',
+      );
     } catch {
       // Index may already exist
     }
@@ -112,9 +110,7 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
     for (const [name, definition] of columns) {
       if (!existing.has(name)) {
         const quotedColumn = this.quoteIdentifier(name);
-        this.sqlite.run(
-          `ALTER TABLE ${quotedTable} ADD COLUMN ${quotedColumn} ${definition}`,
-        );
+        this.sqlite.run(`ALTER TABLE ${quotedTable} ADD COLUMN ${quotedColumn} ${definition}`);
       }
     }
   }

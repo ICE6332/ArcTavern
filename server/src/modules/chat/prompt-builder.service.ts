@@ -198,16 +198,12 @@ export class PromptBuilderService {
       case 'scenario':
         return {
           role: 'system',
-          content: context.character.scenario
-            ? `Scenario:\n${context.character.scenario}`
-            : '',
+          content: context.character.scenario ? `Scenario:\n${context.character.scenario}` : '',
         };
       case 'personaDescription':
         return {
           role: 'system',
-          content: context.persona
-            ? `User Persona:\n${context.persona}`
-            : '',
+          content: context.persona ? `User Persona:\n${context.persona}` : '',
         };
       case 'worldInfoBefore':
         return {
@@ -222,15 +218,14 @@ export class PromptBuilderService {
       case 'dialogueExamples':
         return {
           role: 'system',
-          content: context.examples
-            ? `Example Messages:\n${context.examples}`
-            : '',
+          content: context.examples ? `Example Messages:\n${context.examples}` : '',
         };
       case 'jailbreak':
         return {
           role: 'system',
-          content: custom?.content
-            ?? (context.character.post_history_instructions
+          content:
+            custom?.content ??
+            (context.character.post_history_instructions
               ? `Post-History Instructions:\n${context.character.post_history_instructions}`
               : ''),
         };
@@ -272,17 +267,16 @@ export class PromptBuilderService {
       .map((e) => e.content);
 
     // Build RAG memory block (for non-depth positions)
-    const ragBlock = (settings.ragInsertionPosition !== 'at_depth')
-      ? this.buildRagBlock(settings.ragContext, settings.ragMaxTokenBudget)
-      : null;
+    const ragBlock =
+      settings.ragInsertionPosition !== 'at_depth'
+        ? this.buildRagBlock(settings.ragContext, settings.ragMaxTokenBudget)
+        : null;
 
     const sections: Array<string | null> = [
       character.system_prompt || null,
 
       // Persona description
-      settings.personaDescription
-        ? `User Persona:\n${settings.personaDescription}`
-        : null,
+      settings.personaDescription ? `User Persona:\n${settings.personaDescription}` : null,
 
       // Before char WI entries
       beforeCharEntries.length > 0 ? beforeCharEntries.join('\n') : null,
@@ -301,7 +295,9 @@ export class PromptBuilderService {
       afterCharEntries.length > 0 ? afterCharEntries.join('\n') : null,
 
       // RAG: after character description (default)
-      (settings.ragInsertionPosition === 'after_char' || !settings.ragInsertionPosition) ? ragBlock : null,
+      settings.ragInsertionPosition === 'after_char' || !settings.ragInsertionPosition
+        ? ragBlock
+        : null,
 
       // Before example entries
       beforeExampleEntries.length > 0 ? beforeExampleEntries.join('\n') : null,
@@ -399,10 +395,7 @@ export class PromptBuilderService {
     return 'user';
   }
 
-  private buildRagBlock(
-    memories?: RetrievedMemory[],
-    maxTokenBudget?: number,
-  ): string | null {
+  private buildRagBlock(memories?: RetrievedMemory[], maxTokenBudget?: number): string | null {
     if (!memories || memories.length === 0) return null;
 
     const maxChars = (maxTokenBudget ?? 1024) * 4;

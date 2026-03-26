@@ -72,9 +72,8 @@ export class RagService {
       const queryVector = embeddingResponse.embeddings[0];
       const dimensions = embeddingResponse.dimensions;
 
-      const filter = settings.scope === 'chat'
-        ? `chatId = ${chatId}`
-        : `characterId = ${characterId}`;
+      const filter =
+        settings.scope === 'chat' ? `chatId = ${chatId}` : `characterId = ${characterId}`;
 
       const hasTable = await this.vectorStore.tableExists(dimensions);
       if (!hasTable) return [];
@@ -122,7 +121,9 @@ export class RagService {
         if (await this.vectorStore.tableExists(dims)) {
           await this.vectorStore.deleteByMessageId(messageId, dims);
         }
-      } catch { /* table may not exist */ }
+      } catch {
+        /* table may not exist */
+      }
     }
   }
 
@@ -132,7 +133,9 @@ export class RagService {
         if (await this.vectorStore.tableExists(dims)) {
           await this.vectorStore.deleteByChatId(chatId, dims);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -142,7 +145,9 @@ export class RagService {
         if (await this.vectorStore.tableExists(dims)) {
           await this.vectorStore.deleteByCharacterId(characterId, dims);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }
 }

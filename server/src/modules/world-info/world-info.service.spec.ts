@@ -33,7 +33,13 @@ describe('WorldInfoService', () => {
     const service = new WorldInfoService(db);
     db.get.mockReturnValueOnce({ max_uid: 3 }); // max uid query
     db.run.mockReturnValue({ changes: 1, lastId: 10 });
-    db.get.mockResolvedValueOnce({ id: 10, book_id: 1, uid: 4, keys: '["test"]', content: 'hello' });
+    db.get.mockResolvedValueOnce({
+      id: 10,
+      book_id: 1,
+      uid: 4,
+      keys: '["test"]',
+      content: 'hello',
+    });
 
     const result = await service.createEntry(1, { keys: '["test"]', content: 'hello' });
 

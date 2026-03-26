@@ -110,7 +110,9 @@ export class AiProviderService {
         switch (format) {
           case 'google': {
             // Google native SDK expects baseURL ending with /v1beta; force it
-            const googleBase = /\/v1beta$/.test(baseURL) ? baseURL : `${baseURL.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
+            const googleBase = /\/v1beta$/.test(baseURL)
+              ? baseURL
+              : `${baseURL.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
             return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
           }
           case 'openai':
@@ -142,9 +144,7 @@ export class AiProviderService {
           model || 'text-embedding-004',
         );
       case 'mistral':
-        return createMistral({ apiKey }).textEmbeddingModel(
-          model || 'mistral-embed',
-        );
+        return createMistral({ apiKey }).textEmbeddingModel(model || 'mistral-embed');
       case 'openrouter':
         return createOpenAI({
           apiKey,
@@ -174,7 +174,13 @@ export class AiProviderService {
 
   async complete(req: CompletionRequest): Promise<CompletionResponse> {
     const apiKey = await this.getApiKey(req.provider);
-    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
+    const model = this.createLanguageModel(
+      req.provider,
+      req.model,
+      apiKey,
+      req.reverseProxy,
+      req.customApiFormat,
+    );
 
     const result = await generateText({
       model,
@@ -210,7 +216,13 @@ export class AiProviderService {
     signal?: AbortSignal,
   ): AsyncGenerator<CompletionStreamChunk, void, unknown> {
     const apiKey = await this.getApiKey(req.provider);
-    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
+    const model = this.createLanguageModel(
+      req.provider,
+      req.model,
+      apiKey,
+      req.reverseProxy,
+      req.customApiFormat,
+    );
 
     const result = streamText({
       model,
@@ -253,7 +265,13 @@ export class AiProviderService {
     signal?: AbortSignal,
   ): AsyncGenerator<{ partial: unknown }, void, unknown> {
     const apiKey = await this.getApiKey(req.provider);
-    const model = this.createLanguageModel(req.provider, req.model, apiKey, req.reverseProxy, req.customApiFormat);
+    const model = this.createLanguageModel(
+      req.provider,
+      req.model,
+      apiKey,
+      req.reverseProxy,
+      req.customApiFormat,
+    );
 
     // Text stream + incremental JSON parsing
     // System prompt (injected by controller) guides the model to output valid JSON.
@@ -311,7 +329,8 @@ export class AiProviderService {
   }
 
   async tokenize(input: { text?: string; messages?: CompletionRequest['messages'] }) {
-    const text = input.text ?? input.messages?.map((msg) => this.messageToText(msg)).join('\n') ?? '';
+    const text =
+      input.text ?? input.messages?.map((msg) => this.messageToText(msg)).join('\n') ?? '';
     const tokens = Math.max(1, Math.ceil(text.length / 4));
     return {
       tokens,
@@ -336,9 +355,7 @@ export class AiProviderService {
     if (!Array.isArray(content)) return '';
     return content
       .map((part) =>
-        typeof part === 'string'
-          ? part
-          : (part.text ?? JSON.stringify(part)).toString(),
+        typeof part === 'string' ? part : (part.text ?? JSON.stringify(part)).toString(),
       )
       .join('');
   }
@@ -366,7 +383,7 @@ export class AiProviderService {
   async healthCheck(req: HealthCheckRequest): Promise<HealthCheckResponse> {
     const startTime = Date.now();
     try {
-      const apiKey = req.apiKey?.trim() || await this.getApiKey(req.provider);
+      const apiKey = req.apiKey?.trim() || (await this.getApiKey(req.provider));
       const url = this.toModelsUrl(req.baseUrl);
       const response = await fetch(url, {
         method: 'GET',
@@ -439,17 +456,13 @@ export class AiProviderService {
     const raw = await response.text();
 
     if (!response.ok) {
-      throw new BadRequestException(
-        `HTTP ${response.status}: ${raw}`,
-      );
+      throw new BadRequestException(`HTTP ${response.status}: ${raw}`);
     }
 
     try {
       return JSON.parse(raw) as unknown;
     } catch {
-      throw new BadRequestException(
-        `HTTP ${response.status}: non-JSON response from upstream`,
-      );
+      throw new BadRequestException(`HTTP ${response.status}: non-JSON response from upstream`);
     }
   }
 }

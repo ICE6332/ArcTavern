@@ -17,9 +17,6 @@ declare module 'png-chunks-encode' {
 }
 
 declare module 'png-chunk-text' {
-  export function encode(
-    keyword: string,
-    text: string,
-  ): { name: string; data: Uint8Array };
+  export function encode(keyword: string, text: string): { name: string; data: Uint8Array };
   export function decode(data: Uint8Array): { keyword: string; text: string };
 }

@@ -27,13 +27,7 @@ import {
   extractNarrationText,
 } from '../ai-provider/structured-output-schema';
 
-type GenerationType =
-  | 'normal'
-  | 'regenerate'
-  | 'swipe'
-  | 'continue'
-  | 'impersonate'
-  | 'quiet';
+type GenerationType = 'normal' | 'regenerate' | 'swipe' | 'continue' | 'impersonate' | 'quiet';
 
 type GenerateRequest = Omit<CompletionRequest, 'messages' | 'stream'> & {
   type?: GenerationType;
@@ -148,9 +142,7 @@ export class ChatGenerationController {
         generationType === 'continue') &&
       !targetAssistant
     ) {
-      throw new BadRequestException(
-        `${generationType} requires an existing assistant message`,
-      );
+      throw new BadRequestException(`${generationType} requires an existing assistant message`);
     }
 
     if (generationType === 'impersonate') {
@@ -161,8 +153,7 @@ export class ChatGenerationController {
           chat_id: chatId,
           role: 'system',
           name: '',
-          content:
-            'Generate the next user message only. Write as the user in first person.',
+          content: 'Generate the next user message only. Write as the user in first person.',
           is_hidden: 0,
           swipe_id: 0,
           swipes: '[]',
@@ -186,31 +177,26 @@ export class ChatGenerationController {
       );
     }
 
-    const promptMessages = this.promptBuilder.buildPrompt(
-      character,
-      chat,
-      promptSource,
-      {
-        maxTokens: body.maxTokens,
-        maxContext: body.maxContext,
-        userName: body.userName ?? 'User',
-        mergeSystemMessages: true,
-        personaDescription: await this.getPersonaDescription(body.personaId, character.id),
-        worldInfoSettings: {
-          activatedEntries: await this.getActivatedEntries(
-            body.worldInfoBookIds,
-            promptSource,
-            character,
-          ),
-        },
-        ragContext,
-        ragMaxTokenBudget: ragSettings.maxTokenBudget,
-        ragInsertionPosition: ragSettings.insertionPosition,
-        ragInsertionDepth: ragSettings.insertionDepth,
-        promptOrder: body.promptOrder,
-        customPrompts: body.customPrompts,
+    const promptMessages = this.promptBuilder.buildPrompt(character, chat, promptSource, {
+      maxTokens: body.maxTokens,
+      maxContext: body.maxContext,
+      userName: body.userName ?? 'User',
+      mergeSystemMessages: true,
+      personaDescription: await this.getPersonaDescription(body.personaId, character.id),
+      worldInfoSettings: {
+        activatedEntries: await this.getActivatedEntries(
+          body.worldInfoBookIds,
+          promptSource,
+          character,
+        ),
       },
-    );
+      ragContext,
+      ragMaxTokenBudget: ragSettings.maxTokenBudget,
+      ragInsertionPosition: ragSettings.insertionPosition,
+      ragInsertionDepth: ragSettings.insertionDepth,
+      promptOrder: body.promptOrder,
+      customPrompts: body.customPrompts,
+    });
     this.chatDebug('generate.prompt.built', {
       requestTag,
       chatId,
@@ -270,9 +256,7 @@ export class ChatGenerationController {
           abortController.signal,
         )) {
           // Normalize: bare array → {blocks: [...]}
-          const partial = Array.isArray(chunk.partial)
-            ? { blocks: chunk.partial }
-            : chunk.partial;
+          const partial = Array.isArray(chunk.partial) ? { blocks: chunk.partial } : chunk.partial;
           structuredResult = partial;
           chunkCount += 1;
           if (chunkCount <= 3 || chunkCount % 20 === 0) {
@@ -306,37 +290,37 @@ export class ChatGenerationController {
       } else {
         // --- Text streaming path (existing behavior) ---
         for await (const chunk of this.aiProviderService.streamComplete(
-        completionRequest,
-        abortController.signal,
-      )) {
-        if (chunk.content) {
-          fullContent += chunk.content;
-          chunkCount += 1;
-          if (chunkCount <= 3 || chunkCount % 20 === 0) {
-            this.chatDebug('generate.chunk', {
-              requestTag,
-              chatId,
-              chunkCount,
-              aggregatedLength: fullContent.length,
-            });
+          completionRequest,
+          abortController.signal,
+        )) {
+          if (chunk.content) {
+            fullContent += chunk.content;
+            chunkCount += 1;
+            if (chunkCount <= 3 || chunkCount % 20 === 0) {
+              this.chatDebug('generate.chunk', {
+                requestTag,
+                chatId,
+                chunkCount,
+                aggregatedLength: fullContent.length,
+              });
+            }
+            res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
           }
-          res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
-        }
 
-        if (chunk.reasoning) {
-          fullReasoning += chunk.reasoning;
-          reasoningChunkCount += 1;
-          if (reasoningChunkCount <= 3 || reasoningChunkCount % 20 === 0) {
-            this.chatDebug('generate.reasoningChunk', {
-              requestTag,
-              chatId,
-              reasoningChunkCount,
-              aggregatedReasoningLength: fullReasoning.length,
-            });
+          if (chunk.reasoning) {
+            fullReasoning += chunk.reasoning;
+            reasoningChunkCount += 1;
+            if (reasoningChunkCount <= 3 || reasoningChunkCount % 20 === 0) {
+              this.chatDebug('generate.reasoningChunk', {
+                requestTag,
+                chatId,
+                reasoningChunkCount,
+                aggregatedReasoningLength: fullReasoning.length,
+              });
+            }
+            res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
           }
-          res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
         }
-      }
       } // end else (text streaming path)
 
       if (!abortController.signal.aborted) {
@@ -366,9 +350,9 @@ export class ChatGenerationController {
           }
           // Also embed the user message if it was just added
           if (generationType === 'normal' && body.message?.trim()) {
-            const userMsg = [...latestMessages].reverse().find(
-              (m) => m.role === 'user' && m.content === body.message?.trim(),
-            );
+            const userMsg = [...latestMessages]
+              .reverse()
+              .find((m) => m.role === 'user' && m.content === body.message?.trim());
             if (userMsg) {
               this.ragService.onMessagePersisted(userMsg, character.id, ragSettings);
             }
@@ -388,7 +372,10 @@ export class ChatGenerationController {
     } catch (error: unknown) {
       if (!abortController.signal.aborted) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`[generate] Error: ${message}`, error instanceof Error ? error.stack : '');
+        this.logger.error(
+          `[generate] Error: ${message}`,
+          error instanceof Error ? error.stack : '',
+        );
         this.chatDebug('generate.error', {
           requestTag,
           chatId,
@@ -407,7 +394,10 @@ export class ChatGenerationController {
   @Post('chat/:chatId/generate-title')
   async generateTitle(
     @Param('chatId', ParseIntPipe) chatId: number,
-    @Body() body: Pick<CompletionRequest, 'provider' | 'model' | 'reverseProxy' | 'customApiFormat'>,
+    @Body() body: Pick<
+      CompletionRequest,
+      'provider' | 'model' | 'reverseProxy' | 'customApiFormat'
+    >,
   ) {
     const chat = await this.chatService.findOne(chatId);
     if (!chat) throw new NotFoundException('Chat not found');
@@ -451,7 +441,10 @@ export class ChatGenerationController {
         temperature: 0.7,
         stream: false,
       });
-      const title = result.content.trim().replace(/^["']|["']$/g, '').slice(0, 100);
+      const title = result.content
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .slice(0, 100);
       await this.chatService.updateName(chatId, title);
       return { title };
     } catch (error: unknown) {
@@ -501,11 +494,7 @@ export class ChatGenerationController {
     }
 
     const extra = this.parseExtra(message.extra);
-    const reasoningSwipes = this.parseReasoningSwipes(
-      extra,
-      swipes.length,
-      message.swipe_id ?? 0,
-    );
+    const reasoningSwipes = this.parseReasoningSwipes(extra, swipes.length, message.swipe_id ?? 0);
     const nextReasoning = reasoningSwipes[nextSwipeId] ?? '';
     const nextExtra = this.stringifyExtra(extra, nextReasoning, reasoningSwipes);
 
@@ -534,7 +523,9 @@ export class ChatGenerationController {
     if (format) extraObj.format = format;
     const messageExtra = fullReasoning
       ? this.stringifyExtra(extraObj, fullReasoning, [fullReasoning])
-      : (Object.keys(extraObj).length > 0 ? JSON.stringify(extraObj) : '{}');
+      : Object.keys(extraObj).length > 0
+        ? JSON.stringify(extraObj)
+        : '{}';
 
     if (generationType === 'impersonate') {
       await this.chatService.addMessage({
@@ -670,10 +661,9 @@ export class ChatGenerationController {
     currentSwipeId: number,
   ): string[] {
     const normalizedCount = Math.max(0, swipeCount);
-    const parsed =
-      Array.isArray(extra.reasoningSwipes)
-        ? extra.reasoningSwipes.filter((item): item is string => typeof item === 'string')
-        : [];
+    const parsed = Array.isArray(extra.reasoningSwipes)
+      ? extra.reasoningSwipes.filter((item): item is string => typeof item === 'string')
+      : [];
 
     if (parsed.length === 0) {
       const reasoning = this.parseReasoning(extra);
@@ -719,16 +709,11 @@ export class ChatGenerationController {
     personaId: string | undefined,
     characterId: number,
   ): Promise<string | undefined> {
-    let persona = personaId
-      ? await this.personaService.findOne(personaId)
-      : null;
+    let persona = personaId ? await this.personaService.findOne(personaId) : null;
 
     // Try to find a persona connected to this character
     if (!persona) {
-      const connected = await this.personaService.findForEntity(
-        'character',
-        String(characterId),
-      );
+      const connected = await this.personaService.findForEntity('character', String(characterId));
       if (connected.length > 0) persona = connected[0];
     }
 

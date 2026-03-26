@@ -20,7 +20,16 @@ describe('TagService', () => {
     const service = new TagService(db);
 
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
-    db.get.mockResolvedValueOnce({ id: 'abc', name: 'Test Tag', folder_type: 'NONE', sort_order: 0, color: null, color2: null, is_hidden: 0, created_at: '' });
+    db.get.mockResolvedValueOnce({
+      id: 'abc',
+      name: 'Test Tag',
+      folder_type: 'NONE',
+      sort_order: 0,
+      color: null,
+      color2: null,
+      is_hidden: 0,
+      created_at: '',
+    });
 
     const result = await service.create({ name: 'Test Tag' });
 

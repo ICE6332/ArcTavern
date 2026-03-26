@@ -75,7 +75,10 @@ export class WorldInfoService {
     const values: unknown[] = [];
     for (const [key, val] of Object.entries(data)) {
       const col = fieldMap[key];
-      if (col) { sets.push(`${col} = ?`); values.push(val); }
+      if (col) {
+        sets.push(`${col} = ?`);
+        values.push(val);
+      }
     }
     if (sets.length === 0) return this.findBook(id);
     sets.push("updated_at = datetime('now')");
@@ -117,7 +120,8 @@ export class WorldInfoService {
         use_group_scoring, automation_id, role, sticky, cooldown, delay, triggers
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        bookId, uid,
+        bookId,
+        uid,
         data.keys ?? '[]',
         data.secondary_keys ?? '[]',
         data.content ?? '',
@@ -156,24 +160,46 @@ export class WorldInfoService {
 
   async updateEntry(id: number, data: Record<string, unknown>): Promise<WorldInfoEntryRow | null> {
     const fieldMap: Record<string, string> = {
-      keys: 'keys', secondaryKeys: 'secondary_keys', content: 'content',
-      comment: 'comment', enabled: 'enabled', insertionOrder: 'insertion_order',
-      caseSensitive: 'case_sensitive', priority: 'priority', position: 'position',
-      extensions: 'extensions', constant: 'constant', selective: 'selective',
-      selectLogic: 'select_logic', order: '"order"', excludeRecursion: 'exclude_recursion',
-      preventRecursion: 'prevent_recursion', probability: 'probability',
-      useProbability: 'use_probability', depth: 'depth', groupName: 'group_name',
-      groupOverride: 'group_override', groupWeight: 'group_weight',
-      scanDepth: 'scan_depth', matchWholeWords: 'match_whole_words',
-      useGroupScoring: 'use_group_scoring', automationId: 'automation_id',
-      role: 'role', sticky: 'sticky', cooldown: 'cooldown', delay: 'delay',
+      keys: 'keys',
+      secondaryKeys: 'secondary_keys',
+      content: 'content',
+      comment: 'comment',
+      enabled: 'enabled',
+      insertionOrder: 'insertion_order',
+      caseSensitive: 'case_sensitive',
+      priority: 'priority',
+      position: 'position',
+      extensions: 'extensions',
+      constant: 'constant',
+      selective: 'selective',
+      selectLogic: 'select_logic',
+      order: '"order"',
+      excludeRecursion: 'exclude_recursion',
+      preventRecursion: 'prevent_recursion',
+      probability: 'probability',
+      useProbability: 'use_probability',
+      depth: 'depth',
+      groupName: 'group_name',
+      groupOverride: 'group_override',
+      groupWeight: 'group_weight',
+      scanDepth: 'scan_depth',
+      matchWholeWords: 'match_whole_words',
+      useGroupScoring: 'use_group_scoring',
+      automationId: 'automation_id',
+      role: 'role',
+      sticky: 'sticky',
+      cooldown: 'cooldown',
+      delay: 'delay',
       triggers: 'triggers',
     };
     const sets: string[] = [];
     const values: unknown[] = [];
     for (const [key, val] of Object.entries(data)) {
       const col = fieldMap[key];
-      if (col) { sets.push(`${col} = ?`); values.push(val); }
+      if (col) {
+        sets.push(`${col} = ?`);
+        values.push(val);
+      }
     }
     if (sets.length === 0) return this.findEntry(id);
     values.push(id);
@@ -199,7 +225,9 @@ export class WorldInfoService {
     return book;
   }
 
-  async exportBook(id: number): Promise<{ book: WorldInfoBookRow; entries: WorldInfoEntryRow[] } | null> {
+  async exportBook(
+    id: number,
+  ): Promise<{ book: WorldInfoBookRow; entries: WorldInfoEntryRow[] } | null> {
     const book = await this.findBook(id);
     if (!book) return null;
     const entries = await this.findEntries(id);

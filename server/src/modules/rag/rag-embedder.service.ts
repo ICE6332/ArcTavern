@@ -32,9 +32,7 @@ export class RagEmbedderService {
   enqueue(message: EmbedJobMessage, characterId: number, settings: RagSettings): void {
     this.queue.push({ message, characterId, settings });
     if (!this.processing) {
-      this.processQueue().catch((err) =>
-        this.logger.error('Queue processing error', err),
-      );
+      this.processQueue().catch((err) => this.logger.error('Queue processing error', err));
     }
   }
 
@@ -80,7 +78,9 @@ export class RagEmbedderService {
     }));
 
     await this.vectorStore.addRecords(records, response.dimensions);
-    this.logger.debug(`Embedded message ${message.id} (${chunks.length} chunks, ${response.dimensions}d)`);
+    this.logger.debug(
+      `Embedded message ${message.id} (${chunks.length} chunks, ${response.dimensions}d)`,
+    );
   }
 
   chunkText(text: string, chunkSize: number, overlap: number): string[] {

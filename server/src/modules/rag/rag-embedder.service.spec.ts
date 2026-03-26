@@ -3,10 +3,7 @@ import { RagEmbedderService } from './rag-embedder.service';
 
 describe('RagEmbedderService', () => {
   describe('chunkText', () => {
-    const embedder = new RagEmbedderService(
-      {} as any,
-      {} as any,
-    );
+    const embedder = new RagEmbedderService({} as any, {} as any);
 
     it('returns empty array for empty text', () => {
       expect(embedder.chunkText('', 1000, 200)).toEqual([]);

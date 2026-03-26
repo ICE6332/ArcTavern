@@ -119,15 +119,17 @@ describe('RagService', () => {
       const { service } = makeMocks();
       const settings: RagSettings = { ...DEFAULT_RAG_SETTINGS, enabled: false };
 
-      const result = await service.retrieveMemories(
-        [{ content: 'hello' }], 1, 1, settings,
-      );
+      const result = await service.retrieveMemories([{ content: 'hello' }], 1, 1, settings);
       expect(result).toEqual([]);
     });
 
     it('returns empty when no table exists', async () => {
       const { service, aiProvider, vectorStore } = makeMocks();
-      const settings: RagSettings = { ...DEFAULT_RAG_SETTINGS, enabled: true, embeddingProvider: 'openai' };
+      const settings: RagSettings = {
+        ...DEFAULT_RAG_SETTINGS,
+        enabled: true,
+        embeddingProvider: 'openai',
+      };
 
       aiProvider.embed.mockResolvedValue({
         embeddings: [[0.1, 0.2]],
@@ -136,9 +138,7 @@ describe('RagService', () => {
       });
       vectorStore.tableExists.mockResolvedValue(false);
 
-      const result = await service.retrieveMemories(
-        [{ content: 'hello' }], 1, 1, settings,
-      );
+      const result = await service.retrieveMemories([{ content: 'hello' }], 1, 1, settings);
       expect(result).toEqual([]);
     });
 
@@ -159,13 +159,27 @@ describe('RagService', () => {
       });
       vectorStore.tableExists.mockResolvedValue(true);
       vectorStore.search.mockResolvedValue([
-        { content: 'good match', role: 'user', name: 'User', messageId: 1, chatId: 1, createdAt: '', _distance: 0.2 },
-        { content: 'bad match', role: 'user', name: 'User', messageId: 2, chatId: 1, createdAt: '', _distance: 0.8 },
+        {
+          content: 'good match',
+          role: 'user',
+          name: 'User',
+          messageId: 1,
+          chatId: 1,
+          createdAt: '',
+          _distance: 0.2,
+        },
+        {
+          content: 'bad match',
+          role: 'user',
+          name: 'User',
+          messageId: 2,
+          chatId: 1,
+          createdAt: '',
+          _distance: 0.8,
+        },
       ]);
 
-      const result = await service.retrieveMemories(
-        [{ content: 'hello' }], 1, 1, settings,
-      );
+      const result = await service.retrieveMemories([{ content: 'hello' }], 1, 1, settings);
 
       expect(result.length).toBe(1);
       expect(result[0].content).toBe('good match');
@@ -189,13 +203,27 @@ describe('RagService', () => {
       });
       vectorStore.tableExists.mockResolvedValue(true);
       vectorStore.search.mockResolvedValue([
-        { content: 'chunk1', role: 'assistant', name: 'Bot', messageId: 5, chatId: 1, createdAt: '', _distance: 0.1 },
-        { content: 'chunk2', role: 'assistant', name: 'Bot', messageId: 5, chatId: 1, createdAt: '', _distance: 0.3 },
+        {
+          content: 'chunk1',
+          role: 'assistant',
+          name: 'Bot',
+          messageId: 5,
+          chatId: 1,
+          createdAt: '',
+          _distance: 0.1,
+        },
+        {
+          content: 'chunk2',
+          role: 'assistant',
+          name: 'Bot',
+          messageId: 5,
+          chatId: 1,
+          createdAt: '',
+          _distance: 0.3,
+        },
       ]);
 
-      const result = await service.retrieveMemories(
-        [{ content: 'hello' }], 1, 1, settings,
-      );
+      const result = await service.retrieveMemories([{ content: 'hello' }], 1, 1, settings);
 
       expect(result.length).toBe(1);
       expect(result[0].content).toBe('chunk1');
@@ -212,9 +240,7 @@ describe('RagService', () => {
 
       aiProvider.embed.mockRejectedValue(new Error('API down'));
 
-      const result = await service.retrieveMemories(
-        [{ content: 'hello' }], 1, 1, settings,
-      );
+      const result = await service.retrieveMemories([{ content: 'hello' }], 1, 1, settings);
       expect(result).toEqual([]);
     });
 
@@ -235,13 +261,9 @@ describe('RagService', () => {
       vectorStore.tableExists.mockResolvedValue(true);
       vectorStore.search.mockResolvedValue([]);
 
-      await service.retrieveMemories(
-        [{ content: 'hello' }], 1, 42, settings,
-      );
+      await service.retrieveMemories([{ content: 'hello' }], 1, 42, settings);
 
-      expect(vectorStore.search).toHaveBeenCalledWith(
-        [0.1], 1, 'chatId = 42', expect.any(Number),
-      );
+      expect(vectorStore.search).toHaveBeenCalledWith([0.1], 1, 'chatId = 42', expect.any(Number));
     });
 
     it('uses character scope filter', async () => {
@@ -261,12 +283,13 @@ describe('RagService', () => {
       vectorStore.tableExists.mockResolvedValue(true);
       vectorStore.search.mockResolvedValue([]);
 
-      await service.retrieveMemories(
-        [{ content: 'hello' }], 7, 1, settings,
-      );
+      await service.retrieveMemories([{ content: 'hello' }], 7, 1, settings);
 
       expect(vectorStore.search).toHaveBeenCalledWith(
-        [0.1], 1, 'characterId = 7', expect.any(Number),
+        [0.1],
+        1,
+        'characterId = 7',
+        expect.any(Number),
       );
     });
   });
