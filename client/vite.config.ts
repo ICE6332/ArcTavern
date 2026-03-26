@@ -53,7 +53,7 @@ export default defineConfig({
     },
   },
   lint: {
-    ignorePatterns: [".next/**", "coverage/**", "dist/**", "node_modules/**", "out/**"],
+    ignorePatterns: ["coverage/**", "dist/**", "node_modules/**"],
     options: { typeAware: true, typeCheck: true },
     plugins: ["react"],
   },
