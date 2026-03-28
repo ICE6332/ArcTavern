@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2025",
-    "lib": ["DOM", "ES2025"],
+    "target": "ESNext",
+    "lib": ["DOM", "ESNext"],
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,

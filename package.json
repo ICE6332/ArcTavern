@@ -22,6 +22,6 @@
   },
   "devDependencies": {
     "shadcn": "^3.8.5",
-    "vite-plus": "0.1.11"
+    "vite-plus": "0.1.14"
   }
 }

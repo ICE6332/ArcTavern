@@ -172,6 +172,30 @@ export class AiProviderService {
     return converted;
   }
 
+  private getProviderOptions(req: CompletionRequest): Record<string, Record<string, unknown>> | undefined {
+    if (!req.generationConfig || Object.keys(req.generationConfig).length === 0) {
+      return undefined;
+    }
+
+    const providerOptionKeyMap: Record<string, string> = {
+      openai: 'openai',
+      anthropic: 'anthropic',
+      google: 'google',
+      mistral: 'mistral',
+      custom: 'custom',
+      openrouter: 'openai',
+    };
+
+    const providerKey = providerOptionKeyMap[req.provider];
+    if (!providerKey) {
+      return undefined;
+    }
+
+    return {
+      [providerKey]: req.generationConfig,
+    };
+  }
+
   async complete(req: CompletionRequest): Promise<CompletionResponse> {
     const apiKey = await this.getApiKey(req.provider);
     const model = this.createLanguageModel(
@@ -192,6 +216,7 @@ export class AiProviderService {
       frequencyPenalty: req.frequencyPenalty,
       presencePenalty: req.presencePenalty,
       stopSequences: req.stop,
+      providerOptions: this.getProviderOptions(req),
     });
 
     const inputTokens = result.usage?.inputTokens ?? 0;
@@ -235,6 +260,7 @@ export class AiProviderService {
       presencePenalty: req.presencePenalty,
       stopSequences: req.stop,
       abortSignal: signal,
+      providerOptions: this.getProviderOptions(req),
     });
 
     for await (const part of result.fullStream) {
@@ -286,6 +312,7 @@ export class AiProviderService {
       presencePenalty: req.presencePenalty,
       stopSequences: req.stop,
       abortSignal: signal,
+      providerOptions: this.getProviderOptions(req),
     });
 
     let fullText = '';
