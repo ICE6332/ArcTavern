@@ -67,15 +67,10 @@ interface ConnectionState {
 }
 
 export const DEFAULT_MODELS: Record<Provider, string[]> = {
-  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1", "o1-mini", "o3-mini"],
-  anthropic: [
-    "claude-sonnet-4-20250514",
-    "claude-opus-4-20250514",
-    "claude-haiku-4-20250514",
-    "claude-3-5-sonnet-20241022",
-  ],
-  google: ["gemini-2.0-flash", "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash"],
-  openrouter: ["openai/gpt-4o", "anthropic/claude-sonnet-4-20250514", "google/gemini-2.0-flash"],
+  openai: ["gpt-5.2", "gpt-5-mini", "gpt-5-nano"],
+  anthropic: ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
+  google: ["gemini-3-flash-preview", "gemini-3-pro-preview"],
+  openrouter: ["openai/gpt-5.2", "anthropic/claude-sonnet-4-6", "google/gemini-3-flash-preview"],
   mistral: ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
   custom: [],
 };
@@ -84,7 +79,7 @@ export const useConnectionStore = create<ConnectionState>()(
   persist(
     (set) => ({
       provider: "openai",
-      model: "gpt-4o",
+      model: "gpt-5.2",
       reverseProxy: "",
       apiKeyConfigured: {
         openai: false,

@@ -34,23 +34,29 @@ const SECRET_KEY_MAP: Record<string, string> = {
 
 const MODEL_CATALOG: Record<string, Array<{ id: string; contextWindow: number }>> = {
   openai: [
-    { id: 'gpt-4o', contextWindow: 128_000 },
-    { id: 'gpt-4o-mini', contextWindow: 128_000 },
-    { id: 'o1', contextWindow: 200_000 },
-    { id: 'o3-mini', contextWindow: 200_000 },
+    { id: 'gpt-5.2', contextWindow: 400_000 },
+    { id: 'gpt-5-mini', contextWindow: 400_000 },
+    { id: 'gpt-5-nano', contextWindow: 400_000 },
   ],
   anthropic: [
-    { id: 'claude-sonnet-4-20250514', contextWindow: 200_000 },
-    { id: 'claude-opus-4-20250514', contextWindow: 200_000 },
+    { id: 'claude-sonnet-4-6', contextWindow: 200_000 },
+    { id: 'claude-opus-4-6', contextWindow: 200_000 },
+    { id: 'claude-haiku-4-5', contextWindow: 200_000 },
   ],
   google: [
-    { id: 'gemini-2.0-flash', contextWindow: 1_000_000 },
-    { id: 'gemini-2.0-pro', contextWindow: 1_000_000 },
+    { id: 'gemini-3-flash-preview', contextWindow: 1_048_576 },
+    { id: 'gemini-3-pro-preview', contextWindow: 1_048_576 },
   ],
-  openrouter: [{ id: 'openrouter/auto', contextWindow: 128_000 }],
+  openrouter: [
+    { id: 'openai/gpt-5.2', contextWindow: 400_000 },
+    { id: 'anthropic/claude-sonnet-4-6', contextWindow: 200_000 },
+    { id: 'google/gemini-3-flash-preview', contextWindow: 1_048_576 },
+  ],
   mistral: [{ id: 'mistral-large-latest', contextWindow: 128_000 }],
   custom: [],
 };
+
+type ProviderOptions = Record<string, NonNullable<CompletionRequest['generationConfig']>>;
 
 @Injectable()
 export class AiProviderService {
@@ -88,7 +94,7 @@ export class AiProviderService {
         return createAnthropic({ apiKey, baseURL: reverseProxy })(model);
       case 'google': {
         let googleBase = reverseProxy;
-        if (googleBase && !/\/v1beta$/.test(googleBase)) {
+        if (googleBase && !googleBase.endsWith('/v1beta')) {
           googleBase = `${googleBase.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
         }
         return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
@@ -110,7 +116,7 @@ export class AiProviderService {
         switch (format) {
           case 'google': {
             // Google native SDK expects baseURL ending with /v1beta; force it
-            const googleBase = /\/v1beta$/.test(baseURL)
+            const googleBase = baseURL.endsWith('/v1beta')
               ? baseURL
               : `${baseURL.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
             return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
@@ -172,7 +178,7 @@ export class AiProviderService {
     return converted;
   }
 
-  private getProviderOptions(req: CompletionRequest): Record<string, Record<string, unknown>> | undefined {
+  private getProviderOptions(req: CompletionRequest): ProviderOptions | undefined {
     if (!req.generationConfig || Object.keys(req.generationConfig).length === 0) {
       return undefined;
     }

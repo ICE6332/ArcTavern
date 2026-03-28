@@ -3,7 +3,7 @@
  * Attempts to parse partial JSON by repairing unclosed brackets/braces.
  */
 
-export function tryParsePartialJson(text: string): unknown | null {
+export function tryParsePartialJson(text: string): unknown {
   let trimmed = text.trim();
   if (!trimmed) return null;
 

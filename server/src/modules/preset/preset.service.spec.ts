@@ -2,6 +2,10 @@
 import { PresetService } from './preset.service';
 import type { DrizzleService } from '../../db/drizzle.service';
 
+function toStoreKey(value: unknown): string {
+  return String(value);
+}
+
 function makeMockDb(): DrizzleService {
   const store = new Map<string, unknown[]>();
   let nextId = 1;
@@ -58,13 +62,13 @@ function makeMockDb(): DrizzleService {
       }
       if (sql.startsWith('DELETE')) {
         const id = params?.[params.length - 1];
-        store.delete(`${id}`);
+        store.delete(toStoreKey(id));
         return { changes: 1, lastId: 0 };
       }
       if (sql.startsWith('UPDATE')) {
         // Find and update
         const id = params?.[params.length - 1];
-        const existing = store.get(`${id}`);
+        const existing = store.get(toStoreKey(id));
         if (existing && existing[0]) {
           const row = existing[0] as Record<string, unknown>;
           if (sql.includes('data = ?')) {
@@ -101,12 +105,10 @@ describe('PresetService', () => {
     const service = new PresetService(db);
 
     // Insert a default preset
-    (db.run as ReturnType<typeof vi.fn>).mockImplementationOnce(
-      (_sql: string, params?: unknown[]) => {
-        const id = 1;
-        return { changes: 1, lastId: id };
-      },
-    );
+    (db.run as ReturnType<typeof vi.fn>).mockImplementationOnce((_sql: string) => {
+      const id = 1;
+      return { changes: 1, lastId: id };
+    });
     (db.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => ({
       id: 1,
       name: 'Default',

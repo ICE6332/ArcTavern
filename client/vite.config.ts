@@ -6,6 +6,61 @@ const rootDir = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          const isSettingsModule =
+            id.includes("/components/settings/") ||
+            id.includes("\\components\\settings\\") ||
+            id.includes("/components/world-info/") ||
+            id.includes("\\components\\world-info\\") ||
+            id.includes("/hooks/use-settings-panel-controller") ||
+            id.includes("\\hooks\\use-settings-panel-controller") ||
+            id.includes("/stores/connection-store") ||
+            id.includes("\\stores\\connection-store") ||
+            id.includes("/stores/prompt-manager-store") ||
+            id.includes("\\stores\\prompt-manager-store") ||
+            id.includes("/stores/world-info-store") ||
+            id.includes("\\stores\\world-info-store");
+
+          if (isSettingsModule) {
+            return "settings";
+          }
+
+          if (id.includes("node_modules")) {
+            if (id.includes("@hugeicons/core-free-icons") || id.includes("@hugeicons/react")) {
+              return "icons";
+            }
+            if (id.includes("lucide-react")) {
+              return "lucide";
+            }
+            if (
+              id.includes("motion/react") ||
+              id.includes("motion") ||
+              id.includes("@dnd-kit/")
+            ) {
+              return "interaction";
+            }
+            if (id.includes("@base-ui/react") || id.includes("@radix-ui/")) {
+              return "ui-vendor";
+            }
+            if (
+              id.includes("react-markdown") ||
+              id.includes("remark-gfm") ||
+              id.includes("rehype-highlight") ||
+              id.includes("highlight.js")
+            ) {
+              return "markdown-stack";
+            }
+            if (id.includes("@openuidev/react-lang")) {
+              return "openui";
+            }
+          }
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": rootDir,

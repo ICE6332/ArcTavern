@@ -1,3 +1,8 @@
+export type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
+export type JsonObject = {
+  [key: string]: JsonValue | undefined;
+};
+
 export interface ContentPart {
   type: string;
   text?: string;
@@ -49,8 +54,8 @@ export interface CompletionRequest {
   assistantPrefill?: string;
   jsonSchema?: { name: string; description?: string; value: object };
   reasoningEffort?: string;
-  safetySettings?: Array<Record<string, unknown>>;
-  generationConfig?: Record<string, unknown>;
+  safetySettings?: JsonObject[];
+  generationConfig?: JsonObject;
   maxContext?: number;
   userName?: string;
   reverseProxy?: string;

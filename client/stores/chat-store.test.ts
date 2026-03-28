@@ -92,7 +92,7 @@ describe("useChatStore", () => {
 
     const promise = useChatStore.getState().sendMessage("hi", {
       provider: "openai",
-      model: "gpt-4o",
+      model: "gpt-5.2",
     });
 
     await Promise.resolve();

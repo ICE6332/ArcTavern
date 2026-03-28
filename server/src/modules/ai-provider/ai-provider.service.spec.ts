@@ -1,6 +1,21 @@
 /// <reference types="vitest/globals" />
-import { AiProviderService } from './ai-provider.service';
 import type { SecretService } from '../secret/secret.service';
+import type { LocalEmbeddingService } from './local-embedding.service';
+
+const { generateTextMock } = vi.hoisted(() => ({
+  generateTextMock: vi.fn(),
+}));
+
+vi.mock('ai', async () => {
+  const actual = await vi.importActual<typeof import('ai')>('ai');
+
+  return {
+    ...actual,
+    generateText: generateTextMock,
+  };
+});
+
+import { AiProviderService } from './ai-provider.service';
 
 function createService() {
   const secretService = {
@@ -9,8 +24,11 @@ function createService() {
     remove: async () => undefined,
     listKeys: async () => [],
   } as unknown as SecretService;
+  const localEmbedding = {
+    embed: async () => ({ embeddings: [], dimensions: 0 }),
+  } as unknown as LocalEmbeddingService;
 
-  return new AiProviderService(secretService);
+  return new AiProviderService(secretService, localEmbedding);
 }
 
 function createServiceWithKey(key: string) {
@@ -20,11 +38,24 @@ function createServiceWithKey(key: string) {
     remove: async () => undefined,
     listKeys: async () => [],
   } as unknown as SecretService;
+  const localEmbedding = {
+    embed: async () => ({ embeddings: [], dimensions: 0 }),
+  } as unknown as LocalEmbeddingService;
 
-  return new AiProviderService(secretService);
+  return new AiProviderService(secretService, localEmbedding);
 }
 
 describe('AiProviderService', () => {
+  beforeEach(() => {
+    generateTextMock.mockReset();
+    generateTextMock.mockResolvedValue({
+      text: 'ok',
+      response: { modelId: 'gpt-5.2' },
+      finishReason: 'stop',
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+  });
+
   it('returns model catalog grouped by provider', () => {
     const service = createService();
     const models = service.getModels();
@@ -47,6 +78,46 @@ describe('AiProviderService', () => {
 
     expect(result.method).toBe('approximate');
     expect(result.tokens).toBeGreaterThan(0);
+  });
+
+  it('passes providerOptions when generationConfig is present', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'openai',
+      model: 'gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+      generationConfig: {
+        reasoningEffort: 'medium',
+      },
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'medium',
+          },
+        },
+      }),
+    );
+  });
+
+  it('omits providerOptions when generationConfig is empty', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'openai',
+      model: 'gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+      generationConfig: {},
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: undefined,
+      }),
+    );
   });
 
   it('does not duplicate /v1 for health-check models endpoint', async () => {

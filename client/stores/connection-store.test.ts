@@ -2,10 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_MODELS, useConnectionStore } from "./connection-store";
 
 describe("useConnectionStore", () => {
+  it("starts with the latest OpenAI default model", () => {
+    expect(useConnectionStore.getInitialState().provider).toBe("openai");
+    expect(useConnectionStore.getInitialState().model).toBe("gpt-5.2");
+  });
+
   beforeEach(() => {
     useConnectionStore.setState({
       provider: "openai",
-      model: "gpt-4o",
+      model: "gpt-5.2",
       reverseProxy: "",
       apiKeyConfigured: {
         openai: false,

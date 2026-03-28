@@ -43,7 +43,7 @@ export class VectorStoreService implements OnModuleInit {
       role: 'system',
       name: '',
       content: '',
-      vector: new Array(dimensions).fill(0),
+      vector: Array.from({ length: dimensions }, () => 0),
       createdAt: new Date().toISOString(),
       chunkIndex: 0,
     };
