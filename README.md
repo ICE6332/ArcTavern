@@ -6,11 +6,12 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React">
-  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite" alt="Vite">
+  <img src="https://img.shields.io/badge/Vite%2B-8-646CFF?logo=vite" alt="Vite+">
   <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
   <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/shadcn%2Fui-base--mira-000000?logo=shadcnui" alt="shadcn/ui">
+  <img src="https://img.shields.io/badge/LanceDB-embedded-00C4B4" alt="LanceDB">
+  <img src="https://img.shields.io/badge/OpenUI-rendering-FF6B35" alt="OpenUI">
   <img src="https://img.shields.io/badge/pnpm-10-F69220?logo=pnpm" alt="pnpm">
 </p>
 
