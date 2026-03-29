@@ -6,7 +6,11 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React">
-  <img src="https://img.shields.io/badge/Vite%2B-8-646CFF?logo=vite" alt="Vite+">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg">
+    <img alt="Vite+" src="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg" height="20">
+  </picture>
   <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
   <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/shadcn%2Fui-base--mira-000000?logo=shadcnui" alt="shadcn/ui">
@@ -176,4 +180,4 @@ ArcTavern/
 
 ## License
 
-[Elastic License 2.0 (ELv2)](./LICENSE) — 个人使用、自部署免费；禁止作为托管/托管服务商业销售。
+[Apache License 2.0](./LICENSE)
