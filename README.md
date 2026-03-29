@@ -5,27 +5,13 @@
 </p>
 
 <p align="center">
-  <img src="https://cdn.simpleicons.org/react/61DAFB" alt="React" height="32" title="React 19">
-  &nbsp;
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React">
+  <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg">
-    <img alt="Vite+" src="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg" height="32">
+    <img alt="Vite+" src="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg" height="20">
   </picture>
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/nestjs/E0234E" alt="NestJS" height="32" title="NestJS 11">
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/typescript/3178C6" alt="TypeScript" height="32" title="TypeScript 6">
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/shadcnui/000000" alt="shadcn/ui" height="32" title="shadcn/ui base-mira">
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/sqlite/003B57" alt="SQLite" height="32" title="SQLite via sql.js">
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/vercel/000000" alt="Vercel AI SDK" height="32" title="Vercel AI SDK v6">
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/vitest/6E9F18" alt="Vitest" height="32" title="Vitest">
-  &nbsp;
-  <img src="https://cdn.simpleicons.org/pnpm/F69220" alt="pnpm" height="32" title="pnpm 10">
 </p>
 
 ---
