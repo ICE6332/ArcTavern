@@ -42,6 +42,18 @@ export interface WorldInfoEntry {
   sticky: number;
   cooldown: number;
   delay: number;
+  vectorized: boolean;
+  contentHash: string;
+}
+
+export interface WIEmbeddingSettings {
+  provider: string;
+  model: string;
+  reverseProxy?: string;
+  chunkSize: number;
+  chunkOverlap: number;
+  minScore: number;
+  hybridMode: boolean;
 }
 
 function mapWorldInfoBook(rawInput: unknown): WorldInfoBook {
@@ -92,6 +104,8 @@ function mapWorldInfoEntry(rawInput: unknown): WorldInfoEntry {
     sticky: Number(raw.sticky ?? 0),
     cooldown: Number(raw.cooldown ?? 0),
     delay: Number(raw.delay ?? 0),
+    vectorized: Number(coalesceRaw(raw, "vectorized") ?? 0) === 1,
+    contentHash: fromRaw(coalesceRaw(raw, "content_hash", "contentHash"), ""),
   };
 }
 
@@ -125,6 +139,7 @@ export const worldInfoApi = {
     const payload: Record<string, unknown> = { ...data };
     if (data.keys) payload.keys = JSON.stringify(data.keys);
     if (data.secondaryKeys) payload.secondary_keys = JSON.stringify(data.secondaryKeys);
+    if (data.vectorized !== undefined) payload.vectorized = data.vectorized ? 1 : 0;
     return mapWorldInfoEntry(
       await request<unknown>(`/world-info/${bookId}/entries`, {
         method: "POST",
@@ -156,6 +171,7 @@ export const worldInfoApi = {
     if (data.sticky !== undefined) payload.sticky = data.sticky;
     if (data.cooldown !== undefined) payload.cooldown = data.cooldown;
     if (data.delay !== undefined) payload.delay = data.delay;
+    if (data.vectorized !== undefined) payload.vectorized = data.vectorized ? 1 : 0;
     return mapWorldInfoEntry(
       await request<unknown>(`/world-info/entries/${entryId}`, {
         method: "PUT",
@@ -168,16 +184,27 @@ export const worldInfoApi = {
       await request<unknown>(`/world-info/entries/${entryId}`, { method: "DELETE" }),
     );
   },
-  async importBook(data: {
-    name: string;
-    description?: string;
-    entries: Array<Record<string, unknown>>;
-  }) {
+  /** Body matches SillyTavern / ArcTavern lorebook JSON; server normalizes shape. */
+  async importBook(data: Record<string, unknown>) {
     return mapWorldInfoBook(
       await request<unknown>("/world-info/import", { method: "POST", body: JSON.stringify(data) }),
     );
   },
   async exportBook(id: number) {
     return requestBlob(`/world-info/${id}/export`);
+  },
+  async getEmbeddingSettings(): Promise<WIEmbeddingSettings> {
+    return request<WIEmbeddingSettings>("/world-info/settings/embedding");
+  },
+  async saveEmbeddingSettings(data: Partial<WIEmbeddingSettings>): Promise<WIEmbeddingSettings> {
+    return request<WIEmbeddingSettings>("/world-info/settings/embedding", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+  async vectorizeBook(bookId: number): Promise<{ ok: boolean; embedded: number }> {
+    return request<{ ok: boolean; embedded: number }>(`/world-info/${bookId}/vectorize`, {
+      method: "POST",
+    });
   },
 };

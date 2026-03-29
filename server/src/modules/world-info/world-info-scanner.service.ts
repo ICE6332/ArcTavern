@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { WorldInfoVectorService, WIEmbeddingSettings } from './world-info-vector.service';
 import type { WorldInfoEntryRow } from './world-info.service';
 
 /** Select logic enum matching SillyTavern */
@@ -56,14 +57,46 @@ export interface ScanSettings {
 
 @Injectable()
 export class WorldInfoScannerService {
-  scan(
+  /** Keyword path: non-vectorized always; vectorized only when hybrid or constant. */
+  private isKeywordScannedEntry(entry: WorldInfoEntryRow, hybrid: boolean): boolean {
+    if (entry.constant) return true;
+    if (!entry.vectorized) return true;
+    return hybrid;
+  }
+
+  private entryToActivated(entry: WorldInfoEntryRow): ActivatedEntry {
+    return {
+      id: entry.id,
+      uid: entry.uid,
+      content: entry.content,
+      position: entry.position,
+      order: entry.insertion_order,
+      depth: entry.depth,
+      role: entry.role,
+      groupName: entry.group_name ?? '',
+      groupWeight: entry.group_weight ?? 100,
+    };
+  }
+
+  private passesProbability(entry: WorldInfoEntryRow): boolean {
+    if (entry.constant) return true;
+    if (entry.use_probability && entry.probability < 100) {
+      return Math.random() * 100 < entry.probability;
+    }
+    return true;
+  }
+
+  async scan(
     entries: WorldInfoEntryRow[],
     context: ScanContext,
     settings: ScanSettings = {},
-  ): ActivatedEntry[] {
+    vectorService?: WorldInfoVectorService,
+    wiEmbedding?: WIEmbeddingSettings,
+  ): Promise<ActivatedEntry[]> {
     const scanDepth = settings.scanDepth ?? 50;
     const maxRecursion = settings.maxRecursionSteps ?? 3;
     const enableRecursion = settings.recursion ?? true;
+    const hybrid = wiEmbedding?.hybridMode ?? false;
 
     // Build scan buffer
     const recentMessages = context.chatMessages.slice(-scanDepth);
@@ -77,14 +110,38 @@ export class WorldInfoScannerService {
     const activatedIds = new Set<number>();
     const activated: ActivatedEntry[] = [];
 
-    // Initial scan
-    this.scanRound(enabledEntries, scanBuffer, activatedIds, activated);
+    const keywordEntries = enabledEntries.filter((e) => this.isKeywordScannedEntry(e, hybrid));
 
-    // Recursive scans
+    // Initial keyword scan
+    this.scanRound(keywordEntries, scanBuffer, activatedIds, activated);
+
+    // Vector scan (single embed over scan buffer, before recursion)
+    const vectorEntries = enabledEntries.filter((e) => e.vectorized);
+    if (vectorEntries.length > 0 && vectorService && wiEmbedding) {
+      try {
+        await this.scanVectorized(
+          vectorEntries,
+          entries,
+          scanBuffer,
+          activatedIds,
+          activated,
+          vectorService,
+          wiEmbedding,
+        );
+      } catch {
+        // Vector search failed — fall back to keyword matching for vectorized entries
+        this.scanRound(vectorEntries, scanBuffer, activatedIds, activated);
+      }
+    }
+
+    // Recursive keyword scans
     if (enableRecursion) {
       for (let step = 0; step < maxRecursion; step++) {
         const newEntries = enabledEntries.filter(
-          (e) => !activatedIds.has(e.id) && !e.exclude_recursion,
+          (e) =>
+            !activatedIds.has(e.id) &&
+            !e.exclude_recursion &&
+            this.isKeywordScannedEntry(e, hybrid),
         );
         if (newEntries.length === 0) break;
 
@@ -101,13 +158,37 @@ export class WorldInfoScannerService {
       }
     }
 
-    // Group scoring
     const grouped = this.applyGroupScoring(activated, entries);
-
-    // Sort by insertion order
     grouped.sort((a, b) => a.order - b.order);
-
     return grouped;
+  }
+
+  private async scanVectorized(
+    vectorEntries: WorldInfoEntryRow[],
+    allEntries: WorldInfoEntryRow[],
+    scanBuffer: string,
+    activatedIds: Set<number>,
+    activated: ActivatedEntry[],
+    vectorService: WorldInfoVectorService,
+    wiEmbedding: WIEmbeddingSettings,
+  ): Promise<void> {
+    const bookIds = [...new Set(vectorEntries.map((e) => e.book_id))];
+    const query = scanBuffer.slice(0, 4000);
+    const hits = await vectorService.searchEntries(
+      query,
+      bookIds,
+      wiEmbedding,
+      vectorEntries.length,
+    );
+    const byId = new Map(allEntries.map((e) => [e.id, e]));
+    for (const hit of hits) {
+      if (activatedIds.has(hit.entryId)) continue;
+      const entry = byId.get(hit.entryId);
+      if (!entry || !entry.enabled || !entry.vectorized) continue;
+      if (!this.passesProbability(entry)) continue;
+      activatedIds.add(entry.id);
+      activated.push(this.entryToActivated(entry));
+    }
   }
 
   private scanRound(

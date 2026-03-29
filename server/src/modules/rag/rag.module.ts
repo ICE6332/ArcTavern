@@ -10,6 +10,6 @@ import { SettingsModule } from '../settings/settings.module';
   imports: [AiProviderModule, SettingsModule],
   controllers: [RagController],
   providers: [RagService, VectorStoreService, RagEmbedderService],
-  exports: [RagService],
+  exports: [RagService, VectorStoreService],
 })
 export class RagModule {}

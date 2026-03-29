@@ -93,4 +93,9 @@ export class VectorStoreService implements OnModuleInit {
     const tableNames = await this.db.tableNames();
     return tableNames.includes(this.tableName(dimensions));
   }
+
+  /** Shared LanceDB connection (e.g. world-info tables use a separate schema per table). */
+  getConnection(): lancedb.Connection {
+    return this.db;
+  }
 }

@@ -43,6 +43,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
   const [sticky, setSticky] = useState(entry.sticky);
   const [cooldown, setCooldown] = useState(entry.cooldown);
   const [delay, setDelay] = useState(entry.delay);
+  const [vectorized, setVectorized] = useState(entry.vectorized);
 
   const handleSave = async () => {
     await updateEntry(entry.id, {
@@ -70,6 +71,7 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
       sticky,
       cooldown,
       delay,
+      vectorized,
     });
     onClose();
   };
@@ -118,6 +120,14 @@ export function EntryEditor({ entry, onClose }: EntryEditorProps) {
             onChange={(e) => setSelective(e.target.checked)}
           />{" "}
           {t("worldInfo.selective")}
+        </label>
+        <label className="flex items-center gap-1 text-xs">
+          <input
+            type="checkbox"
+            checked={vectorized}
+            onChange={(e) => setVectorized(e.target.checked)}
+          />{" "}
+          {t("worldInfo.vectorized")}
         </label>
       </div>
 

@@ -18,11 +18,7 @@ interface WorldInfoState {
   createEntry: (bookId: number, data: Partial<WorldInfoEntry>) => Promise<WorldInfoEntry>;
   updateEntry: (entryId: number, data: Partial<WorldInfoEntry>) => Promise<void>;
   deleteEntry: (entryId: number) => Promise<void>;
-  importBook: (data: {
-    name: string;
-    description?: string;
-    entries: Array<Record<string, unknown>>;
-  }) => Promise<WorldInfoBook>;
+  importBook: (data: Record<string, unknown>) => Promise<WorldInfoBook>;
 }
 
 export const useWorldInfoStore = create<WorldInfoState>()((set, get) => ({
@@ -104,7 +100,7 @@ export const useWorldInfoStore = create<WorldInfoState>()((set, get) => ({
     set({ activeBookIds: ids });
   },
 
-  importBook: async (data) => {
+  importBook: async (data: Record<string, unknown>) => {
     const book = await worldInfoApi.importBook(data);
     set((s) => ({ books: [...s.books, book] }));
     return book;

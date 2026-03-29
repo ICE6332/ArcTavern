@@ -17,6 +17,7 @@ import { PromptBuilderService } from './prompt-builder.service';
 import { AiProviderService } from '../ai-provider/ai-provider.service';
 import { WorldInfoService } from '../world-info/world-info.service';
 import { WorldInfoScannerService } from '../world-info/world-info-scanner.service';
+import { WorldInfoVectorService } from '../world-info/world-info-vector.service';
 import { PersonaService } from '../persona/persona.service';
 import { RagService } from '../rag/rag.service';
 import type { CompletionRequest, ChatMessage } from '../ai-provider/types';
@@ -69,6 +70,7 @@ export class ChatGenerationController {
     private readonly aiProviderService: AiProviderService,
     private readonly worldInfoService: WorldInfoService,
     private readonly worldInfoScanner: WorldInfoScannerService,
+    private readonly worldInfoVectorService: WorldInfoVectorService,
     private readonly personaService: PersonaService,
     private readonly ragService: RagService,
   ) {}
@@ -740,11 +742,20 @@ export class ChatGenerationController {
 
     if (allEntries.length === 0) return [];
 
-    return this.worldInfoScanner.scan(allEntries, {
-      chatMessages: messages.map((m) => m.content),
-      characterDescription: character.description,
-      characterPersonality: character.personality,
-      scenario: character.scenario,
-    });
+    const hasVectorized = allEntries.some((e) => e.vectorized);
+    const wiEmbedding = hasVectorized ? await this.worldInfoVectorService.getSettings() : undefined;
+
+    return this.worldInfoScanner.scan(
+      allEntries,
+      {
+        chatMessages: messages.map((m) => m.content),
+        characterDescription: character.description,
+        characterPersonality: character.personality,
+        scenario: character.scenario,
+      },
+      {},
+      hasVectorized ? this.worldInfoVectorService : undefined,
+      wiEmbedding,
+    );
   }
 }
