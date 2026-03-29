@@ -10,7 +10,7 @@ const translations = {
 export function useTranslation() {
   const language = useLanguageStore((s) => s.language);
 
-  const t = (key: string): string => {
+  const t = (key: string, params?: Record<string, string>): string => {
     const keys = key.split(".");
     let value: unknown = translations[language];
 
@@ -22,7 +22,13 @@ export function useTranslation() {
       value = (value as Record<string, unknown>)[k];
     }
 
-    return typeof value === "string" ? value : key;
+    let result = typeof value === "string" ? value : key;
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        result = result.replaceAll(`{${k}}`, v);
+      }
+    }
+    return result;
   };
 
   return { t, language };

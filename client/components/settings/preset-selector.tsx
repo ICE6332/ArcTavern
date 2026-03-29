@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePresetStore } from "@/stores/preset-store";
 import { detectPresetType } from "@/lib/preset-type-detector";
 import { presetApi, type Preset } from "@/lib/api/preset";
+import { toast } from "@/lib/toast";
+import { useTranslation } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,6 +22,7 @@ interface PresetSelectorProps {
 }
 
 export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps) {
+  const { t } = useTranslation();
   const {
     presets,
     activePresetId,
@@ -33,6 +37,8 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
   } = usePresetStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [savingName, setSavingName] = useState<string | null>(null);
+  const saveNameRef = useRef<HTMLInputElement>(null);
   const currentPresets = presets[apiType] ?? [];
   const currentPresetId = activePresetId[apiType] ?? null;
   const activePreset = currentPresets.find((p) => p.id === currentPresetId);
@@ -60,10 +66,19 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
   };
 
   const handleSaveNew = () => {
-    const name = window.prompt("Enter preset name:");
-    if (!name?.trim()) return;
+    setSavingName("");
+    setTimeout(() => saveNameRef.current?.focus(), 0);
+  };
+
+  const confirmSaveNew = () => {
+    if (!savingName?.trim()) {
+      setSavingName(null);
+      return;
+    }
+    const name = savingName.trim();
+    setSavingName(null);
     const data = collectCurrentSettings(apiType);
-    savePreset(name.trim(), apiType, data).then((preset) => {
+    savePreset(name, apiType, data).then((preset) => {
       selectPreset(apiType, preset.id);
       onPresetApplied?.();
     });
@@ -103,13 +118,22 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
       applyPreset(preset);
       onPresetApplied?.();
       if (targetType !== apiType) {
-        window.alert(
-          `Imported as "${targetType}" and applied. Switch to the "${targetType}" preset list to manage it.`,
-        );
+        toast.success({
+          title: t("settings.presetImportSuccess"),
+          description: t("settings.presetImportOtherProviderHint", { type: targetType }),
+        });
+      } else {
+        toast.success({
+          title: t("settings.presetImportSuccess"),
+          description: preset.name?.trim() || name,
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      window.alert(`Failed to import preset file: ${message}`);
+      toast.error({
+        title: t("settings.presetImportFailed"),
+        description: message,
+      });
     }
 
     // Reset input
@@ -129,8 +153,12 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
       a.download = `${result.name}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success({
+        title: t("settings.presetExportSuccess"),
+        description: result.name,
+      });
     } catch {
-      window.alert("Failed to export preset");
+      toast.error({ title: t("settings.presetExportFailed") });
     }
   };
 
@@ -178,6 +206,33 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
           </SelectContent>
         </Select>
       </div>
+
+      {savingName !== null && (
+        <div className="flex items-center gap-1">
+          <Input
+            ref={saveNameRef}
+            value={savingName}
+            onChange={(e) => setSavingName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") confirmSaveNew();
+              if (e.key === "Escape") setSavingName(null);
+            }}
+            placeholder={t("settings.presetNamePlaceholder")}
+            className="h-6 flex-1 text-xs"
+          />
+          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={confirmSaveNew}>
+            OK
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => setSavingName(null)}
+          >
+            {t("actions.cancel")}
+          </Button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1">
         <Button

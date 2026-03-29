@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useWorldInfoStore } from "@/stores/world-info-store";
 import { useCharacterStore } from "@/stores/character-store";
-import type { WorldInfoEntry } from "@/lib/api/world-info";
+import { worldInfoApi, type WorldInfoEntry, type WIEmbeddingSettings } from "@/lib/api/world-info";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,13 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "@/lib/i18n";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft01Icon, Add01Icon, Delete02Icon, Link04Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowLeft01Icon,
+  Add01Icon,
+  Delete02Icon,
+  Link04Icon,
+  FileImportIcon,
+} from "@hugeicons/core-free-icons";
 
 type NavState =
   | { level: "books" }
@@ -41,6 +48,170 @@ const SELECT_LOGIC_OPTIONS = [
   { value: 3, label: "AND ALL" },
 ];
 
+const EMBEDDING_PROVIDERS: { value: string; label: string }[] = [
+  { value: "openai", label: "OpenAI" },
+  { value: "google", label: "Google" },
+  { value: "openrouter", label: "OpenRouter" },
+  { value: "mistral", label: "Mistral" },
+  { value: "local", label: "Local" },
+  { value: "custom", label: "Custom" },
+];
+
+const DEFAULT_WI_EMBEDDING_CLIENT: WIEmbeddingSettings = {
+  provider: "local",
+  model: "jina-embeddings-v2-base-zh",
+  chunkSize: 1000,
+  chunkOverlap: 200,
+  minScore: 0.3,
+  hybridMode: true,
+};
+
+function WorldInfoEmbeddingPanel({ bookId }: { bookId: number }) {
+  const { t } = useTranslation();
+  const [settings, setSettings] = useState<WIEmbeddingSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [vectorizing, setVectorizing] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      try {
+        const s = await worldInfoApi.getEmbeddingSettings();
+        if (!cancelled) setSettings(s);
+      } catch {
+        if (!cancelled) setSettings({ ...DEFAULT_WI_EMBEDDING_CLIENT });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId]);
+
+  if (loading || !settings) {
+    return <p className="text-xs text-muted-foreground">{loading ? t("messages.loading") : "—"}</p>;
+  }
+
+  const updateLocal = (patch: Partial<WIEmbeddingSettings>) => {
+    setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settings) return;
+    setSaving(true);
+    try {
+      const saved = await worldInfoApi.saveEmbeddingSettings(settings);
+      setSettings(saved);
+      toast.success({ title: t("worldInfo.embeddingSettingsSaved") });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error({ title: t("messages.failed"), description: message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVectorize = async () => {
+    setVectorizing(true);
+    try {
+      await worldInfoApi.vectorizeBook(bookId);
+      toast.success({ title: t("worldInfo.vectorizeBookDone") });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error({ title: t("messages.failed"), description: message });
+    } finally {
+      setVectorizing(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border/50 p-2.5">
+      <p className="text-xs font-medium text-muted-foreground">{t("worldInfo.embeddingTitle")}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">{t("worldInfo.embeddingProvider")}</Label>
+          <Select
+            value={settings.provider}
+            onValueChange={(v) => {
+              if (v) updateLocal({ provider: v });
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EMBEDDING_PROVIDERS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">{t("worldInfo.embeddingModel")}</Label>
+          <Input
+            value={settings.model}
+            onChange={(e) => updateLocal({ model: e.target.value })}
+            className="h-8 text-xs"
+            placeholder="jina-embeddings-v2-base-zh"
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs">
+          {t("worldInfo.embeddingMinScore")}: {settings.minScore.toFixed(2)}
+        </Label>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={settings.minScore}
+          onChange={(e) => updateLocal({ minScore: Number(e.target.value) })}
+          className="h-2 w-full accent-primary"
+        />
+      </div>
+      <label className="flex items-center gap-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={settings.hybridMode}
+          onChange={(e) => updateLocal({ hybridMode: e.target.checked })}
+          className="h-3.5 w-3.5 accent-primary"
+        />
+        {t("worldInfo.embeddingHybrid")}
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="h-7 text-xs"
+          onClick={() => {
+            void handleSaveSettings();
+          }}
+          disabled={saving}
+        >
+          {saving ? t("messages.saving") : t("worldInfo.saveEmbeddingSettings")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs"
+          onClick={() => {
+            void handleVectorize();
+          }}
+          disabled={vectorizing}
+        >
+          {vectorizing ? t("worldInfo.revectorizing") : t("worldInfo.revectorizeAll")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function WorldInfoSettings() {
   const { t } = useTranslation();
   const [nav, setNav] = useState<NavState>({ level: "books" });
@@ -59,8 +230,10 @@ export function WorldInfoSettings() {
     updateEntry,
     updateBook,
     toggleBookActive,
+    importBook,
   } = useWorldInfoStore();
 
+  const lorebookImportRef = useRef<HTMLInputElement>(null);
   const characters = useCharacterStore((s) => s.characters);
 
   useEffect(() => {
@@ -100,6 +273,34 @@ export function WorldInfoSettings() {
     await selectBook(book.id);
     setNav({ level: "entries", bookId: book.id });
   }, [createBook, selectBook, t]);
+
+  const handleLorebookFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as Record<string, unknown>;
+        const fallbackName = file.name.replace(/\.json$/i, "") || t("worldInfo.newBook");
+        const name = (typeof parsed.name === "string" && parsed.name.trim()) || fallbackName;
+        await importBook({ ...parsed, name });
+        await fetchBooks();
+        toast.success({
+          title: t("worldInfo.importBookSuccess"),
+          description: name,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        toast.error({
+          title: t("worldInfo.importBookFailed"),
+          description: message,
+        });
+      } finally {
+        e.target.value = "";
+      }
+    },
+    [importBook, fetchBooks, t],
+  );
 
   const handleDeleteBook = useCallback(
     async (id: number) => {
@@ -162,6 +363,8 @@ export function WorldInfoSettings() {
 
         <Separator />
 
+        <WorldInfoEmbeddingPanel bookId={nav.bookId} />
+
         {loading ? (
           <p className="text-xs text-muted-foreground">{t("messages.loading")}</p>
         ) : entries.length === 0 ? (
@@ -183,6 +386,11 @@ export function WorldInfoSettings() {
                 {entry.constant && (
                   <span className="shrink-0 rounded bg-primary/10 px-1 text-[0.6rem] text-primary">
                     C
+                  </span>
+                )}
+                {entry.vectorized && (
+                  <span className="shrink-0 rounded bg-muted px-1 text-[0.6rem] text-muted-foreground">
+                    V
                   </span>
                 )}
               </div>
@@ -258,10 +466,30 @@ export function WorldInfoSettings() {
         </div>
       )}
 
-      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCreateBook}>
-        <HugeiconsIcon icon={Add01Icon} size={14} className="mr-1" />
-        {t("worldInfo.newBook")}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCreateBook}>
+          <HugeiconsIcon icon={Add01Icon} size={14} className="mr-1" />
+          {t("worldInfo.newBook")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => lorebookImportRef.current?.click()}
+        >
+          <HugeiconsIcon icon={FileImportIcon} size={14} className="mr-1" />
+          {t("worldInfo.importBook")}
+        </Button>
+        <input
+          ref={lorebookImportRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={(e) => {
+            void handleLorebookFile(e);
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -290,7 +518,12 @@ function EntryEditorView({
   const [priority, setPriority] = useState(entry.priority);
   const [depth, setDepth] = useState(entry.depth);
   const [role, setRole] = useState(entry.role);
+  const [vectorized, setVectorized] = useState(entry.vectorized);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setVectorized(entry.vectorized);
+  }, [entry.id, entry.vectorized]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -314,6 +547,7 @@ function EntryEditorView({
         priority,
         depth,
         role,
+        vectorized,
       });
     } finally {
       setSaving(false);
@@ -390,6 +624,15 @@ function EntryEditorView({
             className="h-3.5 w-3.5 accent-primary"
           />
           {t("worldInfo.selective")}
+        </label>
+        <label className="flex items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            checked={vectorized}
+            onChange={(e) => setVectorized(e.target.checked)}
+            className="h-3.5 w-3.5 accent-primary"
+          />
+          {t("worldInfo.vectorized")}
         </label>
       </div>
 
