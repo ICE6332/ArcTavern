@@ -6,12 +6,12 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React">
-  <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg">
     <img alt="Vite+" src="https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/logo.svg" height="20">
   </picture>
+  <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
 </p>
 
 ---
