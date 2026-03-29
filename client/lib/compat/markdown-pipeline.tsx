@@ -22,8 +22,8 @@ export function CompatMarkdown({ content, className }: { content: string; classN
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[...compatMarkdownRemarkPlugins]}
-        rehypePlugins={[...compatMarkdownRehypePlugins]}
+        remarkPlugins={compatMarkdownRemarkPlugins}
+        rehypePlugins={compatMarkdownRehypePlugins}
       >
         {content}
       </ReactMarkdown>

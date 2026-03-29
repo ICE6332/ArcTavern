@@ -257,7 +257,7 @@ export class WorldInfoService {
       description: normalized.description,
     });
     for (const entry of normalized.entries) {
-      await this.createEntry(book.id, entry as unknown as Record<string, unknown>);
+      await this.createEntry(book.id, entry as Record<string, unknown>);
     }
     return book;
   }
@@ -273,7 +273,7 @@ export class WorldInfoService {
     const book = await this.createBook({ name, description });
     for (const raw of rawEntries) {
       const entry = normalizeEntry(raw);
-      await this.createEntry(book.id, entry as unknown as Record<string, unknown>);
+      await this.createEntry(book.id, entry as Record<string, unknown>);
     }
     return book;
   }

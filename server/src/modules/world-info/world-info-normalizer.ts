@@ -9,6 +9,7 @@
 
 /** Normalized entry ready for WorldInfoService.createEntry() */
 export interface NormalizedWIEntry {
+  [key: string]: string | number;
   keys: string;
   secondary_keys: string;
   content: string;
@@ -127,8 +128,8 @@ export function normalizeEntry(e: Record<string, unknown>): NormalizedWIEntry {
   return {
     keys: toJsonArray(e.keys ?? e.key),
     secondary_keys: toJsonArray(e.secondary_keys ?? e.keysecondary),
-    content: (e.content as string) ?? '',
-    comment: (e.comment as string) ?? (e.name as string) ?? '',
+    content: String(e.content ?? ''),
+    comment: String(e.comment ?? e.name ?? ''),
     enabled:
       e.enabled === false || e.disable === true
         ? 0
@@ -154,13 +155,13 @@ export function normalizeEntry(e: Record<string, unknown>): NormalizedWIEntry {
           ? toBool(e.useProbability)
           : 1,
     depth: toInt(e.depth, 4),
-    group_name: (e.group_name as string) ?? (e.group as string) ?? '',
+    group_name: String(e.group_name ?? e.group ?? ''),
     group_override: toBool(e.group_override ?? e.groupOverride),
     group_weight: toInt(e.group_weight ?? e.groupWeight, 100),
     scan_depth: toInt(e.scan_depth ?? e.scanDepth, 0),
     match_whole_words: toBool(e.match_whole_words ?? e.matchWholeWords),
     use_group_scoring: toBool(e.use_group_scoring ?? e.useGroupScoring),
-    automation_id: (e.automation_id as string) ?? (e.automationId as string) ?? '',
+    automation_id: String(e.automation_id ?? e.automationId ?? ''),
     role: toInt(e.role, 0),
     sticky: toInt(e.sticky, 0),
     cooldown: toInt(e.cooldown, 0),
