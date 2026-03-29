@@ -1,22 +1,10 @@
 /// <reference types="vitest/globals" />
 import { TagService } from './tag.service';
-import type { DrizzleService } from '../../db/drizzle.service';
-
-function makeDbMock() {
-  return {
-    query: vi.fn(),
-    get: vi.fn(),
-    run: vi.fn(),
-  } as unknown as DrizzleService & {
-    query: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    run: ReturnType<typeof vi.fn>;
-  };
-}
+import { createDrizzleServiceMock } from '@/test/drizzle-mock';
 
 describe('TagService', () => {
   it('creates a tag with defaults', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new TagService(db);
 
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
@@ -40,7 +28,7 @@ describe('TagService', () => {
   });
 
   it('assigns a tag to an entity', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new TagService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
 
@@ -52,7 +40,7 @@ describe('TagService', () => {
   });
 
   it('unassigns a tag from an entity', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new TagService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
 
@@ -64,7 +52,7 @@ describe('TagService', () => {
   });
 
   it('gets entity tags via join', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new TagService(db);
     db.query.mockReturnValue([{ id: 'tag-1', name: 'Tag 1' }]);
 
@@ -77,7 +65,7 @@ describe('TagService', () => {
   });
 
   it('updates mapped fields', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new TagService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
     db.get.mockResolvedValueOnce({ id: 'abc', name: 'Updated' });
@@ -91,7 +79,7 @@ describe('TagService', () => {
   });
 
   it('deletes a tag', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new TagService(db);
     db.get.mockResolvedValueOnce({ id: 'abc', name: 'Delete Me' });
     db.run.mockReturnValue({ changes: 1, lastId: 0 });

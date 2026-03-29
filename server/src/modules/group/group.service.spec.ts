@@ -1,22 +1,10 @@
 /// <reference types="vitest/globals" />
 import { GroupService } from './group.service';
-import type { DrizzleService } from '../../db/drizzle.service';
-
-function makeDbMock() {
-  return {
-    query: vi.fn(),
-    get: vi.fn(),
-    run: vi.fn(),
-  } as unknown as DrizzleService & {
-    query: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    run: ReturnType<typeof vi.fn>;
-  };
-}
+import { createDrizzleServiceMock } from '@/test/drizzle-mock';
 
 describe('GroupService', () => {
   it('creates a group', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new GroupService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
     db.get.mockResolvedValueOnce({ id: 'g1', name: 'Test Group' });
@@ -29,7 +17,7 @@ describe('GroupService', () => {
   });
 
   it('adds a member', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new GroupService(db);
     db.get.mockReturnValueOnce({ max_order: 1 });
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
@@ -45,7 +33,7 @@ describe('GroupService', () => {
   });
 
   it('removes a member', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new GroupService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
     db.query.mockReturnValue([]);
@@ -59,7 +47,7 @@ describe('GroupService', () => {
   });
 
   it('gets enabled members excluding disabled', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new GroupService(db);
     db.get.mockResolvedValueOnce({ id: 'g1', disabled_members: '[2]' });
     db.query.mockReturnValue([
@@ -75,7 +63,7 @@ describe('GroupService', () => {
   });
 
   it('deletes a group', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new GroupService(db);
     db.get.mockResolvedValueOnce({ id: 'g1', name: 'Delete Me' });
     db.run.mockReturnValue({ changes: 1, lastId: 0 });

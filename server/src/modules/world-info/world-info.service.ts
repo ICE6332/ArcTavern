@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DrizzleService } from '../../db/drizzle.service';
+import { normalizeLorebook, normalizeEntry } from './world-info-normalizer';
 
 export interface WorldInfoBookRow {
   id: number;
@@ -44,6 +45,17 @@ export interface WorldInfoEntryRow {
   cooldown: number;
   delay: number;
   triggers: string;
+  // ST 1.16+ compatibility fields
+  vectorized: number;
+  ignore_budget: number;
+  match_persona_desc: number;
+  match_char_desc: number;
+  match_char_personality: number;
+  match_scenario: number;
+  delay_until_recursion: number;
+  character_filter: string;
+  // ArcTavern vector pipeline
+  content_hash: string;
 }
 
 @Injectable()
@@ -117,8 +129,11 @@ export class WorldInfoService {
         case_sensitive, priority, position, extensions, constant, selective, select_logic,
         "order", exclude_recursion, prevent_recursion, probability, use_probability,
         depth, group_name, group_override, group_weight, scan_depth, match_whole_words,
-        use_group_scoring, automation_id, role, sticky, cooldown, delay, triggers
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        use_group_scoring, automation_id, role, sticky, cooldown, delay, triggers,
+        vectorized, ignore_budget, match_persona_desc, match_char_desc,
+        match_char_personality, match_scenario, delay_until_recursion, character_filter,
+        content_hash
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         bookId,
         uid,
@@ -153,6 +168,15 @@ export class WorldInfoService {
         data.cooldown ?? 0,
         data.delay ?? 0,
         data.triggers ?? '[]',
+        data.vectorized ?? 0,
+        data.ignore_budget ?? 0,
+        data.match_persona_desc ?? 0,
+        data.match_char_desc ?? 0,
+        data.match_char_personality ?? 0,
+        data.match_scenario ?? 0,
+        data.delay_until_recursion ?? 0,
+        data.character_filter ?? '{}',
+        data.content_hash ?? '',
       ],
     );
     return (await this.findEntry(lastId))!;
@@ -191,6 +215,15 @@ export class WorldInfoService {
       cooldown: 'cooldown',
       delay: 'delay',
       triggers: 'triggers',
+      vectorized: 'vectorized',
+      ignoreBudget: 'ignore_budget',
+      matchPersonaDesc: 'match_persona_desc',
+      matchCharDesc: 'match_char_desc',
+      matchCharPersonality: 'match_char_personality',
+      matchScenario: 'match_scenario',
+      delayUntilRecursion: 'delay_until_recursion',
+      characterFilter: 'character_filter',
+      contentHash: 'content_hash',
     };
     const sets: string[] = [];
     const values: unknown[] = [];
@@ -213,14 +246,34 @@ export class WorldInfoService {
     return entry;
   }
 
-  async importBook(data: {
-    name: string;
-    description?: string;
-    entries: Array<Record<string, unknown>>;
-  }): Promise<WorldInfoBookRow> {
-    const book = await this.createBook({ name: data.name, description: data.description });
-    for (const entry of data.entries) {
-      await this.createEntry(book.id, entry);
+  /**
+   * Import a lorebook from any ST-compatible format.
+   * Accepts ST standalone { entries: { "0": {...} } }, array format, or raw data.
+   */
+  async importBook(data: unknown): Promise<WorldInfoBookRow> {
+    const normalized = normalizeLorebook(data);
+    const book = await this.createBook({
+      name: normalized.name || 'Imported Lorebook',
+      description: normalized.description,
+    });
+    for (const entry of normalized.entries) {
+      await this.createEntry(book.id, entry as unknown as Record<string, unknown>);
+    }
+    return book;
+  }
+
+  /**
+   * Import a lorebook with an explicit name override (used by character card import).
+   */
+  async importBookWithName(
+    name: string,
+    description: string,
+    rawEntries: Array<Record<string, unknown>>,
+  ): Promise<WorldInfoBookRow> {
+    const book = await this.createBook({ name, description });
+    for (const raw of rawEntries) {
+      const entry = normalizeEntry(raw);
+      await this.createEntry(book.id, entry as unknown as Record<string, unknown>);
     }
     return book;
   }

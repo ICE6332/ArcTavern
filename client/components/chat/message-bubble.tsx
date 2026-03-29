@@ -1,8 +1,5 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "@/lib/i18n";
@@ -13,6 +10,9 @@ import { isOpenUiLang } from "@/lib/openui";
 import { type PartialStructuredResponse } from "@/lib/openui/structured-types";
 import type { ActionEvent } from "@openuidev/react-lang";
 import { DotsLoader } from "@/components/ui/loader";
+import { useContentPreprocessor } from "@/hooks/use-content-preprocessor";
+import { useMessageScriptRuntime } from "@/hooks/use-message-script-runtime";
+import { CompatMarkdown } from "@/lib/compat/markdown-pipeline";
 import {
   ChainOfThought,
   ChainOfThoughtHeader,
@@ -104,7 +104,28 @@ export function MessageBubble({
   onStructuredCommandAction,
 }: MessageBubbleProps) {
   const { t } = useTranslation();
+  const { formatAssistantForDisplay, preprocess } = useContentPreprocessor();
   const isUser = role === "user";
+
+  const { display, scripts } =
+    role === "assistant"
+      ? formatAssistantForDisplay(content)
+      : { display: preprocess(content, role), scripts: [] };
+
+  const reasoningDisplay =
+    reasoning && role === "assistant" ? formatAssistantForDisplay(reasoning).display : reasoning;
+
+  const hasStructured = Boolean(structuredContent && structuredContent.blocks?.length);
+
+  useMessageScriptRuntime({
+    messageId,
+    swipeId,
+    scripts,
+    swipesLength: swipes.length,
+    enabled: Boolean(
+      !isStreaming && messageId && role === "assistant" && scripts.length > 0 && !hasStructured,
+    ),
+  });
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(content);
@@ -114,11 +135,7 @@ export function MessageBubble({
     return (
       <div className="flex justify-end">
         <div className="max-w-[80%] rounded-2xl bg-secondary px-4 py-2.5 text-sm leading-relaxed text-secondary-foreground">
-          <div className={markdownStyles}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {content}
-            </ReactMarkdown>
-          </div>
+          <CompatMarkdown content={content} className={markdownStyles} />
         </div>
       </div>
     );
@@ -128,41 +145,34 @@ export function MessageBubble({
     <div className="group/message">
       {name && <p className="mb-1 text-xs font-medium text-muted-foreground">{name}</p>}
 
-      {reasoning && (
+      {reasoningDisplay && (
         <ChainOfThought className="mb-2">
           <ChainOfThoughtHeader>{t("chat.reasoning")}</ChainOfThoughtHeader>
           <ChainOfThoughtContent>
-            <div
+            <CompatMarkdown
+              content={reasoningDisplay}
               className={`${markdownStyles} whitespace-pre-wrap break-words text-muted-foreground`}
-            >
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                {reasoning}
-              </ReactMarkdown>
-            </div>
+            />
           </ChainOfThoughtContent>
         </ChainOfThought>
       )}
 
       <div className="text-sm leading-relaxed">
-        {structuredContent && structuredContent.blocks?.length ? (
+        {hasStructured ? (
           <StructuredMessage
-            data={structuredContent}
+            data={structuredContent!}
             isStreaming={isStreaming}
             onAction={onStructuredAction}
             onCommandAction={onStructuredCommandAction}
           />
         ) : isStreaming && !content && !structuredContent ? (
           <DotsLoader size="md" className="text-muted-foreground" />
-        ) : openUiEnabled && isOpenUiLang(content) ? (
-          <OpenUiMessage content={content} isStreaming={isStreaming} onAction={onOpenUiAction} />
+        ) : openUiEnabled && isOpenUiLang(display) ? (
+          <OpenUiMessage content={display} isStreaming={isStreaming} onAction={onOpenUiAction} />
         ) : isStreaming ? (
-          <StreamingText content={content} isStreaming />
+          <StreamingText content={display} isStreaming />
         ) : (
-          <div className={markdownStyles}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {content}
-            </ReactMarkdown>
-          </div>
+          <CompatMarkdown content={display} className={markdownStyles} />
         )}
       </div>
 

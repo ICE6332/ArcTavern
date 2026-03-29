@@ -1,48 +1,12 @@
 /// <reference types="vitest/globals" />
 import { PromptBuilderService } from './prompt-builder.service';
-import type { CharacterRow } from '../character/character.service';
-import type { ChatRow, MessageRow } from './chat.service';
-
-function makeCharacter(): CharacterRow {
-  return {
-    id: 1,
-    name: 'Alice',
-    avatar: null,
-    description: 'Character {{char}} description',
-    personality: 'Friendly to {{user}}',
-    first_mes: '',
-    mes_example: '',
-    scenario: '',
-    system_prompt: 'System prompt for {{char}}',
-    post_history_instructions: 'After history for {{user}}',
-    alternate_greetings: '[]',
-    creator: '',
-    creator_notes: '',
-    character_version: '',
-    tags: '[]',
-    spec: 'chara_card_v2',
-    spec_version: '2.0',
-    extensions: '{}',
-    character_book: null,
-    created_at: '',
-    updated_at: '',
-  };
-}
-
-function makeChat(): ChatRow {
-  return {
-    id: 1,
-    character_id: 1,
-    name: 'Test Chat',
-    created_at: '',
-    updated_at: '',
-  };
-}
+import type { MessageRow } from './chat.service';
+import { createMinimalCharacterRow, createMinimalChatRow } from '@/test/fixtures/prompt-builder';
 
 describe('PromptBuilderService', () => {
   it('applies macro replacement in system sections', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       userName: 'Bob',
       mergeSystemMessages: true,
     });
@@ -99,10 +63,15 @@ describe('PromptBuilderService', () => {
       },
     ];
 
-    const result = service.buildPrompt(makeCharacter(), makeChat(), messages, {
-      maxContext: 150,
-      maxTokens: 130,
-    });
+    const result = service.buildPrompt(
+      createMinimalCharacterRow(),
+      createMinimalChatRow(),
+      messages,
+      {
+        maxContext: 150,
+        maxTokens: 130,
+      },
+    );
 
     const nonSystem = result.filter((msg) => msg.role !== 'system');
     expect(nonSystem.length).toBeGreaterThan(0);
@@ -111,7 +80,7 @@ describe('PromptBuilderService', () => {
 
   it('injects RAG context after character description', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       ragContext: [
         {
           content: 'memory 1',
@@ -146,7 +115,7 @@ describe('PromptBuilderService', () => {
 
   it('injects RAG context before character description', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       ragContext: [
         {
           content: 'early memory',
@@ -176,7 +145,7 @@ describe('PromptBuilderService', () => {
 
   it('skips RAG block when no memories provided', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       ragContext: [],
       ragInsertionPosition: 'after_char',
     });
@@ -199,7 +168,7 @@ describe('PromptBuilderService', () => {
       createdAt: '',
     }));
 
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       ragContext: longMemories,
       ragInsertionPosition: 'after_char',
       ragMaxTokenBudget: 256, // ~1024 chars
@@ -216,7 +185,7 @@ describe('PromptBuilderService', () => {
 
   it('respects custom promptOrder when provided', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       userName: 'Bob',
       promptOrder: [
         { identifier: 'charDescription', enabled: true },
@@ -240,7 +209,7 @@ describe('PromptBuilderService', () => {
 
   it('skips disabled components in promptOrder', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       userName: 'Bob',
       promptOrder: [
         { identifier: 'main', enabled: false },
@@ -261,7 +230,7 @@ describe('PromptBuilderService', () => {
 
   it('falls back to legacy order when promptOrder is not provided', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       userName: 'Bob',
       mergeSystemMessages: true,
     });
@@ -275,7 +244,7 @@ describe('PromptBuilderService', () => {
 
   it('uses custom prompt content when provided', () => {
     const service = new PromptBuilderService();
-    const result = service.buildPrompt(makeCharacter(), makeChat(), [], {
+    const result = service.buildPrompt(createMinimalCharacterRow(), createMinimalChatRow(), [], {
       userName: 'Bob',
       promptOrder: [
         { identifier: 'main', enabled: true },

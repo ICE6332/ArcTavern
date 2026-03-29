@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -9,7 +10,10 @@ import {
   ParseIntPipe,
   NotFoundException,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { WorldInfoService } from './world-info.service';
 
@@ -76,11 +80,38 @@ export class WorldInfoController {
     return this.worldInfoService.deleteEntry(entryId);
   }
 
+  /**
+   * Import from JSON body — accepts ST standalone, ArcTavern array, or character_book format.
+   */
   @Post('import')
-  async importBook(
-    @Body() body: { name: string; description?: string; entries: Array<Record<string, unknown>> },
-  ) {
+  async importBook(@Body() body: unknown) {
     return this.worldInfoService.importBook(body);
+  }
+
+  /**
+   * Import from uploaded .json file — supports ST lorebook files directly.
+   */
+  @Post('import/file')
+  @UseInterceptors(FileInterceptor('file'))
+  async importBookFromFile(
+    @UploadedFile() file?: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    if (!file) {
+      throw new BadRequestException('Missing file');
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(file.buffer.toString('utf8'));
+    } catch {
+      throw new BadRequestException('Invalid JSON file');
+    }
+    // Use filename (without extension) as fallback name
+    const fallbackName = file.originalname.replace(/\.json$/i, '') || 'Imported Lorebook';
+    const data =
+      parsed && typeof parsed === 'object'
+        ? { name: fallbackName, ...parsed }
+        : { name: fallbackName };
+    return this.worldInfoService.importBook(data);
   }
 
   @Get(':id/export')

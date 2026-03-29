@@ -35,11 +35,7 @@ export default defineConfig({
             if (id.includes("lucide-react")) {
               return "lucide";
             }
-            if (
-              id.includes("motion/react") ||
-              id.includes("motion") ||
-              id.includes("@dnd-kit/")
-            ) {
+            if (id.includes("motion/react") || id.includes("motion") || id.includes("@dnd-kit/")) {
               return "interaction";
             }
             if (id.includes("@base-ui/react") || id.includes("@radix-ui/")) {

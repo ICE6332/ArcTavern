@@ -52,7 +52,9 @@ export class CharacterController {
     }
   }
 
-  private toCard(character: Awaited<ReturnType<CharacterService['findOne']>>): TavernCardV2 {
+  private async toCard(
+    character: Awaited<ReturnType<CharacterService['findOne']>>,
+  ): Promise<TavernCardV2> {
     if (!character) throw new NotFoundException('Character not found');
 
     const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
@@ -63,6 +65,48 @@ export class CharacterController {
         return fallback;
       }
     };
+
+    // If character has a linked world info book, export live DB data as character_book
+    let characterBook: TavernCardV2['data']['character_book'] = null;
+    if (character.world_info_book_id) {
+      const exported = await this.worldInfoService.exportBook(character.world_info_book_id);
+      if (exported) {
+        characterBook = {
+          name: exported.book.name,
+          description: exported.book.description,
+          entries: exported.entries.map((e) => ({
+            keys: this.safeJsonParse(e.keys, []),
+            secondary_keys: this.safeJsonParse(e.secondary_keys, []),
+            comment: e.comment,
+            content: e.content,
+            constant: Boolean(e.constant),
+            selective: Boolean(e.selective),
+            insertion_order: e.insertion_order,
+            enabled: Boolean(e.enabled),
+            position: e.position,
+            use_probability: Boolean(e.use_probability),
+            probability: e.probability,
+            depth: e.depth,
+            selectiveLogic: e.select_logic,
+            group: e.group_name,
+            groupOverride: Boolean(e.group_override),
+            groupWeight: e.group_weight,
+            scanDepth: e.scan_depth,
+            caseSensitive: Boolean(e.case_sensitive),
+            matchWholeWords: Boolean(e.match_whole_words),
+            useGroupScoring: Boolean(e.use_group_scoring),
+            automationId: e.automation_id,
+            role: e.role,
+            sticky: e.sticky,
+            cooldown: e.cooldown,
+            delay: e.delay,
+          })),
+        };
+      }
+    }
+    if (!characterBook) {
+      characterBook = parseJson(character.character_book, null);
+    }
 
     return {
       spec: 'chara_card_v2',
@@ -87,9 +131,18 @@ export class CharacterController {
           world: '',
           depth_prompt: { prompt: '', depth: 4, role: 'system' },
         }),
-        character_book: parseJson(character.character_book, null),
+        character_book: characterBook,
       },
     };
+  }
+
+  private safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
+    if (!value) return fallback;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
   }
 
   private fromCard(card: TavernCardV2) {
@@ -176,11 +229,11 @@ export class CharacterController {
       | undefined;
     if (charBook?.entries?.length) {
       try {
-        const book = await this.worldInfoService.importBook({
-          name: charBook.name || `${card.data.name} Lorebook`,
-          description: charBook.description ?? '',
-          entries: charBook.entries.map((e) => this.mapCardEntryToWI(e)),
-        });
+        const book = await this.worldInfoService.importBookWithName(
+          charBook.name || `${card.data.name} Lorebook`,
+          charBook.description ?? '',
+          charBook.entries,
+        );
         await this.characterService.update(created.id, { worldInfoBookId: book.id });
       } catch (err) {
         console.warn('Failed to auto-import character lorebook:', err);
@@ -188,64 +241,6 @@ export class CharacterController {
     }
 
     return this.characterService.findOne(created.id) ?? created;
-  }
-
-  private mapCardEntryToWI(e: Record<string, unknown>): Record<string, unknown> {
-    const toJsonArray = (val: unknown): string => {
-      if (Array.isArray(val)) return JSON.stringify(val);
-      if (typeof val === 'string') {
-        try {
-          const parsed = JSON.parse(val);
-          if (Array.isArray(parsed)) return val;
-        } catch {
-          /* ignore */
-        }
-        return JSON.stringify(
-          val
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter(Boolean),
-        );
-      }
-      return '[]';
-    };
-
-    const positionMap: Record<number, string> = {
-      0: 'before_char',
-      1: 'after_char',
-      2: 'before_example',
-      3: 'after_example',
-      4: 'at_depth',
-      5: 'before_an',
-      6: 'after_an',
-    };
-
-    return {
-      keys: toJsonArray(e.keys ?? e.key),
-      secondary_keys: toJsonArray(e.secondary_keys ?? e.keysecondary),
-      content: e.content ?? '',
-      comment: e.comment ?? e.name ?? '',
-      enabled: e.enabled === false || e.disable === true ? 0 : 1,
-      insertion_order: e.insertion_order ?? e.order ?? 100,
-      case_sensitive: e.case_sensitive ? 1 : 0,
-      priority: e.priority ?? 10,
-      position:
-        typeof e.position === 'number'
-          ? (positionMap[e.position] ?? 'before_char')
-          : (e.position ?? 'before_char'),
-      constant: e.constant ? 1 : 0,
-      selective: e.selective ? 1 : 0,
-      select_logic: e.select_logic ?? e.selectiveLogic ?? 0,
-      depth: e.depth ?? 4,
-      probability: e.probability ?? 100,
-      use_probability: e.use_probability ?? e.useProbability ?? 1,
-      extensions:
-        typeof e.extensions === 'object' ? JSON.stringify(e.extensions) : (e.extensions ?? '{}'),
-      role: e.role ?? 0,
-      sticky: e.sticky ?? 0,
-      cooldown: e.cooldown ?? 0,
-      delay: e.delay ?? 0,
-    };
   }
 
   @Post('export/:id')
@@ -258,7 +253,7 @@ export class CharacterController {
     if (!character) throw new NotFoundException('Character not found');
 
     const format = body?.format ?? 'json';
-    const card = this.toCard(character);
+    const card = await this.toCard(character);
 
     const fileNameSafe = character.name.replace(/[^\w.-]+/g, '_') || `character-${id}`;
 

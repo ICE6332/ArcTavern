@@ -36,14 +36,27 @@ export class ChatController {
   async create(@Body() body: { characterId: number; name?: string }) {
     const chat = await this.chatService.create(body.characterId, body.name);
 
-    // Persist the character's greeting as the first message
+    // Persist the character's greeting as the first message, with alternate greetings as swipes
     const character = await this.characterService.findOne(body.characterId);
     if (character?.first_mes) {
+      let altGreetings: string[] = [];
+      try {
+        const parsed = JSON.parse(character.alternate_greetings ?? '[]');
+        if (Array.isArray(parsed)) {
+          altGreetings = parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+        }
+      } catch {
+        // ignore
+      }
+
+      const allGreetings = [character.first_mes, ...altGreetings];
       await this.chatService.addMessage({
         chatId: chat.id,
         role: 'assistant',
         name: character.name,
         content: character.first_mes,
+        swipes: allGreetings.length > 1 ? JSON.stringify(allGreetings) : '[]',
+        swipeId: 0,
       });
     }
 

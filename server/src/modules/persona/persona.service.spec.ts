@@ -1,22 +1,10 @@
 /// <reference types="vitest/globals" />
 import { PersonaService } from './persona.service';
-import type { DrizzleService } from '../../db/drizzle.service';
-
-function makeDbMock() {
-  return {
-    query: vi.fn(),
-    get: vi.fn(),
-    run: vi.fn(),
-  } as unknown as DrizzleService & {
-    query: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    run: ReturnType<typeof vi.fn>;
-  };
-}
+import { createDrizzleServiceMock } from '@/test/drizzle-mock';
 
 describe('PersonaService', () => {
   it('creates a persona', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new PersonaService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
     db.get.mockResolvedValueOnce({ id: 'p1', name: 'Test Persona', description: 'desc' });
@@ -30,7 +18,7 @@ describe('PersonaService', () => {
   });
 
   it('updates connections', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new PersonaService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
     db.query.mockReturnValue([{ persona_id: 'p1', entity_type: 'character', entity_id: '1' }]);
@@ -49,7 +37,7 @@ describe('PersonaService', () => {
   });
 
   it('finds personas for entity', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new PersonaService(db);
     db.query.mockReturnValue([{ id: 'p1', name: 'Persona 1' }]);
 
@@ -62,7 +50,7 @@ describe('PersonaService', () => {
   });
 
   it('gets default persona', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new PersonaService(db);
     db.get.mockResolvedValueOnce({ id: 'p1', name: 'Default', is_default: 1 });
 
@@ -74,7 +62,7 @@ describe('PersonaService', () => {
   });
 
   it('deletes a persona', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new PersonaService(db);
     db.get.mockResolvedValueOnce({ id: 'p1', name: 'Delete Me' });
     db.run.mockReturnValue({ changes: 1, lastId: 0 });

@@ -96,6 +96,17 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
       ['cooldown', 'INTEGER DEFAULT 0'],
       ['delay', 'INTEGER DEFAULT 0'],
       ['triggers', "TEXT DEFAULT '[]'"],
+      // ST 1.16+ compatibility fields
+      ['vectorized', 'INTEGER DEFAULT 0'],
+      ['ignore_budget', 'INTEGER DEFAULT 0'],
+      ['match_persona_desc', 'INTEGER DEFAULT 0'],
+      ['match_char_desc', 'INTEGER DEFAULT 0'],
+      ['match_char_personality', 'INTEGER DEFAULT 0'],
+      ['match_scenario', 'INTEGER DEFAULT 0'],
+      ['delay_until_recursion', 'INTEGER DEFAULT 0'],
+      ['character_filter', "TEXT DEFAULT '{}'"],
+      // ArcTavern vector pipeline
+      ['content_hash', "TEXT DEFAULT ''"],
     ]);
   }
 

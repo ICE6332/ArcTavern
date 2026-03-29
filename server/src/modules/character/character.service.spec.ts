@@ -1,22 +1,10 @@
 /// <reference types="vitest/globals" />
 import { CharacterService } from './character.service';
-import type { DrizzleService } from '../../db/drizzle.service';
-
-function makeDbMock() {
-  return {
-    query: vi.fn(),
-    get: vi.fn(),
-    run: vi.fn(),
-  } as unknown as DrizzleService & {
-    query: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    run: ReturnType<typeof vi.fn>;
-  };
-}
+import { createDrizzleServiceMock } from '@/test/drizzle-mock';
 
 describe('CharacterService', () => {
   it('creates a character with mapped defaults', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new CharacterService(db);
 
     db.run.mockReturnValue({ changes: 1, lastId: 7 });
@@ -43,7 +31,7 @@ describe('CharacterService', () => {
   });
 
   it('updates mapped fields and updated_at', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new CharacterService(db);
 
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
@@ -68,7 +56,7 @@ describe('CharacterService', () => {
   });
 
   it('returns current row when no update fields are provided', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new CharacterService(db);
 
     db.get.mockResolvedValueOnce({ id: 1, name: 'Noop' });
@@ -80,7 +68,7 @@ describe('CharacterService', () => {
   });
 
   it('deletes existing character', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new CharacterService(db);
 
     db.get

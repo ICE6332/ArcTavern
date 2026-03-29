@@ -1,22 +1,10 @@
 /// <reference types="vitest/globals" />
 import { WorldInfoService } from './world-info.service';
-import type { DrizzleService } from '../../db/drizzle.service';
-
-function makeDbMock() {
-  return {
-    query: vi.fn(),
-    get: vi.fn(),
-    run: vi.fn(),
-  } as unknown as DrizzleService & {
-    query: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    run: ReturnType<typeof vi.fn>;
-  };
-}
+import { createDrizzleServiceMock } from '@/test/drizzle-mock';
 
 describe('WorldInfoService', () => {
   it('creates a book', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new WorldInfoService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 5 });
     db.get.mockResolvedValueOnce({ id: 5, name: 'Test Book', description: '' });
@@ -29,7 +17,7 @@ describe('WorldInfoService', () => {
   });
 
   it('creates an entry with auto-uid', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new WorldInfoService(db);
     db.get.mockReturnValueOnce({ max_uid: 3 }); // max uid query
     db.run.mockReturnValue({ changes: 1, lastId: 10 });
@@ -50,7 +38,7 @@ describe('WorldInfoService', () => {
   });
 
   it('updates an entry with mapped fields', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new WorldInfoService(db);
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
     db.get.mockResolvedValueOnce({ id: 1, content: 'updated' });
@@ -65,7 +53,7 @@ describe('WorldInfoService', () => {
   });
 
   it('exports a book with entries', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new WorldInfoService(db);
     db.get.mockResolvedValueOnce({ id: 1, name: 'Export Book' });
     db.query.mockReturnValue([{ id: 1, book_id: 1, content: 'entry1' }]);
@@ -78,7 +66,7 @@ describe('WorldInfoService', () => {
   });
 
   it('returns null when exporting non-existent book', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new WorldInfoService(db);
     db.get.mockResolvedValueOnce(null);
 
@@ -88,7 +76,7 @@ describe('WorldInfoService', () => {
   });
 
   it('deletes a book', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new WorldInfoService(db);
     db.get.mockResolvedValueOnce({ id: 1, name: 'Delete Me' });
     db.run.mockReturnValue({ changes: 1, lastId: 0 });

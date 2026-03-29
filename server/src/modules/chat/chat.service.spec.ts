@@ -1,22 +1,10 @@
 /// <reference types="vitest/globals" />
 import { ChatService } from './chat.service';
-import type { DrizzleService } from '../../db/drizzle.service';
-
-function makeDbMock() {
-  return {
-    query: vi.fn(),
-    get: vi.fn(),
-    run: vi.fn(),
-  } as unknown as DrizzleService & {
-    query: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    run: ReturnType<typeof vi.fn>;
-  };
-}
+import { createDrizzleServiceMock } from '@/test/drizzle-mock';
 
 describe('ChatService', () => {
   it('creates chat and returns inserted row', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new ChatService(db);
 
     db.run.mockReturnValue({ changes: 1, lastId: 9 });
@@ -32,7 +20,7 @@ describe('ChatService', () => {
   });
 
   it('adds message and updates chat timestamp', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new ChatService(db);
 
     db.run.mockReturnValueOnce({ changes: 1, lastId: 15 }).mockReturnValueOnce({
@@ -61,7 +49,7 @@ describe('ChatService', () => {
   });
 
   it('updates message with mapped fields', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new ChatService(db);
 
     db.run.mockReturnValue({ changes: 1, lastId: 0 });
@@ -83,7 +71,7 @@ describe('ChatService', () => {
   });
 
   it('deletes message and returns deleted row', async () => {
-    const db = makeDbMock();
+    const db = createDrizzleServiceMock();
     const service = new ChatService(db);
 
     db.get.mockReturnValue({ id: 11, content: 'bye' });
