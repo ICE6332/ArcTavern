@@ -175,4 +175,4 @@ ArcTavern/
 
 ## License
 
-MIT
+[Elastic License 2.0 (ELv2)](./LICENSE) — 个人使用、自部署免费；禁止作为托管/托管服务商业销售。
