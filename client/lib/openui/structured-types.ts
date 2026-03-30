@@ -50,6 +50,51 @@ export interface ProgressBlock {
   value: number;
 }
 
+export interface TabsBlock {
+  role: "tabs";
+  tabs: { label: string; content: string }[];
+}
+
+export interface AccordionBlock {
+  role: "accordion";
+  items: { label: string; content: string }[];
+}
+
+export interface StatBlock {
+  role: "stat";
+  title?: string;
+  stats: { name: string; value: number | string; max?: number }[];
+}
+
+export interface QuoteBlock {
+  role: "quote";
+  text: string;
+  attribution?: string;
+  variant?: "default" | "muted" | "accent";
+}
+
+export interface GalleryBlock {
+  role: "gallery";
+  items: { src: string; alt?: string; caption?: string }[];
+  columns?: 2 | 3 | 4;
+}
+
+export interface TimelineBlock {
+  role: "timeline";
+  events: { title?: string; time?: string; content: string }[];
+}
+
+export interface InventoryBlock {
+  role: "inventory";
+  items: { name: string; quantity: number; rarity?: string }[];
+}
+
+export interface SpoilerBlock {
+  role: "spoiler";
+  label?: string;
+  content: string;
+}
+
 export type StructuredBlock =
   | NarrationBlock
   | CardBlock
@@ -58,7 +103,15 @@ export type StructuredBlock =
   | ChoicesBlock
   | SeparatorBlock
   | TaskBlock
-  | ProgressBlock;
+  | ProgressBlock
+  | TabsBlock
+  | AccordionBlock
+  | StatBlock
+  | QuoteBlock
+  | GalleryBlock
+  | TimelineBlock
+  | InventoryBlock
+  | SpoilerBlock;
 
 export interface StructuredResponse {
   blocks: StructuredBlock[];
@@ -75,9 +128,20 @@ export interface PartialBlock {
   content?: string;
   language?: string;
   options?: (string | ChoiceAction)[];
-  items?: string[];
+  /** task: string[]; accordion/gallery/inventory: object arrays — disambiguate with role when rendering */
+  items?:
+    | string[]
+    | { label: string; content: string }[]
+    | { src: string; alt?: string; caption?: string }[]
+    | { name: string; quantity: number; rarity?: string }[];
   value?: number;
   label?: string;
+  tabs?: { label?: string; content?: string }[];
+  stats?: { name?: string; value?: number | string; max?: number }[];
+  attribution?: string;
+  variant?: string;
+  columns?: 2 | 3 | 4;
+  events?: { title?: string; time?: string; content?: string }[];
 }
 
 export interface PartialStructuredResponse {

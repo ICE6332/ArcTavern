@@ -6,6 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   CodeBlock,
   CodeBlockHeader,
@@ -15,6 +24,8 @@ import {
   CodeBlockCopyButton,
 } from "@/components/ai-elements/code-block";
 import { Task, TaskTrigger, TaskContent, TaskItem } from "@/components/ai-elements/task";
+import { StatPanel } from "@/components/ai-elements/stat-panel";
+import { GalleryGrid } from "@/components/ai-elements/gallery-grid";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
 import type { BundledLanguage } from "shiki";
 
@@ -27,6 +38,24 @@ const alertColors: Record<string, string> = {
   error: "border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300",
   success: "border-green-500/30 bg-green-500/5 text-green-700 dark:text-green-300",
 };
+
+const quoteVariantClass: Record<string, string> = {
+  default: "border-l-4 border-primary bg-muted/30 py-3 pl-4",
+  muted: "border-l-2 border-muted-foreground/40 bg-muted/20 py-3 pl-3 text-muted-foreground",
+  accent: "border border-accent/50 bg-accent/5 py-3 pl-4",
+};
+
+function rarityBadgeVariant(
+  rarity: string | undefined,
+): "default" | "secondary" | "outline" | "destructive" {
+  if (!rarity) return "secondary";
+  const r = rarity.toLowerCase();
+  if (r.includes("legendary") || r.includes("神话") || r.includes("传奇")) return "default";
+  if (r.includes("epic") || r.includes("史诗")) return "default";
+  if (r.includes("rare") || r.includes("稀有")) return "secondary";
+  if (r.includes("uncommon") || r.includes("优良")) return "outline";
+  return "outline";
+}
 
 interface StructuredMessageProps {
   data: PartialStructuredResponse;
@@ -111,7 +140,6 @@ export function StructuredMessage({ data, onAction, onCommandAction }: Structure
                     </Button>
                   );
                 }
-                // ChoiceAction: button that executes a slash command
                 const variant =
                   option.style === "primary"
                     ? "default"
@@ -143,9 +171,11 @@ export function StructuredMessage({ data, onAction, onCommandAction }: Structure
           return (
             <Task key={i}>
               <TaskTrigger title={block.title} />
-              {block.items?.length ? (
+              {Array.isArray(block.items) &&
+              block.items.length &&
+              typeof block.items[0] === "string" ? (
                 <TaskContent>
-                  {block.items.map((item, ti) => (
+                  {(block.items as string[]).map((item, ti) => (
                     <TaskItem key={ti}>{item}</TaskItem>
                   ))}
                 </TaskContent>
@@ -163,6 +193,163 @@ export function StructuredMessage({ data, onAction, onCommandAction }: Structure
               </div>
               <Progress value={block.value ?? 0} className="h-2" />
             </div>
+          );
+        }
+
+        if (block.role === "tabs" && block.tabs?.length) {
+          const defaultTab = "tab-0";
+          return (
+            <Tabs key={i} defaultValue={defaultTab} className="w-full text-xs">
+              <TabsList className="w-full flex-wrap gap-1">
+                {block.tabs.map((tab, ti) => (
+                  <TabsTrigger key={ti} value={`tab-${ti}`} className="px-2">
+                    {tab.label ?? `Tab ${ti + 1}`}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {block.tabs.map((tab, ti) => (
+                <TabsContent key={ti} value={`tab-${ti}`} className="mt-2">
+                  <div className={markdownStyles}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{tab.content ?? ""}</ReactMarkdown>
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          );
+        }
+
+        if (block.role === "accordion" && block.items?.length) {
+          const accItems = block.items as { label: string; content: string }[];
+          if (typeof accItems[0] !== "object" || accItems[0] == null || !("label" in accItems[0])) {
+            return null;
+          }
+          return (
+            <Accordion key={i} multiple className="w-full">
+              {accItems.map((item, ai) => (
+                <AccordionItem key={ai} value={`acc-${i}-${ai}`}>
+                  <AccordionTrigger>{item.label}</AccordionTrigger>
+                  <AccordionContent>
+                    <div className={markdownStyles}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {item.content ?? ""}
+                      </ReactMarkdown>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          );
+        }
+
+        if (block.role === "stat" && block.stats?.length) {
+          return (
+            <StatPanel
+              key={i}
+              title={block.title}
+              stats={block.stats.map((s) => ({
+                name: s.name ?? "",
+                value: s.value ?? 0,
+                max: s.max,
+              }))}
+            />
+          );
+        }
+
+        if (block.role === "quote" && block.text) {
+          const v = block.variant ?? "default";
+          const variantCls = quoteVariantClass[v] ?? quoteVariantClass.default;
+          return (
+            <div key={i} className={`rounded-md text-sm ${variantCls}`}>
+              <blockquote className="not-italic">
+                <div className={markdownStyles}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.text}</ReactMarkdown>
+                </div>
+                {block.attribution ? (
+                  <footer className="mt-2 text-xs text-muted-foreground not-italic">
+                    — {block.attribution}
+                  </footer>
+                ) : null}
+              </blockquote>
+            </div>
+          );
+        }
+
+        if (block.role === "gallery" && block.items?.length) {
+          const gItems = block.items as { src: string; alt?: string; caption?: string }[];
+          if (typeof gItems[0] !== "object" || gItems[0] == null || !("src" in gItems[0])) {
+            return null;
+          }
+          return <GalleryGrid key={i} items={gItems} columns={block.columns ?? 3} />;
+        }
+
+        if (block.role === "timeline" && block.events?.length) {
+          return (
+            <ul key={i} className="relative space-y-4 border-l border-border pl-4">
+              {block.events.map((ev, ei) => (
+                <li key={ei} className="relative">
+                  <span
+                    className="absolute top-1.5 -left-[calc(1rem+5px)] size-2.5 rounded-full border-2 border-background bg-primary"
+                    aria-hidden
+                  />
+                  {ev.time ? (
+                    <div className="text-[0.625rem] font-medium text-muted-foreground">
+                      {ev.time}
+                    </div>
+                  ) : null}
+                  {ev.title ? <div className="text-xs font-semibold">{ev.title}</div> : null}
+                  <div className={markdownStyles}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{ev.content ?? ""}</ReactMarkdown>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (block.role === "inventory" && block.items?.length) {
+          const invItems = block.items as { name: string; quantity: number; rarity?: string }[];
+          if (typeof invItems[0] !== "object" || invItems[0] == null || !("name" in invItems[0])) {
+            return null;
+          }
+          return (
+            <Card key={i} size="sm">
+              <CardContent className="space-y-2 pt-4">
+                {invItems.map((it, ii) => (
+                  <div
+                    key={ii}
+                    className="flex items-center justify-between gap-2 border-b border-border/60 pb-2 text-xs last:border-0 last:pb-0"
+                  >
+                    <span className="font-medium">{it.name}</span>
+                    <span className="flex items-center gap-2 tabular-nums">
+                      <span className="text-muted-foreground">×{it.quantity}</span>
+                      {it.rarity ? (
+                        <Badge variant={rarityBadgeVariant(it.rarity)} className="text-[0.625rem]">
+                          {it.rarity}
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          );
+        }
+
+        if (block.role === "spoiler" && block.content) {
+          return (
+            <Collapsible key={i} defaultOpen={false} className="rounded-md border border-border">
+              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-medium hover:bg-muted/50">
+                <span>{block.label ?? "Spoiler"}</span>
+                <span className="text-muted-foreground">▼</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="border-t border-border px-3 py-2">
+                  <div className={markdownStyles}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.content}</ReactMarkdown>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           );
         }
 
