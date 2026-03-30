@@ -56,9 +56,12 @@ const emptyStreamingSnapshot = (): StreamingSnapshot => ({
 });
 
 let abortController: AbortController | null = null;
-let scheduledFlushHandle: number | ReturnType<typeof setTimeout> | null = null;
-let scheduledFlushMode: "raf" | "timeout" | null = null;
 const streamingBuffer: StreamingSnapshot = emptyStreamingSnapshot();
+
+// Chunk throttle — keeps at most one pending snapshot and drains every CHUNK_INTERVAL_MS
+let pendingChunk: Partial<StreamingSnapshot> | null = null;
+let drainHandle: ReturnType<typeof setTimeout> | null = null;
+const CHUNK_INTERVAL_MS = 25;
 
 function clearStreamingBuffer() {
   streamingBuffer.streamingContent = "";
@@ -66,46 +69,15 @@ function clearStreamingBuffer() {
   streamingBuffer.streamingStructured = null;
 }
 
-function cancelScheduledStreamingFlush() {
-  if (scheduledFlushHandle === null) {
-    return;
+function clearChunkQueue() {
+  pendingChunk = null;
+  if (drainHandle !== null) {
+    clearTimeout(drainHandle);
+    drainHandle = null;
   }
-
-  if (scheduledFlushMode === "raf" && typeof window !== "undefined") {
-    window.cancelAnimationFrame(scheduledFlushHandle as number);
-  } else {
-    clearTimeout(scheduledFlushHandle as ReturnType<typeof setTimeout>);
-  }
-
-  scheduledFlushHandle = null;
-  scheduledFlushMode = null;
 }
 
-function flushStreamingState(set: (partial: Partial<ChatState>) => void) {
-  scheduledFlushHandle = null;
-  scheduledFlushMode = null;
-  set({ ...streamingBuffer });
-}
-
-function scheduleStreamingFlush(set: (partial: Partial<ChatState>) => void) {
-  if (scheduledFlushHandle !== null) {
-    return;
-  }
-
-  if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
-    scheduledFlushMode = "raf";
-    scheduledFlushHandle = window.requestAnimationFrame(() => flushStreamingState(set));
-    return;
-  }
-
-  scheduledFlushMode = "timeout";
-  scheduledFlushHandle = setTimeout(() => flushStreamingState(set), 16);
-}
-
-function applyStreamingState(
-  set: (partial: Partial<ChatState>) => void,
-  data: Partial<StreamingSnapshot>,
-) {
+function applyChunkToBuffer(data: Partial<StreamingSnapshot>) {
   if (data.streamingContent !== undefined) {
     streamingBuffer.streamingContent = data.streamingContent;
   }
@@ -115,8 +87,39 @@ function applyStreamingState(
   if (data.streamingStructured !== undefined) {
     streamingBuffer.streamingStructured = data.streamingStructured;
   }
+}
 
-  scheduleStreamingFlush(set);
+function drainChunkQueue() {
+  drainHandle = null;
+  if (!pendingChunk) return;
+  applyChunkToBuffer(pendingChunk);
+  pendingChunk = null;
+  useChatStore.setState({ ...streamingBuffer });
+}
+
+function enqueueChunk(data: Partial<StreamingSnapshot>) {
+  // Merge into pending snapshot — latest value wins, O(1) memory
+  if (pendingChunk) {
+    Object.assign(pendingChunk, data);
+  } else {
+    pendingChunk = { ...data };
+  }
+  if (drainHandle === null) {
+    drainHandle = setTimeout(drainChunkQueue, CHUNK_INTERVAL_MS);
+  }
+}
+
+function flushAllChunks() {
+  if (drainHandle !== null) {
+    clearTimeout(drainHandle);
+    drainHandle = null;
+  }
+  if (pendingChunk) {
+    applyChunkToBuffer(pendingChunk);
+    pendingChunk = null;
+  }
+  // Synchronous commit — guaranteed to land before any subsequent cleanup
+  useChatStore.setState({ ...streamingBuffer });
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -157,7 +160,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     }
 
-    cancelScheduledStreamingFlush();
+    clearChunkQueue();
     clearStreamingBuffer();
     set({
       currentChatId: chatId,
@@ -297,7 +300,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     abortController?.abort();
     abortController = new AbortController();
-    cancelScheduledStreamingFlush();
+    clearChunkQueue();
+
     clearStreamingBuffer();
 
     set({
@@ -346,7 +350,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (chunk.content) {
           chunkCount += 1;
           fullContent += chunk.content;
-          applyStreamingState(set, { streamingContent: fullContent });
+          enqueueChunk({ streamingContent: fullContent });
           if (chunkCount <= 3 || chunkCount % 20 === 0) {
             chatDebug("generate.chunk", {
               generationChatId,
@@ -358,18 +362,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         if (chunk.reasoning) {
           fullReasoning += chunk.reasoning;
-          applyStreamingState(set, { streamingReasoning: fullReasoning });
+          enqueueChunk({ streamingReasoning: fullReasoning });
         }
 
         if (chunk.structured) {
-          applyStreamingState(set, {
+          enqueueChunk({
             streamingStructured: chunk.structured as PartialStructuredResponse,
           });
         }
       }
 
+      const localSignal = abortController?.signal;
       const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
-      cancelScheduledStreamingFlush();
+      // Guard: if aborted during await, a new generate owns the global state — bail out
+      if (localSignal?.aborted) return;
+      flushAllChunks();
+
       clearStreamingBuffer();
       if (get().currentChatId !== generationChatId) {
         chatDebug("generate.skipApply.chatChanged", {
@@ -402,8 +410,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         chatDebug("generate.aborted", { type, currentChatId: generationChatId });
       }
       const freshMessages = await chatApi.getMessages(generationChatId).catch(() => get().messages);
-      cancelScheduledStreamingFlush();
-      clearStreamingBuffer();
+      // Guard: if a new generate started while we awaited, don't touch its state
       if (get().currentChatId !== generationChatId) {
         chatDebug("generate.skipErrorApply.chatChanged", {
           generationChatId,
@@ -411,6 +418,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
         return;
       }
+      flushAllChunks();
+
+      clearStreamingBuffer();
       set({
         messages: freshMessages,
         isGenerating: false,
@@ -471,7 +481,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     chatDebug("stopGeneration.start", { chatId });
     abortController?.abort();
     abortController = null;
-    cancelScheduledStreamingFlush();
+    clearChunkQueue();
+
     clearStreamingBuffer();
     if (chatId) {
       await chatApi.stop(chatId).catch(() => undefined);
