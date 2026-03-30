@@ -2,7 +2,6 @@
   "sidebar": {
     "characters": "角色",
     "chats": "聊天",
-    "groups": "群组",
     "newCharacter": "新建角色",
     "loading": "加载中...",
     "newChat": "+ 新建",
@@ -138,21 +137,6 @@
     "description": "描述",
     "descriptionPlaceholder": "描述这个人设...",
     "setDefault": "设为默认人设"
-  },
-  "group": {
-    "title": "群组",
-    "noGroups": "暂无群组",
-    "groupName": "群组名称",
-    "groupNamePlaceholder": "群组名称",
-    "turnStrategy": "轮转策略",
-    "natural": "自然",
-    "listRoundRobin": "列表（轮询）",
-    "manual": "手动",
-    "randomPool": "随机池",
-    "members": "成员",
-    "addMember": "添加成员...",
-    "typeMessage": "输入消息...",
-    "typing": "正在输入..."
   },
   "tags": {
     "clear": "清除"
@@ -352,7 +336,6 @@
     "hint": "在侧边栏选一个角色，开启你的奇妙对话吧",
     "browseCharacters": "浏览角色",
     "createCharacter": "创建角色",
-    "importCharacter": "导入角色",
-    "groupChat": "群组聊天"
+    "importCharacter": "导入角色"
   }
 }

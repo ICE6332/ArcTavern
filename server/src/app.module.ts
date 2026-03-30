@@ -11,7 +11,6 @@ import { AiProviderModule } from './modules/ai-provider/ai-provider.module';
 import { TagModule } from './modules/tag/tag.module';
 import { PersonaModule } from './modules/persona/persona.module';
 import { WorldInfoModule } from './modules/world-info/world-info.module';
-import { GroupModule } from './modules/group/group.module';
 import { RagModule } from './modules/rag/rag.module';
 
 @Module({
@@ -27,7 +26,6 @@ import { RagModule } from './modules/rag/rag.module';
     TagModule,
     PersonaModule,
     WorldInfoModule,
-    GroupModule,
     RagModule,
   ],
   controllers: [HealthController],

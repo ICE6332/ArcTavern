@@ -1,3 +1,5 @@
+> Note: The legacy group chat prototype has been removed. Its intended use case is now covered by the world-card toolchain and sub-character cards.
+
 <h1 align="center">ArcTavern</h1>
 
 <p align="center">
@@ -127,7 +129,7 @@ cd server && pnpm exec vp test run -t "scan"
 ```
 ArcTavern/
 ├── client/                   # @arctravern/client — Vite 8 + React SPA
-│   ├── components/           # 按域组织：character/, chat/, group/, persona/,
+│   ├── components/           # 按域组织：character/, chat/, persona/,
 │   │                         #           settings/, sidebar/, tags/, world-info/
 │   ├── components/ui/        # shadcn/ui 原语（自动生成，勿手动修改）
 │   ├── stores/               # Zustand stores（每域一个）
@@ -143,7 +145,7 @@ ArcTavern/
 │       ├── world-info/       # Lorebook、关键词 + 向量扫描
 │       ├── rag/              # LanceDB 向量存储、异步嵌入队列
 │       ├── preset/           # 8 种预设类型管理
-│       └── ...               # group/, persona/, tag/, settings/, secret/
+│       └── ...               # persona/, tag/, settings/, secret/
 │
 └── specs/                    # 实施规格文档（四层架构设计）
 ```

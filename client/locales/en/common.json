@@ -2,7 +2,6 @@
   "sidebar": {
     "characters": "Characters",
     "chats": "Chats",
-    "groups": "Groups",
     "newCharacter": "New Character",
     "loading": "Loading...",
     "newChat": "+ New",
@@ -138,21 +137,6 @@
     "description": "Description",
     "descriptionPlaceholder": "Describe this persona...",
     "setDefault": "Set as default persona"
-  },
-  "group": {
-    "title": "Groups",
-    "noGroups": "No groups yet",
-    "groupName": "Group Name",
-    "groupNamePlaceholder": "Group name",
-    "turnStrategy": "Turn Strategy",
-    "natural": "Natural",
-    "listRoundRobin": "List (Round-robin)",
-    "manual": "Manual",
-    "randomPool": "Random Pool",
-    "members": "Members",
-    "addMember": "Add member...",
-    "typeMessage": "Type a message...",
-    "typing": "is typing..."
   },
   "tags": {
     "clear": "Clear"
@@ -352,7 +336,6 @@
     "hint": "Choose a character from the sidebar to start your next conversation.",
     "browseCharacters": "Browse characters",
     "createCharacter": "Create character",
-    "importCharacter": "Import character",
-    "groupChat": "Group chat"
+    "importCharacter": "Import character"
   }
 }

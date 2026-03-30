@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { UserIcon, FileImportIcon, Add01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { UserIcon, FileImportIcon, Add01Icon } from "@hugeicons/core-free-icons";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { useTranslation } from "@/lib/i18n";
@@ -60,10 +60,6 @@ export function ChatWelcomeScreen() {
           <PromptSuggestion>
             <HugeiconsIcon icon={FileImportIcon} size={14} strokeWidth={1.5} />
             <span className="ml-1.5">{t("welcomeScreen.importCharacter")}</span>
-          </PromptSuggestion>
-          <PromptSuggestion>
-            <HugeiconsIcon icon={UserGroupIcon} size={14} strokeWidth={1.5} />
-            <span className="ml-1.5">{t("welcomeScreen.groupChat")}</span>
           </PromptSuggestion>
         </div>
       </div>

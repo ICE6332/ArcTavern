@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useCharacterStore } from "@/stores/character-store";
 import { useChatStore } from "@/stores/chat-store";
-import { useGroupStore } from "@/stores/group-store";
 import { useConnectionStore } from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { CharacterList } from "@/components/character/character-list";
@@ -11,7 +10,6 @@ import { CharacterImport } from "@/components/character/character-import";
 import { CharacterEditor } from "@/components/character/character-editor";
 import { CharacterExport } from "@/components/character/character-export";
 import { TagFilter } from "@/components/tags/tag-filter";
-import { GroupList } from "@/components/group/group-list";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import {
@@ -26,9 +24,9 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { UserIcon, MessageMultiple01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { UserIcon, MessageMultiple01Icon } from "@hugeicons/core-free-icons";
 
-type SidebarTab = "characters" | "chats" | "groups";
+type SidebarTab = "characters" | "chats";
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -44,7 +42,6 @@ export function Sidebar() {
   } = useCharacterStore();
   const { chats, fetchChats, selectChat, createChat, deleteChat, generateTitle, currentChatId } =
     useChatStore();
-  const { createGroup, selectGroup } = useGroupStore();
   const { provider, model, reverseProxy } = useConnectionStore();
   const [tab, setTab] = useState<SidebarTab>("characters");
   const [generatingTitleFor, setGeneratingTitleFor] = useState<number | null>(null);
@@ -158,17 +155,6 @@ export function Sidebar() {
               <span>{t("sidebar.chats")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="sm"
-              isActive={tab === "groups"}
-              onClick={() => setTab("groups")}
-              tooltip={t("sidebar.groups")}
-            >
-              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
-              <span>{t("sidebar.groups")}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
@@ -206,15 +192,6 @@ export function Sidebar() {
               />
               <CharacterEditor character={selectedCharacter} />
             </div>
-          ) : tab === "groups" ? (
-            <GroupList
-              onSelectGroup={(id) => {
-                void selectGroup(id);
-              }}
-              onCreateGroup={() => {
-                void createGroup({ name: `Group ${Date.now()}` });
-              }}
-            />
           ) : (
             <div className="flex flex-col gap-1">
               <div className="mb-1 flex items-center justify-between">

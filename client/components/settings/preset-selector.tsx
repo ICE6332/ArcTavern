@@ -220,7 +220,12 @@ export function PresetSelector({ apiType, onPresetApplied }: PresetSelectorProps
             placeholder={t("settings.presetNamePlaceholder")}
             className="h-6 flex-1 text-xs"
           />
-          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={confirmSaveNew}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={confirmSaveNew}
+          >
             OK
           </Button>
           <Button
