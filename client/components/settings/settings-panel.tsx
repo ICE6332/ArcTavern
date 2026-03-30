@@ -13,8 +13,9 @@ import { MemorySettings } from "./memory-settings";
 import { PromptSettings } from "./prompt-settings";
 import { SamplingSettings } from "./sampling-settings";
 import { WorldInfoSettings } from "./world-info-settings";
+import { RegexSettings } from "./regex-settings";
 
-type SettingsTab = "connection" | "prompts" | "worldinfo" | "memory";
+type SettingsTab = "connection" | "prompts" | "worldinfo" | "memory" | "regex";
 
 export function SettingsPanel() {
   const { t } = useTranslation();
@@ -91,11 +92,21 @@ export function SettingsPanel() {
                 >
                   {t("settings.memory")}
                 </Button>
+                <Button
+                  variant={settingsTab === "regex" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setSettingsTab("regex")}
+                >
+                  {t("settings.regex")}
+                </Button>
               </div>
             </div>
 
             <div className="min-w-[320px] flex-1 overflow-y-auto p-4">
-              {settingsTab === "worldinfo" ? (
+              {settingsTab === "regex" ? (
+                <RegexSettings />
+              ) : settingsTab === "worldinfo" ? (
                 <WorldInfoSettings />
               ) : settingsTab === "prompts" ? (
                 <PromptSettings />
