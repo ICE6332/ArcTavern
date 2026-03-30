@@ -58,6 +58,7 @@ nul
 CLAUDE.md
 AGENTS.md
 .mcp.json
+instruction.md
 specs/
 
 # Local-only collateral (not for remote)
