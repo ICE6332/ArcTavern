@@ -18,8 +18,7 @@
     "test": "vp run test -r",
     "test:client": "pnpm --filter @arctravern/client test",
     "test:server": "pnpm --filter @arctravern/server test",
-    "ready": "pnpm check && pnpm test && pnpm build",
-    "stress:openui": "node scripts/openui-structured-e2e-stress.mjs"
+    "ready": "pnpm check && pnpm test && pnpm build"
   },
   "devDependencies": {
     "shadcn": "^3.8.5",
