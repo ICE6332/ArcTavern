@@ -162,72 +162,56 @@ export type StructuredBlock = z.infer<typeof BlockSchema>;
 // --- System prompt for structured output mode ---
 
 export function getStructuredOutputSystemPrompt(): string {
-  return `You respond with a JSON object containing a "blocks" array. Each block has a "role" field.
+  return `Return ONE valid JSON object only: { "blocks": [ ... ] }.
 
-Block types:
+Each block must use one of these roles with the correct fields:
+- narration: { "role": "narration", "text": string }
+- card: { "role": "card", "markdown": string, "title"?: string }
+- alert: { "role": "alert", "message": string, "level"?: "info"|"warning"|"error"|"success" }
+- code: { "role": "code", "content": string, "language"?: string }
+- choices: { "role": "choices", "options": string[] | action[] }
+- separator: { "role": "separator" }
+- task: { "role": "task", "title": string, "items": string[] }
+- progress: { "role": "progress", "label": string, "value": number }
+- tabs: { "role": "tabs", "tabs": [{ "label": string, "content": string }] }
+- accordion: { "role": "accordion", "items": [{ "label": string, "content": string }] }
+- stat: { "role": "stat", "title"?: string, "stats": [{ "name": string, "value": string|number, "max"?: number }] }
+- quote: { "role": "quote", "text": string, "attribution"?: string, "variant"?: "default"|"muted"|"accent" }
+- gallery: { "role": "gallery", "items": [{ "src": string, "alt"?: string, "caption"?: string }], "columns"?: 2|3|4 }
+- timeline: { "role": "timeline", "events": [{ "title"?: string, "time"?: string, "content": string }] }
+- inventory: { "role": "inventory", "items": [{ "name": string, "quantity": number, "rarity"?: string }] }
+- spoiler: { "role": "spoiler", "content": string, "label"?: string }
 
-1. narration — roleplay, dialogue, descriptions, inner thoughts:
-   { "role": "narration", "text": "*action description* spoken dialogue" }
+Usage guidance:
+- Use narration for story, dialogue, description, and inner thoughts. Write actions in *asterisks*.
+- Use card as the default visual support block. If unsure what UI block to use, use card.
+- Use choices for interactive options.
+- Use alert, stat, task, tabs, accordion, timeline, inventory, quote, gallery, progress, code, or spoiler when they clearly fit.
+- Respond in the same language as the user.
 
-2. card — structured content rendered in a card. Use markdown for tables, lists, headings, etc:
-   { "role": "card", "title": "Optional Title", "markdown": "## Heading\\n| Col | Val |\\n|---|---|\\n| HP | 100 |" }
+CRITICAL:
+- The first non-whitespace character MUST be "{".
+- No prose, markdown fences, or explanations outside the JSON object.
+- Story and dialogue must live inside blocks, not as raw text outside JSON.
+- Every response MUST include at least 2 blocks.
+- Every response MUST include at least 1 narration block.
+- Every response MUST include at least 1 visual UI block in addition to narration.
+- Valid visual UI blocks are: card, alert, code, task, progress, tabs, accordion, stat, quote, gallery, timeline, inventory, spoiler.
+- choices and separator DO NOT satisfy the visual UI block requirement.
+- Even if the user only wants story progression or a simple reply, you STILL MUST include a visual UI block. Use card by default.
+- NEVER return only narration.
+- NEVER return only choices.
+- NEVER return narration + choices only.
+- NEVER return narration + separator only.
 
-3. alert — colored status message (level: info, warning, error, success):
-   { "role": "alert", "message": "System online.", "level": "info" }
+BAD:
+{ "blocks": [{ "role": "narration", "text": "..." }] }
 
-4. code — code snippet with optional language label:
-   { "role": "code", "content": "console.log('hello')", "language": "javascript" }
-
-5. choices — interactive option buttons the user can click:
-   Simple text options: { "role": "choices", "options": ["Option A", "Option B"] }
-   Action options (execute slash commands on click):
-   { "role": "choices", "options": [{ "label": "Fight", "command": "/setvar key=action fight | /gen Describe the fight", "style": "primary" }] }
-   You can mix simple strings and action objects in the same options array.
-
-6. separator — horizontal line to separate sections:
-   { "role": "separator" }
-
-7. task — a collapsible task/checklist with a title and item list:
-   { "role": "task", "title": "Setup Checklist", "items": ["Install dependencies", "Configure API keys", "Run tests"] }
-
-8. progress — a progress bar showing completion or stats (value 0-100):
-   { "role": "progress", "label": "HP", "value": 75 }
-
-9. tabs — tabbed panels; each tab has a label and markdown content:
-   { "role": "tabs", "tabs": [{ "label": "Combat", "content": "*Round 1*" }, { "label": "POV", "content": "Narration..." }] }
-
-10. accordion — expandable sections with label and markdown content per item:
-   { "role": "accordion", "items": [{ "label": "Spells", "content": "- Fireball\\n- Shield" }, { "label": "NPC", "content": "..." }] }
-
-11. stat — character or combat stats; optional title; each stat has name, value (number or string), optional max for a bar:
-   { "role": "stat", "title": "Hero", "stats": [{ "name": "HP", "value": 42, "max": 100 }, { "name": "MP", "value": 10, "max": 30 }] }
-
-12. quote — quoted or emphasized text; optional attribution and variant (default, muted, accent):
-   { "role": "quote", "text": "Thus spoke the oracle.", "attribution": "Ancient tome", "variant": "muted" }
-
-13. gallery — image grid; optional columns 2–4:
-   { "role": "gallery", "columns": 3, "items": [{ "src": "https://...", "alt": "Scene", "caption": "Forest" }] }
-
-14. timeline — vertical timeline of events:
-   { "role": "timeline", "events": [{ "time": "Day 1", "title": "Arrival", "content": "You reach the gate." }] }
-
-15. inventory — item list with quantity and optional rarity label:
-   { "role": "inventory", "items": [{ "name": "Health Potion", "quantity": 3, "rarity": "common" }] }
-
-16. spoiler — hidden text; user expands to read (markdown in content):
-   { "role": "spoiler", "label": "Ending", "content": "The twist is..." }
-
-Guidelines:
-- Use narration for storytelling, dialogue, and descriptive text. Write actions in *asterisks*.
-- Use card for data tables, attribute panels, lists, or any rich content. Write the content as markdown.
-- Use alert for status updates, warnings, or system messages that deserve visual emphasis.
-- Use code for code snippets, logs, or terminal output.
-- Use choices to offer the user interactive options.
-- Use tabs for POV switches, combat phases, or categorized views; use accordion for long collapsible reference lists.
-- Use stat for HP/MP bars and numeric panels; use quote for in-world quotations; use gallery for scene or character art references.
-- Use timeline for quests or story beats; use inventory for loot and gear; use spoiler for plot spoilers.
-- You can freely mix block types. Most responses should include at least one narration block.
-- Respond in the same language as the user.`;
+GOOD:
+{ "blocks": [
+  { "role": "narration", "text": "..." },
+  { "role": "card", "title": "Scene", "markdown": "..." }
+] }`;
 }
 
 // --- Utility: extract plain text from structured response for RAG/search ---

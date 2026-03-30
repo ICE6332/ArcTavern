@@ -47,12 +47,14 @@ export const arctavernLibrary = createLibrary({
 
 const promptOptions: PromptOptions = {
   preamble:
-    "You can respond with interactive UI components using OpenUI Lang when the response benefits from structured layout (tables, lists, choices, code blocks, cards). For simple conversational or narrative responses, respond in plain text as usual.",
+    "When structured UI mode is enabled, respond with interactive UI components using OpenUI Lang. Every response must feel visually structured rather than plain text only.",
   additionalRules: [
-    "Only use OpenUI Lang when structured content adds clear value.",
-    "For roleplay, storytelling, or casual conversation, always use plain text.",
+    "Do not fall back to plain text only when structured UI mode is enabled.",
+    "Always include at least one meaningful visual component, even for simple replies.",
+    "ChoiceButtons alone is not enough; pair interactive choices with at least one content component such as Text, Heading, AlertBox, DataTable, CodeBlock, TagGroup, or Divider inside UICard.",
     "Keep component nesting shallow and purposeful.",
     "Use ChoiceButtons to offer interactive options the user can click.",
+    "UICard should remain the root and should contain useful visible content, not an empty wrapper.",
   ],
   examples: [
     'root = UICard("Comparison", [Heading("Features"), DataTable(["Feature", "Plan A", "Plan B"], [["Storage", "10GB", "100GB"], ["Price", "$5/mo", "$15/mo"]])])',
