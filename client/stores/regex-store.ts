@@ -16,7 +16,6 @@ interface RegexState {
   fetchGlobalScripts: () => Promise<void>;
   setCharacterScripts: (scripts: RegexScriptData[]) => void;
   saveGlobalScripts: () => Promise<void>;
-  saveCharacterScripts: () => RegexScriptData[];
   addScript: () => string;
   updateScript: (id: string, data: Partial<RegexScriptData>) => void;
   deleteScript: (id: string) => void;
@@ -58,10 +57,6 @@ export const useRegexStore = create<RegexState>()((set, get) => ({
 
   saveGlobalScripts: async () => {
     await settingsApi.set(SETTINGS_KEY, get().globalScripts);
-  },
-
-  saveCharacterScripts: () => {
-    return get().characterScripts;
   },
 
   addScript: () => {

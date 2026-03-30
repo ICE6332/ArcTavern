@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useRegexStore } from "@/stores/regex-store";
 import { useCharacterStore } from "@/stores/character-store";
 import { toast } from "@/lib/toast";
@@ -43,7 +44,19 @@ export function RegexSettings() {
     setCharacterScripts,
     addScript,
     toggleScript,
-  } = useRegexStore();
+  } = useRegexStore(
+    useShallow((s) => ({
+      globalScripts: s.globalScripts,
+      characterScripts: s.characterScripts,
+      scope: s.scope,
+      loading: s.loading,
+      setScope: s.setScope,
+      fetchGlobalScripts: s.fetchGlobalScripts,
+      setCharacterScripts: s.setCharacterScripts,
+      addScript: s.addScript,
+      toggleScript: s.toggleScript,
+    })),
+  );
 
   const characters = useCharacterStore((s) => s.characters);
   const selectedId = useCharacterStore((s) => s.selectedId);
@@ -73,6 +86,17 @@ export function RegexSettings() {
 
   const scripts = scope === "global" ? globalScripts : characterScripts;
 
+  const persistCurrentScope = useCallback(async () => {
+    if (scope === "global") {
+      await useRegexStore.getState().saveGlobalScripts();
+    } else if (character) {
+      const updated = useRegexStore.getState().characterScripts;
+      await updateCharacter(character.id, {
+        extensions: { ...character.extensions, regex_scripts: updated },
+      });
+    }
+  }, [scope, character, updateCharacter]);
+
   const handleAdd = useCallback(() => {
     const id = addScript();
     setNav({ level: "editor", scriptId: id });
@@ -81,21 +105,9 @@ export function RegexSettings() {
   const handleToggle = useCallback(
     async (id: string) => {
       toggleScript(id);
-      if (scope === "global") {
-        // Need to save after toggle — use a microtask to get updated state
-        setTimeout(async () => {
-          await useRegexStore.getState().saveGlobalScripts();
-        }, 0);
-      } else if (character) {
-        setTimeout(async () => {
-          const updated = useRegexStore.getState().saveCharacterScripts();
-          await updateCharacter(character.id, {
-            extensions: { ...character.extensions, regex_scripts: updated },
-          });
-        }, 0);
-      }
+      await persistCurrentScope();
     },
-    [scope, character, toggleScript, updateCharacter],
+    [toggleScript, persistCurrentScope],
   );
 
   // === LEVEL 1: Script Editor ===
@@ -144,7 +156,9 @@ export function RegexSettings() {
               <span
                 className={`h-2 w-2 shrink-0 rounded-full ${script.disabled ? "bg-muted-foreground/30" : "bg-green-500"}`}
               />
-              <span className="min-w-0 flex-1 truncate">{script.scriptName || "Untitled"}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {script.scriptName || t("regex.untitled")}
+              </span>
               <div onClick={(e) => e.stopPropagation()}>
                 <Switch
                   size="sm"
@@ -179,6 +193,17 @@ interface ScriptEditorProps {
 function ScriptEditorView({ scriptId, scope, character, onBack }: ScriptEditorProps) {
   const { t } = useTranslation();
   const updateCharacter = useCharacterStore((s) => s.updateCharacter);
+
+  const persistCurrentScope = useCallback(async () => {
+    if (scope === "global") {
+      await useRegexStore.getState().saveGlobalScripts();
+    } else if (character) {
+      const updated = useRegexStore.getState().characterScripts;
+      await updateCharacter(character.id, {
+        extensions: { ...character.extensions, regex_scripts: updated },
+      });
+    }
+  }, [scope, character, updateCharacter]);
 
   const script = useRegexStore((s) => {
     const list = scope === "global" ? s.globalScripts : s.characterScripts;
@@ -240,15 +265,7 @@ function ScriptEditorView({ scriptId, scope, character, onBack }: ScriptEditorPr
     setSaving(true);
     try {
       useRegexStore.getState().updateScript(scriptId, data);
-
-      if (scope === "global") {
-        await useRegexStore.getState().saveGlobalScripts();
-      } else if (character) {
-        const updated = useRegexStore.getState().saveCharacterScripts();
-        await updateCharacter(character.id, {
-          extensions: { ...character.extensions, regex_scripts: updated },
-        });
-      }
+      await persistCurrentScope();
       toast.success({ title: t("messages.success") });
     } catch {
       toast.error({ title: t("messages.failed") });
@@ -269,27 +286,16 @@ function ScriptEditorView({ scriptId, scope, character, onBack }: ScriptEditorPr
     runOnEdit,
     minDepth,
     maxDepth,
-    scope,
-    character,
-    updateCharacter,
+    persistCurrentScope,
     t,
   ]);
 
   const handleDelete = useCallback(async () => {
     useRegexStore.getState().deleteScript(scriptId);
-
-    if (scope === "global") {
-      await useRegexStore.getState().saveGlobalScripts();
-    } else if (character) {
-      const updated = useRegexStore.getState().saveCharacterScripts();
-      await updateCharacter(character.id, {
-        extensions: { ...character.extensions, regex_scripts: updated },
-      });
-    }
-
+    await persistCurrentScope();
     toast.success({ title: t("regex.deleted") });
     onBack();
-  }, [scriptId, scope, character, updateCharacter, onBack, t]);
+  }, [scriptId, persistCurrentScope, onBack, t]);
 
   if (!script) {
     onBack();

@@ -352,7 +352,8 @@
     "maxDepth": "Max Depth",
     "validPattern": "Valid pattern",
     "invalidPattern": "Invalid regex pattern",
-    "deleted": "Script deleted"
+    "deleted": "Script deleted",
+    "untitled": "Untitled"
   },
   "welcomeScreen": {
     "greeting1": "Welcome back! Let's have a great chat today",

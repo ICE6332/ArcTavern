@@ -352,7 +352,8 @@
     "maxDepth": "最大深度",
     "validPattern": "有效的正则表达式",
     "invalidPattern": "无效的正则表达式",
-    "deleted": "脚本已删除"
+    "deleted": "脚本已删除",
+    "untitled": "未命名"
   },
   "welcomeScreen": {
     "greeting1": "欢迎回来~ 今天也要开心地聊天呀",
