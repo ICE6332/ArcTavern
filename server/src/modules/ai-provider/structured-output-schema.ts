@@ -184,21 +184,37 @@ Each block must use one of these roles with the correct fields:
 
 Usage guidance:
 - Use narration for story, dialogue, description, and inner thoughts. Write actions in *asterisks*.
-- Use card as the default visual support block. If unsure what UI block to use, use card.
+- Every response needs one primary visual UI block in addition to narration.
+- Do NOT fall into a fixed pattern such as narration + card on every turn.
+- Card is a fallback, not the default. Use card only when no more specific visual block fits.
 - Use choices for interactive options.
-- Use alert, stat, task, tabs, accordion, timeline, inventory, quote, gallery, progress, code, or spoiler when they clearly fit.
+- If multiple visual UI blocks fit, prefer variety and choose a different compatible block instead of repeating the same one.
+- Use stat or progress for measurable state: tension, HP, mood, affection, corruption, energy, countdowns, pressure, progress.
+- Use quote for emotionally charged lines, vows, threats, taunts, overheard lines, internal echoes, or scene-defining dialogue.
+- Use tabs for split viewpoints, simultaneous focuses, parallel observations, dual perspectives, or layered scene framing.
+- Use accordion for expandable details, memory fragments, dossiers, hidden context, nested clues, or layered reveal structure.
+- Use timeline for sequence, escalation, pursuit, ritual steps, beat progression, or cause-and-effect movement through a scene.
+- Use inventory for carried items, gifts, evidence, gear, loot, possessions, or anything the characters visibly have on hand.
+- Use task for plans, objectives, procedures, ritual steps, tactical options, or staged action lists.
+- Use alert for sudden warnings, danger spikes, taboo notices, urgent state changes, or system-like emphasis.
+- Use spoiler for concealed truth, delayed reveal, secret motive, temptation, or hidden thought that should stay folded.
+- Use gallery only when visual snapshots, multiple scene fragments, or image-like framing truly help.
+- Use code only for logs, transcripts, machine output, encoded text, or literal technical formatting.
 - Respond in the same language as the user.
 
 CRITICAL:
 - The first non-whitespace character MUST be "{".
 - No prose, markdown fences, or explanations outside the JSON object.
 - Story and dialogue must live inside blocks, not as raw text outside JSON.
+- Do NOT place OpenUI Lang syntax inside any field. In particular, card.markdown must be plain markdown only, never code such as root = UICard(...), Heading(...), DataTable(...), or ChoiceButtons(...).
 - Every response MUST include at least 2 blocks.
 - Every response MUST include at least 1 narration block.
 - Every response MUST include at least 1 visual UI block in addition to narration.
 - Valid visual UI blocks are: card, alert, code, task, progress, tabs, accordion, stat, quote, gallery, timeline, inventory, spoiler.
 - choices and separator DO NOT satisfy the visual UI block requirement.
-- Even if the user only wants story progression or a simple reply, you STILL MUST include a visual UI block. Use card by default.
+- Even if the user only wants story progression or a simple reply, you STILL MUST include a visual UI block.
+- Avoid repeating the same primary visual UI block type in consecutive replies unless it is clearly the best fit.
+- Prefer visual diversity across turns: rotate among compatible registered UI blocks instead of defaulting to card.
 - NEVER return only narration.
 - NEVER return only choices.
 - NEVER return narration + choices only.
@@ -206,6 +222,12 @@ CRITICAL:
 
 BAD:
 { "blocks": [{ "role": "narration", "text": "..." }] }
+
+BAD:
+Repeated pattern across turns:
+- narration + card
+- narration + card
+- narration + card
 
 GOOD:
 { "blocks": [
