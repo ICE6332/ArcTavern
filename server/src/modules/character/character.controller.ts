@@ -150,11 +150,46 @@ export class CharacterController {
   private buildRuntimeManifestCard(character: Awaited<ReturnType<CharacterService['findOne']>>) {
     if (!character) return null;
 
-    const extensions = this.safeJsonParse<Record<string, unknown>>(character.extensions, {});
-    const characterBook = this.safeJsonParse<Record<string, unknown> | null>(
+    const rawExtensions = this.safeJsonParse<Record<string, unknown>>(character.extensions, {});
+    const rawDepthPrompt =
+      rawExtensions.depth_prompt &&
+      typeof rawExtensions.depth_prompt === 'object' &&
+      rawExtensions.depth_prompt !== null
+        ? (rawExtensions.depth_prompt as Record<string, unknown>)
+        : null;
+    const rawDepthPromptRole = rawDepthPrompt?.role;
+    const depthPromptRole: 'system' | 'user' | 'assistant' =
+      rawDepthPromptRole === 'user' || rawDepthPromptRole === 'assistant'
+        ? rawDepthPromptRole
+        : 'system';
+    const extensions = {
+      talkativeness:
+        typeof rawExtensions.talkativeness === 'number' ? rawExtensions.talkativeness : 0.5,
+      fav: Boolean(rawExtensions.fav),
+      world: typeof rawExtensions.world === 'string' ? rawExtensions.world : '',
+      depth_prompt: rawDepthPrompt
+        ? {
+            prompt: typeof rawDepthPrompt.prompt === 'string' ? rawDepthPrompt.prompt : '',
+            depth: typeof rawDepthPrompt.depth === 'number' ? rawDepthPrompt.depth : 4,
+            role: depthPromptRole,
+          }
+        : {
+            prompt: '',
+            depth: 4,
+            role: 'system' as const,
+          },
+      ...rawExtensions,
+    };
+    const rawCharacterBook = this.safeJsonParse<Record<string, unknown> | null>(
       character.character_book,
       null,
     );
+    const characterBook = rawCharacterBook
+      ? {
+          ...rawCharacterBook,
+          entries: Array.isArray(rawCharacterBook.entries) ? rawCharacterBook.entries : [],
+        }
+      : null;
 
     return {
       spec: 'chara_card_v2' as const,

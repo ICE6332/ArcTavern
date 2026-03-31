@@ -60,8 +60,8 @@ const streamingBuffer: StreamingSnapshot = emptyStreamingSnapshot();
 
 // Chunk throttle — keeps at most one pending snapshot and drains every CHUNK_INTERVAL_MS
 let pendingChunk: Partial<StreamingSnapshot> | null = null;
-let drainHandle: ReturnType<typeof setTimeout> | null = null;
-const CHUNK_INTERVAL_MS = 25;
+let drainHandle: number | ReturnType<typeof setTimeout> | null = null;
+let usesAnimationFrame = false;
 
 function clearStreamingBuffer() {
   streamingBuffer.streamingContent = "";
@@ -72,8 +72,13 @@ function clearStreamingBuffer() {
 function clearChunkQueue() {
   pendingChunk = null;
   if (drainHandle !== null) {
-    clearTimeout(drainHandle);
+    if (usesAnimationFrame && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(drainHandle as number);
+    } else {
+      clearTimeout(drainHandle as ReturnType<typeof setTimeout>);
+    }
     drainHandle = null;
+    usesAnimationFrame = false;
   }
 }
 
@@ -105,14 +110,25 @@ function enqueueChunk(data: Partial<StreamingSnapshot>) {
     pendingChunk = { ...data };
   }
   if (drainHandle === null) {
-    drainHandle = setTimeout(drainChunkQueue, CHUNK_INTERVAL_MS);
+    if (typeof requestAnimationFrame === "function") {
+      usesAnimationFrame = true;
+      drainHandle = requestAnimationFrame(() => drainChunkQueue());
+    } else {
+      usesAnimationFrame = false;
+      drainHandle = setTimeout(drainChunkQueue, 25);
+    }
   }
 }
 
 function flushAllChunks() {
   if (drainHandle !== null) {
-    clearTimeout(drainHandle);
+    if (usesAnimationFrame && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(drainHandle as number);
+    } else {
+      clearTimeout(drainHandle as ReturnType<typeof setTimeout>);
+    }
     drainHandle = null;
+    usesAnimationFrame = false;
   }
   if (pendingChunk) {
     applyChunkToBuffer(pendingChunk);

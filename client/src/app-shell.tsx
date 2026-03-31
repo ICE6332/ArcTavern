@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChatPanel } from "@/components/chat/chat-panel";
+import { ChatPanelRouter } from "@/components/chat/chat-panel-router";
 import { PersonaEditor } from "@/components/persona/persona-editor";
 import { PersonaSelector } from "@/components/persona/persona-selector";
 import { SettingsPanel } from "@/components/settings/settings-panel";
@@ -80,7 +80,7 @@ export function AppShell() {
               />
             </div>
           )}
-          <ChatPanel />
+          <ChatPanelRouter />
         </SidebarInset>
 
         <SettingsPanel />

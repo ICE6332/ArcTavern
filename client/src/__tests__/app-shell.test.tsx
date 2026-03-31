@@ -28,8 +28,8 @@ const personaState = {
   ],
 };
 
-vi.mock("@/components/chat/chat-panel", () => ({
-  ChatPanel: () => <div>chat-panel</div>,
+vi.mock("@/components/chat/chat-panel-router", () => ({
+  ChatPanelRouter: () => <div>chat-panel</div>,
 }));
 
 vi.mock("@/components/persona/persona-editor", () => ({
