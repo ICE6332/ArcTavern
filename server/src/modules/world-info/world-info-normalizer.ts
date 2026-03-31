@@ -41,6 +41,7 @@ export interface NormalizedWIEntry {
   cooldown: number;
   delay: number;
   triggers: string;
+  use_regex: number;
   vectorized: number;
   ignore_budget: number;
   match_persona_desc: number;
@@ -113,6 +114,10 @@ function toInt(val: unknown, fallback: number): number {
   return fallback;
 }
 
+function toSafeString(val: unknown, fallback = ''): string {
+  return typeof val === 'string' ? val : fallback;
+}
+
 /**
  * Normalize a single entry from any ST-compatible format into DB-ready shape.
  * Handles both character_book V2 field names and ST internal field names.
@@ -128,8 +133,8 @@ export function normalizeEntry(e: Record<string, unknown>): NormalizedWIEntry {
   return {
     keys: toJsonArray(e.keys ?? e.key),
     secondary_keys: toJsonArray(e.secondary_keys ?? e.keysecondary),
-    content: String(e.content ?? ''),
-    comment: String(e.comment ?? e.name ?? ''),
+    content: toSafeString(e.content),
+    comment: toSafeString(e.comment, toSafeString(e.name)),
     enabled:
       e.enabled === false || e.disable === true
         ? 0
@@ -155,18 +160,19 @@ export function normalizeEntry(e: Record<string, unknown>): NormalizedWIEntry {
           ? toBool(e.useProbability)
           : 1,
     depth: toInt(e.depth, 4),
-    group_name: String(e.group_name ?? e.group ?? ''),
+    group_name: toSafeString(e.group_name, toSafeString(e.group)),
     group_override: toBool(e.group_override ?? e.groupOverride),
     group_weight: toInt(e.group_weight ?? e.groupWeight, 100),
     scan_depth: toInt(e.scan_depth ?? e.scanDepth, 0),
     match_whole_words: toBool(e.match_whole_words ?? e.matchWholeWords),
     use_group_scoring: toBool(e.use_group_scoring ?? e.useGroupScoring),
-    automation_id: String(e.automation_id ?? e.automationId ?? ''),
+    automation_id: toSafeString(e.automation_id, toSafeString(e.automationId)),
     role: toInt(e.role, 0),
     sticky: toInt(e.sticky, 0),
     cooldown: toInt(e.cooldown, 0),
     delay: toInt(e.delay, 0),
     triggers: toJsonArray(e.triggers),
+    use_regex: toBool(e.use_regex ?? e.useRegex),
     vectorized: toBool(e.vectorized),
     ignore_budget: toBool(e.ignore_budget ?? e.ignoreBudget),
     match_persona_desc: toBool(e.match_persona_desc ?? e.matchPersonaDescription),

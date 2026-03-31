@@ -43,6 +43,7 @@ function makeEntry(overrides: Partial<WorldInfoEntryRow> = {}): WorldInfoEntryRo
     cooldown: 0,
     delay: 0,
     triggers: '[]',
+    use_regex: 0,
     vectorized: 0,
     ignore_budget: 0,
     match_persona_desc: 0,
@@ -93,9 +94,9 @@ describe('WorldInfoScannerService', () => {
     ];
 
     const match = await scanner.scan(entries, { chatMessages: ['dragon breathes fire'] });
-    expect(match).toHaveLength(1);
-
     const noMatch = await scanner.scan(entries, { chatMessages: ['dragon sleeps'] });
+
+    expect(match).toHaveLength(1);
     expect(noMatch).toHaveLength(0);
   });
 
@@ -110,9 +111,9 @@ describe('WorldInfoScannerService', () => {
     ];
 
     const match = await scanner.scan(entries, { chatMessages: ['a friendly dragon'] });
-    expect(match).toHaveLength(1);
-
     const noMatch = await scanner.scan(entries, { chatMessages: ['an evil dragon'] });
+
+    expect(match).toHaveLength(1);
     expect(noMatch).toHaveLength(0);
   });
 
@@ -127,9 +128,9 @@ describe('WorldInfoScannerService', () => {
     ];
 
     const match = await scanner.scan(entries, { chatMessages: ['dragon with fire and ice'] });
-    expect(match).toHaveLength(1);
-
     const noMatch = await scanner.scan(entries, { chatMessages: ['dragon with fire only'] });
+
+    expect(match).toHaveLength(1);
     expect(noMatch).toHaveLength(0);
   });
 
@@ -143,11 +144,10 @@ describe('WorldInfoScannerService', () => {
       }),
     ];
 
-    // NOT_ALL: activates when NOT all secondary keys match
     const match = await scanner.scan(entries, { chatMessages: ['dragon with fire only'] });
-    expect(match).toHaveLength(1);
-
     const noMatch = await scanner.scan(entries, { chatMessages: ['dragon with fire and ice'] });
+
+    expect(match).toHaveLength(1);
     expect(noMatch).toHaveLength(0);
   });
 
@@ -170,14 +170,53 @@ describe('WorldInfoScannerService', () => {
     expect(result[1].content).toBe('second');
   });
 
-  it('scans character description for keywords', async () => {
-    const entries = [makeEntry({ keys: '["warrior"]' })];
+  it('scans character description when the entry enables that source', async () => {
+    const entries = [makeEntry({ keys: '["warrior"]', match_char_desc: 1 })];
     const result = await scanner.scan(entries, {
       chatMessages: ['hello'],
       characterDescription: 'A brave warrior',
     });
 
     expect(result).toHaveLength(1);
+  });
+
+  it('does not scan character description unless the entry enables that source', async () => {
+    const entries = [makeEntry({ keys: '["warrior"]', match_char_desc: 0 })];
+    const result = await scanner.scan(entries, {
+      chatMessages: ['hello'],
+      characterDescription: 'A brave warrior',
+    });
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('supports regex-like secondary keys without explicit use_regex', async () => {
+    const entries = [
+      makeEntry({
+        keys: '["Saber"]',
+        selective: 1,
+        secondary_keys: '["/20[0-4][0-9]年/"]',
+        select_logic: SelectLogic.AND_ANY,
+      }),
+    ];
+
+    const match = await scanner.scan(entries, { chatMessages: ['Saber 出现在 2004年 的冬木市'] });
+    const noMatch = await scanner.scan(entries, { chatMessages: ['Saber 出现在 1994年 的冬木市'] });
+
+    expect(match).toHaveLength(1);
+    expect(noMatch).toHaveLength(0);
+  });
+
+  it('supports explicit use_regex for primary keys', async () => {
+    const entries = [
+      makeEntry({
+        keys: '["dragon|wyrm"]',
+        use_regex: 1,
+      }),
+    ];
+
+    const match = await scanner.scan(entries, { chatMessages: ['The wyrm wakes.'] });
+    expect(match).toHaveLength(1);
   });
 
   it('handles disabled entries', async () => {

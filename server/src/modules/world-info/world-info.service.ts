@@ -45,6 +45,7 @@ export interface WorldInfoEntryRow {
   cooldown: number;
   delay: number;
   triggers: string;
+  use_regex: number;
   // ST 1.16+ compatibility fields
   vectorized: number;
   ignore_budget: number;
@@ -129,11 +130,11 @@ export class WorldInfoService {
         case_sensitive, priority, position, extensions, constant, selective, select_logic,
         "order", exclude_recursion, prevent_recursion, probability, use_probability,
         depth, group_name, group_override, group_weight, scan_depth, match_whole_words,
-        use_group_scoring, automation_id, role, sticky, cooldown, delay, triggers,
+        use_group_scoring, automation_id, role, sticky, cooldown, delay, triggers, use_regex,
         vectorized, ignore_budget, match_persona_desc, match_char_desc,
         match_char_personality, match_scenario, delay_until_recursion, character_filter,
         content_hash
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         bookId,
         uid,
@@ -168,6 +169,7 @@ export class WorldInfoService {
         data.cooldown ?? 0,
         data.delay ?? 0,
         data.triggers ?? '[]',
+        data.use_regex ?? 0,
         data.vectorized ?? 0,
         data.ignore_budget ?? 0,
         data.match_persona_desc ?? 0,
@@ -215,6 +217,7 @@ export class WorldInfoService {
       cooldown: 'cooldown',
       delay: 'delay',
       triggers: 'triggers',
+      useRegex: 'use_regex',
       vectorized: 'vectorized',
       ignoreBudget: 'ignore_budget',
       matchPersonaDesc: 'match_persona_desc',

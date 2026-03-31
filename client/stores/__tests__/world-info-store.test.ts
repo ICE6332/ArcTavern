@@ -75,6 +75,7 @@ function createEntryFixture(
     sticky: 0,
     cooldown: 0,
     delay: 0,
+    useRegex: false,
     vectorized: false,
     contentHash: "",
     ...patch,

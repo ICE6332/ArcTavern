@@ -115,6 +115,7 @@ export const SCHEMA_DDL = `
     cooldown INTEGER DEFAULT 0,
     delay INTEGER DEFAULT 0,
     triggers TEXT DEFAULT '[]',
+    use_regex INTEGER DEFAULT 0,
     vectorized INTEGER DEFAULT 0,
     ignore_budget INTEGER DEFAULT 0,
     match_persona_desc INTEGER DEFAULT 0,

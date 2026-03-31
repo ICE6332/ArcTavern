@@ -46,6 +46,7 @@ function makeRow(overrides: Partial<WorldInfoEntryRow> = {}): WorldInfoEntryRow 
     cooldown: 0,
     delay: 0,
     triggers: '[]',
+    use_regex: 0,
     vectorized: 1,
     ignore_budget: 0,
     match_persona_desc: 0,
