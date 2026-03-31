@@ -20,6 +20,10 @@ import { WorldInfoScannerService } from '../world-info/world-info-scanner.servic
 import { WorldInfoVectorService } from '../world-info/world-info-vector.service';
 import { PersonaService } from '../persona/persona.service';
 import { RagService } from '../rag/rag.service';
+import {
+  CompatPromptRuntimeService,
+  type CompatPromptContext,
+} from './compat-prompt-runtime.service';
 import type { CompletionRequest, ChatMessage } from '../ai-provider/types';
 import type { RetrievedMemory } from '../rag/types';
 import {
@@ -73,6 +77,7 @@ export class ChatGenerationController {
     private readonly worldInfoVectorService: WorldInfoVectorService,
     private readonly personaService: PersonaService,
     private readonly ragService: RagService,
+    private readonly compatPromptRuntime: CompatPromptRuntimeService,
   ) {}
 
   private chatDebug(event: string, payload?: Record<string, unknown>) {
@@ -167,6 +172,13 @@ export class ChatGenerationController {
       ];
     }
 
+    const personaDescription = await this.getPersonaDescription(body.personaId, character.id);
+    const compatContext = await this.compatPromptRuntime.prepare(character, chat.id, promptSource);
+    const compatCharacter = await this.compatPromptRuntime.renderCharacter(
+      character,
+      compatContext,
+    );
+
     // RAG: retrieve relevant memories
     const ragSettings = await this.ragService.getSettings();
     let ragContext: RetrievedMemory[] = [];
@@ -179,17 +191,19 @@ export class ChatGenerationController {
       );
     }
 
-    const promptMessages = this.promptBuilder.buildPrompt(character, chat, promptSource, {
+    const promptMessages = this.promptBuilder.buildPrompt(compatCharacter, chat, promptSource, {
       maxTokens: body.maxTokens,
       maxContext: body.maxContext,
       userName: body.userName ?? 'User',
       mergeSystemMessages: true,
-      personaDescription: await this.getPersonaDescription(body.personaId, character.id),
+      personaDescription,
       worldInfoSettings: {
         activatedEntries: await this.getActivatedEntries(
           body.worldInfoBookIds,
           promptSource,
-          character,
+          compatCharacter,
+          personaDescription,
+          compatContext,
         ),
       },
       ragContext,
@@ -746,6 +760,8 @@ export class ChatGenerationController {
     bookIds: number[] | undefined,
     messages: MessageRow[],
     character: { description: string; personality: string; scenario: string },
+    personaDescription: string | undefined,
+    compatContext: CompatPromptContext,
   ) {
     if (!bookIds || bookIds.length === 0) return [];
 
@@ -760,17 +776,20 @@ export class ChatGenerationController {
     const hasVectorized = allEntries.some((e) => e.vectorized);
     const wiEmbedding = hasVectorized ? await this.worldInfoVectorService.getSettings() : undefined;
 
-    return this.worldInfoScanner.scan(
+    const activated = await this.worldInfoScanner.scan(
       allEntries,
       {
         chatMessages: messages.map((m) => m.content),
         characterDescription: character.description,
         characterPersonality: character.personality,
+        personaDescription,
         scenario: character.scenario,
       },
       {},
       hasVectorized ? this.worldInfoVectorService : undefined,
       wiEmbedding,
     );
+
+    return this.compatPromptRuntime.renderEntries(activated, compatContext);
   }
 }
