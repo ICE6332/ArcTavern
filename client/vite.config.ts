@@ -8,6 +8,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        compatSandbox: fileURLToPath(new URL("./compat-sandbox.html", import.meta.url)),
+      },
       output: {
         manualChunks(id) {
           const isSettingsModule =

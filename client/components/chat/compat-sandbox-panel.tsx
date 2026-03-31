@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
@@ -17,16 +17,21 @@ import { QuickReplyBar } from "./quick-reply-bar";
 import { useTranslation } from "@/lib/i18n";
 import { useGenerationConfig } from "@/hooks/use-generation-config";
 import { useChatActions } from "@/hooks/use-chat-actions";
-import type {
-  CompatSandboxSnapshot,
-  HostToSandboxMessage,
-  SandboxToHostMessage,
-} from "@/lib/compat-sandbox/protocol";
+import { BridgeManager, type CompatSandboxSnapshot } from "@/lib/compat-sandbox/bridge-manager";
 
 export function CompatSandboxPanel() {
   const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const portRef = useRef<MessagePort | null>(null);
+  const managerRef = useRef<BridgeManager | null>(null);
+  const rpcContextRef = useRef({
+    currentChatId: null as number | null,
+    selectedCharId: null as number | null,
+    selectedCharName: "",
+    messageCount: 0,
+    globalVariables: {} as Record<string, string>,
+    chatVariables: {} as Record<string, string>,
+  });
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const {
     messages,
@@ -105,7 +110,7 @@ export function CompatSandboxPanel() {
   const fetchGlobalScripts = useRegexStore((s) => s.fetchGlobalScripts);
   const { toggleSidebar } = useSidebar();
 
-  const selectedChar = characters.find((c) => c.id === selectedId);
+  const selectedChar = characters.find((character) => character.id === selectedId);
   const { generationConfig } = useGenerationConfig({
     connection,
     promptComponents,
@@ -154,44 +159,80 @@ export function CompatSandboxPanel() {
   }, [fetchGlobalScripts, loadedGlobalScripts, loadingGlobalScripts]);
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
+    rpcContextRef.current = {
+      currentChatId,
+      selectedCharId: selectedChar?.id ?? null,
+      selectedCharName: selectedChar?.name ?? "",
+      messageCount: messages.length,
+      globalVariables,
+      chatVariables,
+    };
+  }, [
+    chatVariables,
+    currentChatId,
+    globalVariables,
+    messages.length,
+    selectedChar?.id,
+    selectedChar?.name,
+  ]);
 
-    const channel = new MessageChannel();
-    portRef.current?.close();
-    portRef.current = channel.port1;
+  useEffect(() => {
+    if (!iframeLoaded || !iframeRef.current) return;
 
-    channel.port1.onmessage = async (event: MessageEvent<SandboxToHostMessage>) => {
-      const data = event.data;
-      if (!data || data.type !== "rpc:call") return;
-
-      if (data.method === "runSlashCommand") {
-        try {
-          await runSlashCommand(data.params.command);
-          channel.port1.postMessage({
-            type: "rpc:result",
-            id: data.id,
-            result: true,
-          } satisfies SandboxToHostMessage);
-        } catch (error) {
-          channel.port1.postMessage({
-            type: "rpc:result",
-            id: data.id,
-            error: error instanceof Error ? error.message : String(error),
-          } satisfies SandboxToHostMessage);
+    managerRef.current?.dispose();
+    managerRef.current = new BridgeManager(iframeRef.current, async (rpc) => {
+      try {
+        switch (rpc.method) {
+          case "runSlashCommand":
+            await runSlashCommand(String(rpc.params?.command ?? ""));
+            managerRef.current?.reply(rpc.id, true);
+            return;
+          case "getContext":
+            managerRef.current?.reply(rpc.id, {
+              chatId: rpcContextRef.current.currentChatId,
+              characterId: rpcContextRef.current.selectedCharId,
+              characterName: rpcContextRef.current.selectedCharName,
+              messageCount: rpcContextRef.current.messageCount,
+            });
+            return;
+          case "getVariables":
+            managerRef.current?.reply(rpc.id, {
+              global: rpcContextRef.current.globalVariables,
+              chat: rpcContextRef.current.chatVariables,
+            });
+            return;
+          case "requestWriteDone":
+            managerRef.current?.reply(rpc.id, {
+              global: rpcContextRef.current.globalVariables,
+              chat: rpcContextRef.current.chatVariables,
+            });
+            return;
         }
+      } catch (error) {
+        managerRef.current?.reply(
+          rpc.id,
+          undefined,
+          error instanceof Error ? error.message : String(error),
+        );
       }
-    };
+    });
+    managerRef.current.connect();
 
-    iframe.contentWindow.postMessage({ type: "compat:port-transfer" }, "*", [channel.port2]);
     return () => {
-      channel.port1.close();
-      portRef.current = null;
+      managerRef.current?.dispose();
+      managerRef.current = null;
     };
-  }, [runSlashCommand]);
+  }, [iframeLoaded, runSlashCommand]);
 
   const snapshot = useMemo<CompatSandboxSnapshot | null>(() => {
     if (!currentChatId || !selectedChar) return null;
+
+    const latestAssistantMessageId = [...messages]
+      .reverse()
+      .find((message) => message.role === "assistant")?.id;
+    const isSwipeStreaming =
+      isGenerating && (generationType === "swipe" || generationType === "regenerate");
+    const streamingMessageId = isSwipeStreaming ? (latestAssistantMessageId ?? -1) : -1;
 
     return {
       chatId: currentChatId,
@@ -201,8 +242,7 @@ export function CompatSandboxPanel() {
       globalVariables,
       chatVariables,
       openUiEnabled: connection.openUiEnabled,
-      isGenerating,
-      generationType,
+      streamingMessageId,
       streamingContent,
       streamingReasoning,
       streamingStructured,
@@ -223,12 +263,8 @@ export function CompatSandboxPanel() {
   ]);
 
   useEffect(() => {
-    if (!snapshot || !portRef.current) return;
-
-    portRef.current.postMessage({
-      type: "session:update",
-      payload: snapshot,
-    } satisfies HostToSandboxMessage);
+    if (!snapshot || !managerRef.current) return;
+    managerRef.current.sync(snapshot);
   }, [snapshot]);
 
   if (!selectedId || !currentChatId || !selectedChar) {
@@ -250,6 +286,7 @@ export function CompatSandboxPanel() {
           sandbox="allow-scripts allow-forms allow-modals allow-popups"
           className="h-full w-full border-0"
           src="/compat-sandbox.html"
+          onLoad={() => setIframeLoaded(true)}
         />
       </div>
 
