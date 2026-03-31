@@ -19,6 +19,7 @@ interface ChatMessageRowProps {
   onOpenUiAction: (event: ActionEvent) => void;
   onStructuredAction: (label: string) => void;
   onStructuredCommandAction: (command: string) => void;
+  onWidgetSlashCommand: (command: string) => Promise<void> | void;
   onRegenerate?: () => void;
 }
 
@@ -35,6 +36,7 @@ function ChatMessageRowComponent({
   onOpenUiAction,
   onStructuredAction,
   onStructuredCommandAction,
+  onWidgetSlashCommand,
   onRegenerate,
 }: ChatMessageRowProps) {
   const structuredContent = isSwipeStreaming ? streamingStructured : message.structuredContent;
@@ -56,6 +58,7 @@ function ChatMessageRowComponent({
       structuredContent={structuredContent}
       onStructuredAction={(label) => onStructuredAction(label)}
       onStructuredCommandAction={onStructuredCommandAction}
+      onWidgetSlashCommand={onWidgetSlashCommand}
       onRegenerate={onRegenerate}
     />
   );

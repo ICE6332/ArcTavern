@@ -6,18 +6,65 @@
 
 import { partitionScripts } from "@/lib/compat/js-runtime/extractor";
 import { extractThinking } from "@/lib/compat/thinking-extractor";
+import {
+  extractAssistantRenderSegments,
+  extractCompatBridgeData,
+  type AssistantRenderSegment,
+  type CompatBridgeData,
+} from "@/lib/compat/widget-pipeline";
 
 export interface PreparedAssistantDisplay {
   display: string;
   scripts: string[];
   thinking: string;
+  segments: AssistantRenderSegment[];
+  compatData: CompatBridgeData;
 }
 
-export function prepareAssistantDisplay(preprocessed: string): PreparedAssistantDisplay {
-  if (!preprocessed) return { display: "", scripts: [], thinking: "" };
+export function prepareAssistantDisplay(
+  rawContent: string,
+  preprocessed: string,
+): PreparedAssistantDisplay {
+  if (!preprocessed) {
+    return {
+      display: "",
+      scripts: [],
+      thinking: "",
+      segments: [],
+      compatData: extractCompatBridgeData(rawContent),
+    };
+  }
 
+  const compatData = extractCompatBridgeData(rawContent);
   const { thinking, cleaned } = extractThinking(preprocessed);
-  const { display, scripts } = partitionScripts(cleaned);
+  const rawSegments = extractAssistantRenderSegments(cleaned);
+  const scripts: string[] = [];
+  const segments = rawSegments.map((segment) => {
+    if (segment.type === "widget") {
+      return segment;
+    }
 
-  return { display, scripts, thinking };
+    const partitioned = partitionScripts(segment.content);
+    scripts.push(...partitioned.scripts);
+    return {
+      type: "markdown" as const,
+      content: partitioned.display,
+    };
+  });
+
+  const display = segments
+    .filter(
+      (segment): segment is Extract<AssistantRenderSegment, { type: "markdown" }> =>
+        segment.type === "markdown",
+    )
+    .map((segment) => segment.content)
+    .join("\n\n");
+
+  return {
+    display,
+    scripts,
+    thinking,
+    segments,
+    compatData,
+  };
 }

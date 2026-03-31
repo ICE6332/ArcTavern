@@ -25,6 +25,17 @@ export interface RegexScriptData {
   maxDepth?: number | null;
 }
 
+function isEnabledDisplayScript(s: unknown, placementValue: number): s is RegexScriptData {
+  if (!s || typeof s !== "object") return false;
+  const script = s as RegexScriptData;
+  return (
+    !script.disabled &&
+    typeof script.findRegex === "string" &&
+    Array.isArray(script.placement) &&
+    script.placement.includes(placementValue)
+  );
+}
+
 /**
  * Parse a regex string like `/pattern/flags` into a RegExp.
  * Falls back to `new RegExp(str)` if not in slash notation.
@@ -111,16 +122,20 @@ export function getDisplayRegexScripts(
   const scripts = extensions.regex_scripts;
   if (!Array.isArray(scripts)) return [];
 
-  return scripts.filter((s: unknown): s is RegexScriptData => {
-    if (!s || typeof s !== "object") return false;
-    const script = s as RegexScriptData;
-    return (
-      !script.disabled &&
-      typeof script.findRegex === "string" &&
-      Array.isArray(script.placement) &&
-      script.placement.includes(PLACEMENT_AI_OUTPUT)
-    );
-  });
+  return scripts.filter((s: unknown): s is RegexScriptData =>
+    isEnabledDisplayScript(s, PLACEMENT_AI_OUTPUT),
+  );
+}
+
+export function getPlacementRegexScripts(
+  scripts: unknown,
+  placement: "ai_output" | "user_input",
+): RegexScriptData[] {
+  if (!Array.isArray(scripts)) return [];
+  const placementValue = placement === "ai_output" ? PLACEMENT_AI_OUTPUT : PLACEMENT_USER_INPUT;
+  return scripts.filter((s: unknown): s is RegexScriptData =>
+    isEnabledDisplayScript(s, placementValue),
+  );
 }
 
 /**
