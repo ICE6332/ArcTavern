@@ -103,17 +103,32 @@ export function MessageBubble({
   onStructuredAction,
   onStructuredCommandAction,
 }: MessageBubbleProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { formatAssistantForDisplay, preprocess } = useContentPreprocessor();
   const isUser = role === "user";
 
-  const { display, scripts } =
+  const { display, scripts, thinking } =
     role === "assistant"
       ? formatAssistantForDisplay(content)
-      : { display: preprocess(content, role), scripts: [] };
+      : { display: preprocess(content, role), scripts: [], thinking: "" };
 
+  const combinedReasoning = [reasoning, thinking].filter(Boolean).join("\n\n") || undefined;
   const reasoningDisplay =
-    reasoning && role === "assistant" ? formatAssistantForDisplay(reasoning).display : reasoning;
+    combinedReasoning && role === "assistant"
+      ? formatAssistantForDisplay(combinedReasoning).display
+      : combinedReasoning;
+  const reasoningLabel = language === "zh" ? "思考..." : "Thinking...";
+
+  if (role === "assistant") {
+    console.log("[MSG-BUBBLE] reasoning props/state:", {
+      reasoningProp: reasoning?.slice(0, 80),
+      thinking: thinking?.slice(0, 80),
+      combinedReasoning: combinedReasoning?.slice(0, 80),
+      reasoningDisplay: reasoningDisplay?.slice(0, 80),
+      isStreaming,
+      messageId,
+    });
+  }
 
   const hasStructured = Boolean(structuredContent && structuredContent.blocks?.length);
 
@@ -147,7 +162,7 @@ export function MessageBubble({
 
       {reasoningDisplay && (
         <ChainOfThought className="mb-2">
-          <ChainOfThoughtHeader>{t("chat.reasoning")}</ChainOfThoughtHeader>
+          <ChainOfThoughtHeader>{reasoningLabel}</ChainOfThoughtHeader>
           <ChainOfThoughtContent>
             <CompatMarkdown
               content={reasoningDisplay}

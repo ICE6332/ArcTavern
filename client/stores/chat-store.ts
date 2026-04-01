@@ -362,6 +362,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         if (chunk.reasoning) {
           fullReasoning += chunk.reasoning;
+          console.log("[CHAT-STORE] reasoning chunk received, totalLength=", fullReasoning.length);
           enqueueChunk({ streamingReasoning: fullReasoning });
         }
 

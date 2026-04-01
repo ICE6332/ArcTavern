@@ -3,7 +3,10 @@
 import { useMemo } from "react";
 import { useCharacterStore } from "@/stores/character-store";
 import { preprocessContent } from "@/lib/compat/preprocessor";
-import { prepareAssistantDisplay } from "@/lib/compat/display-pipeline";
+import {
+  prepareAssistantDisplay,
+  type PreparedAssistantDisplay,
+} from "@/lib/compat/display-pipeline";
 
 export function useContentPreprocessor() {
   const characters = useCharacterStore((s) => s.characters);
@@ -21,8 +24,8 @@ export function useContentPreprocessor() {
         if (role !== "assistant" || !content) return content;
         return preprocessContent(content, extensions);
       },
-      formatAssistantForDisplay: (content: string): { display: string; scripts: string[] } => {
-        if (!content) return { display: "", scripts: [] };
+      formatAssistantForDisplay: (content: string): PreparedAssistantDisplay => {
+        if (!content) return { display: "", scripts: [], thinking: "" };
         const preprocessed = preprocessContent(content, extensions);
         return prepareAssistantDisplay(preprocessed);
       },
