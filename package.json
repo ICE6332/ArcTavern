@@ -20,6 +20,15 @@
     "test:server": "pnpm --filter @arctravern/server test",
     "ready": "pnpm check && pnpm test && pnpm build"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "msw",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
+    ]
+  },
   "devDependencies": {
     "shadcn": "^3.8.5",
     "vite-plus": "0.1.14"
