@@ -183,6 +183,24 @@ describe('AiProviderService', () => {
     );
   });
 
+  it('does not inject openai reasoning defaults for non-reasoning models', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'custom',
+      customApiFormat: 'openai',
+      model: 'gpt-4.1-mini',
+      reverseProxy: 'https://example.com/v1',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: undefined,
+      }),
+    );
+  });
+
   it('routes custom openai-compatible provider options to custom', async () => {
     const service = createServiceWithKey('sk-test');
 
@@ -256,6 +274,27 @@ describe('AiProviderService', () => {
     ]);
   });
 
+  it('preserves explicit zero-valued sampling settings', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'openai',
+      model: 'gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+      topK: 0,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        topK: 0,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+      }),
+    );
+  });
+
   it('extracts think-tag reasoning in structured streams when no native reasoning exists', async () => {
     const service = createServiceWithKey('sk-test');
     streamTextMock.mockReturnValue(
@@ -299,6 +338,36 @@ describe('AiProviderService', () => {
     }
 
     expect(chunks).toEqual([{ reasoning: 'native' }, { partial: { blocks: [] } }]);
+  });
+
+  it('extracts multiple think blocks before parsing structured JSON', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([
+        {
+          type: 'text-delta',
+          textDelta: '<think>first</think><think>second</think>{"blocks":[]}',
+        },
+      ]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamStructured(
+      {
+        provider: 'openai',
+        model: 'gpt-5.2',
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+      z.any(),
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      { reasoning: 'first' },
+      { reasoning: 'second' },
+      { partial: { blocks: [] } },
+    ]);
   });
 
   it('does not duplicate /v1 for health-check models endpoint', async () => {

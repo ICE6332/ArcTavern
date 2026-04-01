@@ -59,6 +59,7 @@ const MODEL_CATALOG: Record<string, Array<{ id: string; contextWindow: number }>
 
 type ProviderOptions = Record<string, NonNullable<CompletionRequest['generationConfig']>>;
 type EffectiveProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'custom';
+const THINKING_TAG_RE = /<(think|thinking)(?:\s[^>]*)?>(?<inner>[\s\S]*?)<\/\1>/gi;
 
 @Injectable()
 export class AiProviderService {
@@ -122,6 +123,34 @@ export class AiProviderService {
     return normalized.includes('gemini-3') || normalized.includes('gemini-2.5');
   }
 
+  private supportsOpenAIReasoningDefaults(model: string): boolean {
+    const normalized = model.toLowerCase();
+    return (
+      /(^|\/)gpt-5(?:[.-]|$)/.test(normalized) ||
+      /(^|\/)o[134](?:[.-]|$)/.test(normalized)
+    );
+  }
+
+  private extractThinkingBlocks(content: string): { reasoning: string[]; cleaned: string } {
+    if (!content) {
+      return { reasoning: [], cleaned: content };
+    }
+
+    const reasoning: string[] = [];
+    const cleaned = content.replace(THINKING_TAG_RE, (_match, _tag, inner: string) => {
+      const trimmed = inner.trim();
+      if (trimmed) {
+        reasoning.push(trimmed);
+      }
+      return '';
+    });
+
+    return {
+      reasoning,
+      cleaned: cleaned.replace(/\n{3,}/g, '\n\n').trim(),
+    };
+  }
+
   private applyReasoningDefaults(
     req: CompletionRequest,
   ): NonNullable<CompletionRequest['generationConfig']> | undefined {
@@ -138,13 +167,15 @@ export class AiProviderService {
 
     switch (effectiveProvider) {
       case 'openai': {
-        if (nextConfig.reasoningSummary === undefined) {
-          nextConfig.reasoningSummary = 'detailed';
-          changed = true;
-        }
-        if (nextConfig.reasoningEffort === undefined) {
-          nextConfig.reasoningEffort = 'medium';
-          changed = true;
+        if (this.supportsOpenAIReasoningDefaults(req.model)) {
+          if (nextConfig.reasoningSummary === undefined) {
+            nextConfig.reasoningSummary = 'detailed';
+            changed = true;
+          }
+          if (nextConfig.reasoningEffort === undefined) {
+            nextConfig.reasoningEffort = 'medium';
+            changed = true;
+          }
         }
         break;
       }
@@ -355,9 +386,9 @@ export class AiProviderService {
       temperature: req.temperature,
       maxOutputTokens: req.maxTokens,
       topP: req.topP,
-      topK: req.topK || undefined,
-      frequencyPenalty: req.frequencyPenalty || undefined,
-      presencePenalty: req.presencePenalty || undefined,
+      topK: req.topK ?? undefined,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
       stopSequences: req.stop,
       providerOptions: this.getProviderOptions(req),
     });
@@ -398,9 +429,9 @@ export class AiProviderService {
       temperature: req.temperature,
       maxOutputTokens: req.maxTokens,
       topP: req.topP,
-      topK: req.topK || undefined,
-      frequencyPenalty: req.frequencyPenalty || undefined,
-      presencePenalty: req.presencePenalty || undefined,
+      topK: req.topK ?? undefined,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
       stopSequences: req.stop,
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
@@ -413,18 +444,6 @@ export class AiProviderService {
         delta?: string;
         text?: string;
       };
-
-      // DEBUG: log all chunk types to diagnose reasoning flow
-      if (
-        chunk.type &&
-        chunk.type !== 'text-delta' &&
-        chunk.type !== 'text'
-      ) {
-        console.log(
-          `[AI-PROVIDER] fullStream chunk type="${chunk.type}" keys=${Object.keys(chunk).join(',')}`,
-          JSON.stringify(chunk).slice(0, 200),
-        );
-      }
 
       if (chunk.type === 'text-delta' && chunk.textDelta) {
         yield { content: chunk.textDelta };
@@ -476,9 +495,9 @@ export class AiProviderService {
       temperature: req.temperature,
       maxOutputTokens: req.maxTokens,
       topP: req.topP,
-      topK: req.topK || undefined,
-      frequencyPenalty: req.frequencyPenalty || undefined,
-      presencePenalty: req.presencePenalty || undefined,
+      topK: req.topK ?? undefined,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
       stopSequences: req.stop,
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
@@ -516,25 +535,14 @@ export class AiProviderService {
       const deltaText = chunk.textDelta ?? chunk.text;
       if ((chunk.type === 'text-delta' || chunk.type === 'text') && deltaText) {
         fullText += deltaText;
-        // DEBUG: log first few text chunks and accumulated length
-        if (fullText.length <= 500) {
-          console.log(
-            `[AI-PROVIDER:structured] text accumulation len=${fullText.length}`,
-            fullText.slice(0, 200),
-          );
-        }
-
-        // Extract completed <think>/<thinking> blocks from accumulated text
-        const thinkMatch = fullText.match(
-          /^([\s\S]*?)<(think|thinking)(?:\s[^>]*)?>(?<inner>[\s\S]*?)<\/\2>([\s\S]*)$/i,
-        );
-        if (thinkMatch) {
-          const thinkContent = thinkMatch.groups?.inner?.trim();
-          if (thinkContent && !hasNativeReasoning) {
-            yield { reasoning: thinkContent };
+        const extracted = this.extractThinkingBlocks(fullText);
+        if (extracted.reasoning.length > 0) {
+          if (!hasNativeReasoning) {
+            for (const thinkContent of extracted.reasoning) {
+              yield { reasoning: thinkContent };
+            }
           }
-          // Keep only the text before and after the think block for JSON parsing
-          fullText = (thinkMatch[1] ?? '') + (thinkMatch[4] ?? '');
+          fullText = extracted.cleaned;
         }
 
         const parsed = tryParsePartialJson(fullText);

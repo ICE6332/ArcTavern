@@ -9,8 +9,17 @@ const translations = {
 
 export function useTranslation() {
   const language = useLanguageStore((s) => s.language);
+  const overrides: Record<string, string> = {
+    "en:chat.reasoning": "Thinking...",
+    "zh:chat.reasoning": "思考...",
+  };
 
   const t = (key: string, params?: Record<string, string>): string => {
+    const override = overrides[`${language}:${key}`];
+    if (override) {
+      return override;
+    }
+
     const keys = key.split(".");
     let value: unknown = translations[language];
 
