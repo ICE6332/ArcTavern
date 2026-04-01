@@ -107,13 +107,16 @@ export function MessageBubble({
   const { formatAssistantForDisplay, preprocess } = useContentPreprocessor();
   const isUser = role === "user";
 
-  const { display, scripts } =
+  const { display, scripts, thinking } =
     role === "assistant"
       ? formatAssistantForDisplay(content)
-      : { display: preprocess(content, role), scripts: [] };
+      : { display: preprocess(content, role), scripts: [], thinking: "" };
 
+  const combinedReasoning = [reasoning, thinking].filter(Boolean).join("\n\n") || undefined;
   const reasoningDisplay =
-    reasoning && role === "assistant" ? formatAssistantForDisplay(reasoning).display : reasoning;
+    combinedReasoning && role === "assistant"
+      ? formatAssistantForDisplay(combinedReasoning).display
+      : combinedReasoning;
 
   const hasStructured = Boolean(structuredContent && structuredContent.blocks?.length);
 

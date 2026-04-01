@@ -257,6 +257,21 @@ export class ChatGenerationController {
           StructuredResponseSchema,
           abortController.signal,
         )) {
+          if (chunk.reasoning) {
+            fullReasoning += chunk.reasoning;
+            reasoningChunkCount += 1;
+            if (reasoningChunkCount <= 3 || reasoningChunkCount % 20 === 0) {
+              this.chatDebug('generate.reasoningChunk', {
+                requestTag,
+                chatId,
+                reasoningChunkCount,
+                aggregatedReasoningLength: fullReasoning.length,
+              });
+            }
+            res.write(`data: ${JSON.stringify({ reasoning: chunk.reasoning })}\n\n`);
+            continue;
+          }
+
           // Normalize: bare array → {blocks: [...]}
           const partial = Array.isArray(chunk.partial) ? { blocks: chunk.partial } : chunk.partial;
           structuredResult = partial;

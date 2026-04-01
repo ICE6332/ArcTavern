@@ -13,6 +13,7 @@ import {
   EmbeddingRequest,
   EmbeddingResponse,
   ChatMessage,
+  JsonObject,
 } from './types';
 import { generateText, streamText, embedMany, type ModelMessage } from 'ai';
 import type { ZodType } from 'zod';
@@ -57,6 +58,8 @@ const MODEL_CATALOG: Record<string, Array<{ id: string; contextWindow: number }>
 };
 
 type ProviderOptions = Record<string, NonNullable<CompletionRequest['generationConfig']>>;
+type EffectiveProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'custom';
+const THINKING_TAG_RE = /<(think|thinking)(?:\s[^>]*)?>(?<inner>[\s\S]*?)<\/\1>/gi;
 
 @Injectable()
 export class AiProviderService {
@@ -78,6 +81,179 @@ export class AiProviderService {
       throw new BadRequestException(`API key not configured for provider: ${provider}`);
     }
     return key;
+  }
+
+  private resolveEffectiveProvider(
+    provider: string,
+    customApiFormat?: CompletionRequest['customApiFormat'],
+  ): EffectiveProvider | undefined {
+    switch (provider) {
+      case 'openai':
+      case 'anthropic':
+      case 'google':
+      case 'mistral':
+        return provider;
+      case 'openrouter':
+        return 'openai';
+      case 'custom':
+        switch (customApiFormat ?? 'openai-compatible') {
+          case 'google':
+            return 'google';
+          case 'openai':
+            return 'openai';
+          case 'anthropic':
+            return 'anthropic';
+          default:
+            return 'custom';
+        }
+      default:
+        return undefined;
+    }
+  }
+
+  private toConfigObject(value: unknown): JsonObject {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return { ...(value as JsonObject) };
+  }
+
+  private supportsGeminiThinkingDefaults(model: string): boolean {
+    const normalized = model.toLowerCase();
+    return normalized.includes('gemini-3') || normalized.includes('gemini-2.5');
+  }
+
+  private supportsOpenAIReasoningDefaults(model: string): boolean {
+    const normalized = model.toLowerCase();
+    return (
+      /(^|\/)gpt-5(?:[.-]|$)/.test(normalized) ||
+      /(^|\/)o[134](?:[.-]|$)/.test(normalized)
+    );
+  }
+
+  private extractThinkingBlocks(content: string): { reasoning: string[]; cleaned: string } {
+    if (!content) {
+      return { reasoning: [], cleaned: content };
+    }
+
+    const reasoning: string[] = [];
+    const cleaned = content.replace(THINKING_TAG_RE, (_match, _tag, inner: string) => {
+      const trimmed = inner.trim();
+      if (trimmed) {
+        reasoning.push(trimmed);
+      }
+      return '';
+    });
+
+    return {
+      reasoning,
+      cleaned: cleaned.replace(/\n{3,}/g, '\n\n').trim(),
+    };
+  }
+
+  private applyReasoningDefaults(
+    req: CompletionRequest,
+  ): NonNullable<CompletionRequest['generationConfig']> | undefined {
+    const effectiveProvider = this.resolveEffectiveProvider(req.provider, req.customApiFormat);
+    const nextConfig = this.toConfigObject(req.generationConfig) as NonNullable<
+      CompletionRequest['generationConfig']
+    >;
+    let changed = Object.keys(nextConfig).length > 0;
+
+    if (req.reasoningEffort && nextConfig.reasoningEffort === undefined) {
+      nextConfig.reasoningEffort = req.reasoningEffort;
+      changed = true;
+    }
+
+    switch (effectiveProvider) {
+      case 'openai': {
+        if (this.supportsOpenAIReasoningDefaults(req.model)) {
+          if (nextConfig.reasoningSummary === undefined) {
+            nextConfig.reasoningSummary = 'detailed';
+            changed = true;
+          }
+          if (nextConfig.reasoningEffort === undefined) {
+            nextConfig.reasoningEffort = 'medium';
+            changed = true;
+          }
+        }
+        break;
+      }
+      case 'google': {
+        if (!this.supportsGeminiThinkingDefaults(req.model)) {
+          break;
+        }
+
+        const thinkingConfig = this.toConfigObject(nextConfig.thinkingConfig);
+        let thinkingChanged = Object.keys(thinkingConfig).length > 0;
+        if (thinkingConfig.includeThoughts === undefined) {
+          thinkingConfig.includeThoughts = true;
+          thinkingChanged = true;
+        }
+
+        const normalizedModel = req.model.toLowerCase();
+        if (
+          normalizedModel.includes('gemini-3') &&
+          thinkingConfig.thinkingLevel === undefined &&
+          thinkingConfig.thinkingBudget === undefined
+        ) {
+          thinkingConfig.thinkingLevel = 'medium';
+          thinkingChanged = true;
+        }
+
+        if (
+          normalizedModel.includes('gemini-2.5') &&
+          thinkingConfig.thinkingBudget === undefined &&
+          thinkingConfig.thinkingLevel === undefined
+        ) {
+          thinkingConfig.thinkingBudget = 8192;
+          thinkingChanged = true;
+        }
+
+        if (thinkingChanged) {
+          nextConfig.thinkingConfig = thinkingConfig;
+          changed = true;
+        }
+        break;
+      }
+      case 'custom': {
+        if (nextConfig.reasoningEffort === undefined) {
+          nextConfig.reasoningEffort = 'medium';
+          changed = true;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    return changed ? nextConfig : undefined;
+  }
+
+  private getProviderOptionKey(req: CompletionRequest): string | undefined {
+    const effectiveProvider = this.resolveEffectiveProvider(req.provider, req.customApiFormat);
+    switch (effectiveProvider) {
+      case 'openai':
+        return 'openai';
+      case 'anthropic':
+        return 'anthropic';
+      case 'google':
+        return 'google';
+      case 'mistral':
+        return 'mistral';
+      case 'custom':
+        return 'custom';
+      default:
+        return undefined;
+    }
+  }
+
+  private getReasoningText(part: {
+    delta?: string;
+    textDelta?: string;
+    text?: string;
+  }): string | undefined {
+    return part.delta ?? part.textDelta ?? part.text;
   }
 
   private createLanguageModel(
@@ -179,26 +355,18 @@ export class AiProviderService {
   }
 
   private getProviderOptions(req: CompletionRequest): ProviderOptions | undefined {
-    if (!req.generationConfig || Object.keys(req.generationConfig).length === 0) {
-      return undefined;
-    }
-
-    const providerOptionKeyMap: Record<string, string> = {
-      openai: 'openai',
-      anthropic: 'anthropic',
-      google: 'google',
-      mistral: 'mistral',
-      custom: 'custom',
-      openrouter: 'openai',
-    };
-
-    const providerKey = providerOptionKeyMap[req.provider];
+    const providerKey = this.getProviderOptionKey(req);
     if (!providerKey) {
       return undefined;
     }
 
+    const nextConfig = this.applyReasoningDefaults(req);
+    if (!nextConfig || Object.keys(nextConfig).length === 0) {
+      return undefined;
+    }
+
     return {
-      [providerKey]: req.generationConfig,
+      [providerKey]: nextConfig,
     };
   }
 
@@ -218,9 +386,9 @@ export class AiProviderService {
       temperature: req.temperature,
       maxOutputTokens: req.maxTokens,
       topP: req.topP,
-      topK: req.topK,
-      frequencyPenalty: req.frequencyPenalty,
-      presencePenalty: req.presencePenalty,
+      topK: req.topK ?? undefined,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
       stopSequences: req.stop,
       providerOptions: this.getProviderOptions(req),
     });
@@ -261,32 +429,42 @@ export class AiProviderService {
       temperature: req.temperature,
       maxOutputTokens: req.maxTokens,
       topP: req.topP,
-      topK: req.topK,
-      frequencyPenalty: req.frequencyPenalty,
-      presencePenalty: req.presencePenalty,
+      topK: req.topK ?? undefined,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
       stopSequences: req.stop,
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
     });
 
     for await (const part of result.fullStream) {
-      const chunk = part as { type?: string; textDelta?: string; text?: string };
-      const deltaText = chunk.textDelta ?? chunk.text;
+      const chunk = part as {
+        type?: string;
+        textDelta?: string;
+        delta?: string;
+        text?: string;
+      };
 
-      if (chunk.type === 'text-delta' && deltaText) {
-        yield { content: deltaText };
+      if (chunk.type === 'text-delta' && chunk.textDelta) {
+        yield { content: chunk.textDelta };
         continue;
       }
-      if (chunk.type === 'reasoning-delta' && deltaText) {
-        yield { reasoning: deltaText };
+      if (chunk.type === 'reasoning-delta') {
+        const reasoningText = this.getReasoningText(chunk);
+        if (reasoningText) {
+          yield { reasoning: reasoningText };
+        }
         continue;
       }
       if (chunk.type === 'text' && chunk.text) {
         yield { content: chunk.text };
         continue;
       }
-      if (chunk.type === 'reasoning' && chunk.text) {
-        yield { reasoning: chunk.text };
+      if (chunk.type === 'reasoning') {
+        const reasoningText = this.getReasoningText(chunk);
+        if (reasoningText) {
+          yield { reasoning: reasoningText };
+        }
       }
     }
   }
@@ -295,7 +473,11 @@ export class AiProviderService {
     req: CompletionRequest,
     schema: ZodType<T>,
     signal?: AbortSignal,
-  ): AsyncGenerator<{ partial: unknown }, void, unknown> {
+  ): AsyncGenerator<
+    { partial: unknown; reasoning?: undefined } | { reasoning: string; partial?: undefined },
+    void,
+    unknown
+  > {
     const apiKey = await this.getApiKey(req.provider);
     const model = this.createLanguageModel(
       req.provider,
@@ -313,20 +495,56 @@ export class AiProviderService {
       temperature: req.temperature,
       maxOutputTokens: req.maxTokens,
       topP: req.topP,
-      topK: req.topK,
-      frequencyPenalty: req.frequencyPenalty,
-      presencePenalty: req.presencePenalty,
+      topK: req.topK ?? undefined,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
       stopSequences: req.stop,
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
     });
 
     let fullText = '';
+    let hasNativeReasoning = false;
     for await (const part of result.fullStream) {
-      const chunk = part as { type?: string; textDelta?: string; text?: string };
+      const chunk = part as {
+        type?: string;
+        textDelta?: string;
+        delta?: string;
+        text?: string;
+      };
+
+      // Reasoning chunks — pass through for the controller to handle
+      if (chunk.type === 'reasoning-delta') {
+        const reasoningText = this.getReasoningText(chunk);
+        if (reasoningText) {
+          hasNativeReasoning = true;
+          yield { reasoning: reasoningText };
+        }
+        continue;
+      }
+      if (chunk.type === 'reasoning') {
+        const reasoningText = this.getReasoningText(chunk);
+        if (reasoningText) {
+          hasNativeReasoning = true;
+          yield { reasoning: reasoningText };
+        }
+        continue;
+      }
+
+      // Text chunks — extract <think>/<thinking> blocks, then parse remaining as JSON
       const deltaText = chunk.textDelta ?? chunk.text;
       if ((chunk.type === 'text-delta' || chunk.type === 'text') && deltaText) {
         fullText += deltaText;
+        const extracted = this.extractThinkingBlocks(fullText);
+        if (extracted.reasoning.length > 0) {
+          if (!hasNativeReasoning) {
+            for (const thinkContent of extracted.reasoning) {
+              yield { reasoning: thinkContent };
+            }
+          }
+          fullText = extracted.cleaned;
+        }
+
         const parsed = tryParsePartialJson(fullText);
         if (parsed) {
           yield { partial: parsed };

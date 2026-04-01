@@ -183,7 +183,7 @@ Each block must use one of these roles with the correct fields:
 - spoiler: { "role": "spoiler", "content": string, "label"?: string }
 
 Usage guidance:
-- Use narration for story, dialogue, description, and inner thoughts. Write actions in *asterisks*.
+- Use narration for story, dialogue, and visible description only. Write actions in *asterisks*.
 - Every response needs one primary visual UI block in addition to narration.
 - Do NOT fall into a fixed pattern such as narration + card on every turn.
 - Card is a fallback, not the default. Use card only when no more specific visual block fits.
@@ -206,6 +206,9 @@ CRITICAL:
 - The first non-whitespace character MUST be "{".
 - No prose, markdown fences, or explanations outside the JSON object.
 - Story and dialogue must live inside blocks, not as raw text outside JSON.
+- Blocks must contain user-visible content only.
+- Do NOT place hidden reasoning, chain-of-thought, internal deliberation, or private analysis inside narration or any other block.
+- If the provider has a separate reasoning/thinking channel, use it instead of exposing reasoning in blocks.
 - Do NOT place OpenUI Lang syntax inside any field. In particular, card.markdown must be plain markdown only, never code such as root = UICard(...), Heading(...), DataTable(...), or ChoiceButtons(...).
 - Every response MUST include at least 2 blocks.
 - Every response MUST include at least 1 narration block.

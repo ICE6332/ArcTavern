@@ -1,9 +1,11 @@
 /// <reference types="vitest/globals" />
 import type { SecretService } from '../../secret/secret.service';
 import type { LocalEmbeddingService } from '../local-embedding.service';
+import { z } from 'zod';
 
-const { generateTextMock } = vi.hoisted(() => ({
+const { generateTextMock, streamTextMock } = vi.hoisted(() => ({
   generateTextMock: vi.fn(),
+  streamTextMock: vi.fn(),
 }));
 
 vi.mock('ai', async () => {
@@ -12,6 +14,7 @@ vi.mock('ai', async () => {
   return {
     ...actual,
     generateText: generateTextMock,
+    streamText: streamTextMock,
   };
 });
 
@@ -45,9 +48,20 @@ function createServiceWithKey(key: string) {
   return new AiProviderService(secretService, localEmbedding);
 }
 
+function makeStream(parts: unknown[]) {
+  return {
+    fullStream: (async function* () {
+      for (const part of parts) {
+        yield part;
+      }
+    })(),
+  };
+}
+
 describe('AiProviderService', () => {
   beforeEach(() => {
     generateTextMock.mockReset();
+    streamTextMock.mockReset();
     generateTextMock.mockResolvedValue({
       text: 'ok',
       response: { modelId: 'gpt-5.2' },
@@ -96,6 +110,7 @@ describe('AiProviderService', () => {
       expect.objectContaining({
         providerOptions: {
           openai: {
+            reasoningSummary: 'detailed',
             reasoningEffort: 'medium',
           },
         },
@@ -107,8 +122,8 @@ describe('AiProviderService', () => {
     const service = createServiceWithKey('sk-test');
 
     await service.complete({
-      provider: 'openai',
-      model: 'gpt-5.2',
+      provider: 'mistral',
+      model: 'mistral-large-latest',
       messages: [{ role: 'user', content: 'hello' }],
       generationConfig: {},
     });
@@ -118,6 +133,241 @@ describe('AiProviderService', () => {
         providerOptions: undefined,
       }),
     );
+  });
+
+  it('routes custom google provider options to google with reasoning defaults', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'custom',
+      customApiFormat: 'google',
+      model: 'gemini-3-flash-preview',
+      reverseProxy: 'https://example.com/v1beta',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: true,
+              thinkingLevel: 'medium',
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('routes custom openai provider options to openai with reasoning summary', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'custom',
+      customApiFormat: 'openai',
+      model: 'gpt-5.2',
+      reverseProxy: 'https://example.com/v1',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'medium',
+            reasoningSummary: 'detailed',
+          },
+        },
+      }),
+    );
+  });
+
+  it('does not inject openai reasoning defaults for non-reasoning models', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'custom',
+      customApiFormat: 'openai',
+      model: 'gpt-4.1-mini',
+      reverseProxy: 'https://example.com/v1',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: undefined,
+      }),
+    );
+  });
+
+  it('routes custom openai-compatible provider options to custom', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'custom',
+      customApiFormat: 'openai-compatible',
+      model: 'deepseek-r1',
+      reverseProxy: 'https://example.com/v1',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          custom: {
+            reasoningEffort: 'medium',
+          },
+        },
+      }),
+    );
+  });
+
+  it('routes openrouter provider options through the openai key', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'openrouter',
+      model: 'openai/gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'medium',
+            reasoningSummary: 'detailed',
+          },
+        },
+      }),
+    );
+  });
+
+  it('extracts reasoning from reasoning chunks with delta, textDelta, and text fields', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([
+        { type: 'reasoning-delta', delta: 'alpha' },
+        { type: 'reasoning-delta', textDelta: 'beta' },
+        { type: 'reasoning', textDelta: 'gamma' },
+        { type: 'reasoning', text: 'delta' },
+        { type: 'text-delta', textDelta: 'final' },
+      ]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamComplete({
+      provider: 'openai',
+      model: 'gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      { reasoning: 'alpha' },
+      { reasoning: 'beta' },
+      { reasoning: 'gamma' },
+      { reasoning: 'delta' },
+      { content: 'final' },
+    ]);
+  });
+
+  it('preserves explicit zero-valued sampling settings', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'openai',
+      model: 'gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+      topK: 0,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+    });
+
+    expect(generateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        topK: 0,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+      }),
+    );
+  });
+
+  it('extracts think-tag reasoning in structured streams when no native reasoning exists', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([{ type: 'text-delta', textDelta: '<think>fallback</think>{"blocks":[]}' }]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamStructured(
+      {
+        provider: 'openai',
+        model: 'gpt-5.2',
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+      z.any(),
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([{ reasoning: 'fallback' }, { partial: { blocks: [] } }]);
+  });
+
+  it('does not duplicate think-tag reasoning when native reasoning chunks are present', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([
+        { type: 'reasoning-delta', delta: 'native' },
+        { type: 'text-delta', textDelta: '<think>fallback</think>{"blocks":[]}' },
+      ]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamStructured(
+      {
+        provider: 'openai',
+        model: 'gpt-5.2',
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+      z.any(),
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([{ reasoning: 'native' }, { partial: { blocks: [] } }]);
+  });
+
+  it('extracts multiple think blocks before parsing structured JSON', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([
+        {
+          type: 'text-delta',
+          textDelta: '<think>first</think><think>second</think>{"blocks":[]}',
+        },
+      ]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamStructured(
+      {
+        provider: 'openai',
+        model: 'gpt-5.2',
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+      z.any(),
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      { reasoning: 'first' },
+      { reasoning: 'second' },
+      { partial: { blocks: [] } },
+    ]);
   });
 
   it('does not duplicate /v1 for health-check models endpoint', async () => {

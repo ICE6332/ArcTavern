@@ -23,7 +23,7 @@
     "generating": "Generating...",
     "placeholder": "Type a message... (Enter to send, Shift+Enter for newline)",
     "defaultTitle": "Chat",
-    "reasoning": "Reasoning",
+    "reasoning": "Thinking...",
     "feedbackGood": "Good",
     "feedbackBad": "Bad",
     "openChatBeforeSlash": "Open a chat before running slash commands."
