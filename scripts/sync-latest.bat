@@ -22,11 +22,37 @@ set "TARGET_BRANCH=%~1"
 if "%TARGET_BRANCH%"=="" set "TARGET_BRANCH=main"
 
 echo syncing latest from origin/%TARGET_BRANCH%
-git fetch origin %TARGET_BRANCH%
+git fetch --prune origin
 if errorlevel 1 (
   echo error: git fetch failed
   popd >nul
   exit /b 1
+)
+
+REM verify remote branch exists
+git show-ref --verify --quiet refs/remotes/origin/%TARGET_BRANCH%
+if errorlevel 1 (
+  echo error: remote branch "origin/%TARGET_BRANCH%" not found
+  popd >nul
+  exit /b 1
+)
+
+REM ensure local branch exists and checkout target branch
+git show-ref --verify --quiet refs/heads/%TARGET_BRANCH%
+if errorlevel 1 (
+  git checkout -b %TARGET_BRANCH% origin/%TARGET_BRANCH%
+  if errorlevel 1 (
+    echo error: failed to create local branch %TARGET_BRANCH%
+    popd >nul
+    exit /b 1
+  )
+) else (
+  git checkout %TARGET_BRANCH%
+  if errorlevel 1 (
+    echo error: failed to checkout branch %TARGET_BRANCH%
+    popd >nul
+    exit /b 1
+  )
 )
 
 git pull --rebase --autostash origin %TARGET_BRANCH%

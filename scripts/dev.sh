@@ -26,4 +26,22 @@ echo "starting client..."
 pnpm dev:client &
 CLIENT_PID=$!
 
-wait -n "${SERVER_PID}" "${CLIENT_PID}"
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Bash 3.2 (macOS default) doesn't support `wait -n`.
+if wait -n "${SERVER_PID}" "${CLIENT_PID}" 2>/dev/null; then
+  exit 0
+fi
+
+echo "note: bash does not support 'wait -n'; falling back to PID polling"
+while true; do
+  if ! kill -0 "${SERVER_PID}" 2>/dev/null; then
+    wait "${SERVER_PID}" 2>/dev/null || true
+    exit 0
+  fi
+  if ! kill -0 "${CLIENT_PID}" 2>/dev/null; then
+    wait "${CLIENT_PID}" 2>/dev/null || true
+    exit 0
+  fi
+  sleep 0.5
+done

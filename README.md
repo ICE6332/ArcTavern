@@ -117,20 +117,20 @@ scripts\dev-client.bat
 ### 同步远端最新进度
 
 ```bash
-# 拉取最新代码 + 重新安装依赖
+# 拉取最新代码 + 重新安装依赖（会切换到 main）
 ./scripts/sync-latest.sh
 
-# 或指定要同步的分支（例如 main）
+# 或指定要同步的分支（会切换到该分支）
 ./scripts/sync-latest.sh main
 ```
 
 - Windows：
 
 ```bat
-REM 拉取最新代码 + 重新安装依赖（默认 main）
+REM 拉取最新代码 + 重新安装依赖（会切换到 main）
 scripts\sync-latest.bat
 
-REM 或指定分支
+REM 或指定分支（会切换到该分支）
 scripts\sync-latest.bat main
 ```
 
