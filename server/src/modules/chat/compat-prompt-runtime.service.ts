@@ -130,7 +130,7 @@ function extractManifest(character: CharacterRow): RuntimeManifest | null {
   try {
     const extensions = JSON.parse(character.extensions || '{}') as JsonRecord;
     return isRecord(extensions.runtimeManifest)
-      ? (extensions.runtimeManifest as RuntimeManifest)
+      ? (extensions.runtimeManifest as unknown as RuntimeManifest)
       : null;
   } catch {
     return null;
