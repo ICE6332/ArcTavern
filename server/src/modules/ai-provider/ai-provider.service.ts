@@ -125,10 +125,7 @@ export class AiProviderService {
 
   private supportsOpenAIReasoningDefaults(model: string): boolean {
     const normalized = model.toLowerCase();
-    return (
-      /(^|\/)gpt-5(?:[.-]|$)/.test(normalized) ||
-      /(^|\/)o[134](?:[.-]|$)/.test(normalized)
-    );
+    return /(^|\/)gpt-5(?:[.-]|$)/.test(normalized) || /(^|\/)o[134](?:[.-]|$)/.test(normalized);
   }
 
   private extractThinkingBlocks(content: string): { reasoning: string[]; cleaned: string } {
