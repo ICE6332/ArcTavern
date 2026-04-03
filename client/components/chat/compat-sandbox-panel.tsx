@@ -18,6 +18,8 @@ import { useTranslation } from "@/lib/i18n";
 import { useGenerationConfig } from "@/hooks/use-generation-config";
 import { useChatActions } from "@/hooks/use-chat-actions";
 import { BridgeManager, type CompatSandboxSnapshot } from "@/lib/compat-sandbox/bridge-manager";
+import { dispatchRpc, type RpcContext } from "@/lib/compat-sandbox/rpc-registry";
+import { registerBuiltinHandlers } from "@/lib/compat-sandbox/rpc-handlers";
 
 export function CompatSandboxPanel() {
   const { t } = useTranslation();
@@ -179,35 +181,17 @@ export function CompatSandboxPanel() {
   useEffect(() => {
     if (!iframeLoaded || !iframeRef.current) return;
 
+    registerBuiltinHandlers();
     managerRef.current?.dispose();
     managerRef.current = new BridgeManager(iframeRef.current, async (rpc) => {
+      const ctx: RpcContext = {
+        chatId: rpcContextRef.current.currentChatId,
+        characterId: rpcContextRef.current.selectedCharId,
+        extras: {},
+      };
       try {
-        switch (rpc.method) {
-          case "runSlashCommand":
-            await runSlashCommand(String(rpc.params?.command ?? ""));
-            managerRef.current?.reply(rpc.id, true);
-            return;
-          case "getContext":
-            managerRef.current?.reply(rpc.id, {
-              chatId: rpcContextRef.current.currentChatId,
-              characterId: rpcContextRef.current.selectedCharId,
-              characterName: rpcContextRef.current.selectedCharName,
-              messageCount: rpcContextRef.current.messageCount,
-            });
-            return;
-          case "getVariables":
-            managerRef.current?.reply(rpc.id, {
-              global: rpcContextRef.current.globalVariables,
-              chat: rpcContextRef.current.chatVariables,
-            });
-            return;
-          case "requestWriteDone":
-            managerRef.current?.reply(rpc.id, {
-              global: rpcContextRef.current.globalVariables,
-              chat: rpcContextRef.current.chatVariables,
-            });
-            return;
-        }
+        const result = await dispatchRpc(rpc.method, rpc.params ?? {}, ctx);
+        managerRef.current?.reply(rpc.id, result);
       } catch (error) {
         managerRef.current?.reply(
           rpc.id,

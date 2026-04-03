@@ -49,17 +49,17 @@ export type HostToSandboxMessage =
       >;
     };
 
-export type SandboxRpcMethod =
-  | "runSlashCommand"
-  | "getContext"
-  | "getVariables"
-  | "requestWriteDone";
+/**
+ * RPC method name. Widened to `string` — the rpc-registry is the source of
+ * truth for which methods are available, not this type.
+ */
+export type SandboxRpcMethod = string;
 
 export type SandboxToHostMessage =
   | {
       type: "rpc:call";
       id: string;
-      method: SandboxRpcMethod;
+      method: string;
       params?: Record<string, unknown>;
     }
   | {
