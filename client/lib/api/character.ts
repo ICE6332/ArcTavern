@@ -1,5 +1,10 @@
 import { getApiBase, request, requestBlob } from "./core/http";
 import { coalesceRaw, fromRaw, parseJson, toRawRecord } from "./shared/raw";
+import type { RuntimeManifest } from "@/lib/compat/runtime-manifest";
+
+export interface CharacterExtensions extends Record<string, unknown> {
+  runtimeManifest?: RuntimeManifest;
+}
 
 export interface Character {
   id: number;
@@ -19,7 +24,7 @@ export interface Character {
   tags: string[];
   spec: string;
   specVersion: string;
-  extensions: Record<string, unknown>;
+  extensions: CharacterExtensions;
   characterBook: Record<string, unknown> | null;
   worldInfoBookId: number | null;
   createdAt: string;
@@ -53,7 +58,7 @@ function mapCharacter(rawInput: unknown): Character {
     tags: parseJson<string[]>(raw.tags ?? "[]", []),
     spec: fromRaw(raw.spec, "chara_card_v2"),
     specVersion: fromRaw(coalesceRaw(raw, "spec_version", "specVersion"), "2.0"),
-    extensions: parseJson<Record<string, unknown>>(raw.extensions ?? "{}", {}),
+    extensions: parseJson<CharacterExtensions>(raw.extensions ?? "{}", {}),
     characterBook: parseJson<Record<string, unknown> | null>(
       coalesceRaw(raw, "character_book", "characterBook") ?? null,
       null,

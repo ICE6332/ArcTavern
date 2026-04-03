@@ -96,6 +96,7 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
       ['cooldown', 'INTEGER DEFAULT 0'],
       ['delay', 'INTEGER DEFAULT 0'],
       ['triggers', "TEXT DEFAULT '[]'"],
+      ['use_regex', 'INTEGER DEFAULT 0'],
       // ST 1.16+ compatibility fields
       ['vectorized', 'INTEGER DEFAULT 0'],
       ['ignore_budget', 'INTEGER DEFAULT 0'],

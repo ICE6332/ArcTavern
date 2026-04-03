@@ -42,6 +42,7 @@ export interface WorldInfoEntry {
   sticky: number;
   cooldown: number;
   delay: number;
+  useRegex: boolean;
   vectorized: boolean;
   contentHash: string;
 }
@@ -104,6 +105,7 @@ function mapWorldInfoEntry(rawInput: unknown): WorldInfoEntry {
     sticky: Number(raw.sticky ?? 0),
     cooldown: Number(raw.cooldown ?? 0),
     delay: Number(raw.delay ?? 0),
+    useRegex: Boolean(coalesceRaw(raw, "use_regex", "useRegex")),
     vectorized: Number(coalesceRaw(raw, "vectorized") ?? 0) === 1,
     contentHash: fromRaw(coalesceRaw(raw, "content_hash", "contentHash"), ""),
   };
@@ -140,6 +142,7 @@ export const worldInfoApi = {
     if (data.keys) payload.keys = JSON.stringify(data.keys);
     if (data.secondaryKeys) payload.secondary_keys = JSON.stringify(data.secondaryKeys);
     if (data.vectorized !== undefined) payload.vectorized = data.vectorized ? 1 : 0;
+    if (data.useRegex !== undefined) payload.use_regex = data.useRegex ? 1 : 0;
     return mapWorldInfoEntry(
       await request<unknown>(`/world-info/${bookId}/entries`, {
         method: "POST",
@@ -171,6 +174,7 @@ export const worldInfoApi = {
     if (data.sticky !== undefined) payload.sticky = data.sticky;
     if (data.cooldown !== undefined) payload.cooldown = data.cooldown;
     if (data.delay !== undefined) payload.delay = data.delay;
+    if (data.useRegex !== undefined) payload.useRegex = data.useRegex ? 1 : 0;
     if (data.vectorized !== undefined) payload.vectorized = data.vectorized ? 1 : 0;
     return mapWorldInfoEntry(
       await request<unknown>(`/world-info/entries/${entryId}`, {

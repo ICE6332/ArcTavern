@@ -7,6 +7,7 @@ import { useCharacterStore } from "@/stores/character-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { RuntimeAdapter, RuntimeManifest, RuntimeMode } from "@/lib/compat/runtime-manifest";
 
 type Tab = "basic" | "advanced" | "book";
 
@@ -44,6 +45,40 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
   }
 
   const patch = (value: Partial<Character>) => setForm((prev) => ({ ...prev, ...value }));
+  const patchRuntimeManifest = (value: Partial<RuntimeManifest>) =>
+    setForm((prev) => {
+      const extensions = prev.extensions ?? {};
+      const runtimeManifest = (extensions.runtimeManifest ?? {
+        runtimeMode: "native" as RuntimeMode,
+        promptCompat: false,
+        renderCompat: false,
+        capabilities: {
+          regex: false,
+          htmlDocument: false,
+          script: false,
+          xmlTags: false,
+          variableInsert: false,
+          eraData: false,
+          placeholder: false,
+          styledHtml: false,
+          cssAnimation: false,
+          externalAsset: false,
+          lorebookRegex: false,
+        },
+        detectedFeatures: [],
+      }) as RuntimeManifest;
+
+      return {
+        ...prev,
+        extensions: {
+          ...extensions,
+          runtimeManifest: {
+            ...runtimeManifest,
+            ...value,
+          },
+        },
+      };
+    });
 
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,6 +194,50 @@ export function CharacterEditor({ character }: CharacterEditorProps) {
 
       {tab === "advanced" && (
         <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Runtime Mode
+              <select
+                value={
+                  ((form.extensions?.runtimeManifest as RuntimeManifest | undefined)?.runtimeMode ??
+                    "native") as RuntimeMode
+                }
+                onChange={(e) =>
+                  patchRuntimeManifest({ runtimeMode: e.target.value as RuntimeMode })
+                }
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+              >
+                <option value="native">native</option>
+                <option value="compat-sandbox">compat-sandbox</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Runtime Adapter
+              <select
+                value={
+                  ((form.extensions?.runtimeManifest as RuntimeManifest | undefined)?.adapter ??
+                    "st-generic") as RuntimeAdapter
+                }
+                onChange={(e) =>
+                  patchRuntimeManifest({ adapter: e.target.value as RuntimeAdapter })
+                }
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+              >
+                <option value="st-generic">st-generic</option>
+                <option value="era">era</option>
+                <option value="fate">fate</option>
+                <option value="custom">custom</option>
+              </select>
+            </label>
+          </div>
+          {(form.extensions?.runtimeManifest as RuntimeManifest | undefined)?.detectedFeatures
+            ?.length ? (
+            <div className="rounded-md border border-border/70 bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+              {(
+                form.extensions?.runtimeManifest as RuntimeManifest | undefined
+              )?.detectedFeatures.join(", ")}
+            </div>
+          ) : null}
           <Textarea
             value={form.systemPrompt ?? ""}
             onChange={(e) => patch({ systemPrompt: e.target.value })}

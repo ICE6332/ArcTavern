@@ -31,6 +31,7 @@ describe('normalizeEntry', () => {
       sticky: 3,
       cooldown: 2,
       delay: 1,
+      useRegex: true,
       vectorized: true,
       ignoreBudget: true,
       matchPersonaDescription: true,
@@ -68,6 +69,7 @@ describe('normalizeEntry', () => {
     expect(result.sticky).toBe(3);
     expect(result.cooldown).toBe(2);
     expect(result.delay).toBe(1);
+    expect(result.use_regex).toBe(1);
     expect(result.vectorized).toBe(1);
     expect(result.ignore_budget).toBe(1);
     expect(result.match_persona_desc).toBe(1);
@@ -99,6 +101,7 @@ describe('normalizeEntry', () => {
     expect(result.position).toBe('before_char');
     expect(result.select_logic).toBe(3);
     expect(result.depth).toBe(8);
+    expect(result.use_regex).toBe(0);
   });
 
   it('handles disable=true → enabled=0', () => {
@@ -118,6 +121,7 @@ describe('normalizeEntry', () => {
     expect(result.enabled).toBe(1);
     expect(result.position).toBe('before_char');
     expect(result.probability).toBe(100);
+    expect(result.use_regex).toBe(0);
     expect(result.vectorized).toBe(0);
     expect(result.character_filter).toBe('{}');
   });

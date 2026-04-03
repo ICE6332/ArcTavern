@@ -21,6 +21,7 @@ import path from 'path';
 import YAML from 'yaml';
 import { CharacterService } from './character.service';
 import { CharacterCardParserService, TavernCardV2 } from './character-card-parser.service';
+import { analyzeRuntimeManifest } from './runtime-manifest';
 import { WorldInfoService } from '../world-info/world-info.service';
 
 interface UploadedBinaryFile {
@@ -100,6 +101,7 @@ export class CharacterController {
             sticky: e.sticky,
             cooldown: e.cooldown,
             delay: e.delay,
+            use_regex: Boolean(e.use_regex),
           })),
         };
       }
@@ -145,7 +147,70 @@ export class CharacterController {
     }
   }
 
+  private buildRuntimeManifestCard(character: Awaited<ReturnType<CharacterService['findOne']>>) {
+    if (!character) return null;
+
+    const extensions = this.safeJsonParse<Record<string, unknown>>(character.extensions, {});
+    const characterBook = this.safeJsonParse<Record<string, unknown> | null>(
+      character.character_book,
+      null,
+    );
+
+    return {
+      spec: 'chara_card_v2' as const,
+      spec_version: '2.0' as const,
+      data: {
+        name: character.name,
+        description: character.description,
+        personality: character.personality,
+        scenario: character.scenario,
+        first_mes: character.first_mes,
+        mes_example: character.mes_example,
+        creator_notes: character.creator_notes,
+        creator: character.creator,
+        character_version: character.character_version ?? '',
+        tags: this.safeJsonParse<string[]>(character.tags, []),
+        system_prompt: character.system_prompt,
+        post_history_instructions: character.post_history_instructions,
+        alternate_greetings: this.safeJsonParse<string[]>(character.alternate_greetings, []),
+        extensions,
+        character_book: characterBook,
+      },
+    };
+  }
+
+  private async ensureRuntimeManifest<T extends Awaited<ReturnType<CharacterService['findOne']>>>(
+    character: T,
+  ): Promise<T> {
+    if (!character) return character;
+
+    const extensions = this.safeJsonParse<Record<string, unknown>>(character.extensions, {});
+    if (extensions.runtimeManifest) return character;
+
+    const runtimeCard = this.buildRuntimeManifestCard(character);
+    if (!runtimeCard) return character;
+
+    const nextExtensions = {
+      ...extensions,
+      runtimeManifest: analyzeRuntimeManifest(runtimeCard),
+    };
+
+    await this.characterService.update(character.id, {
+      extensions: JSON.stringify(nextExtensions),
+    });
+
+    return {
+      ...character,
+      extensions: JSON.stringify(nextExtensions),
+    } as T;
+  }
+
   private fromCard(card: TavernCardV2) {
+    const extensions = {
+      ...card.data.extensions,
+      runtimeManifest: analyzeRuntimeManifest(card),
+    };
+
     return {
       name: card.data.name,
       description: card.data.description,
@@ -160,7 +225,7 @@ export class CharacterController {
       creatorNotes: card.data.creator_notes,
       characterVersion: card.data.character_version,
       tags: JSON.stringify(card.data.tags ?? []),
-      extensions: JSON.stringify(card.data.extensions ?? {}),
+      extensions: JSON.stringify(extensions),
       characterBook: card.data.character_book ? JSON.stringify(card.data.character_book) : null,
       spec: card.spec,
       specVersion: card.spec_version,
@@ -169,14 +234,15 @@ export class CharacterController {
 
   @Get()
   async findAll() {
-    return this.characterService.findAll();
+    const characters = await this.characterService.findAll();
+    return Promise.all(characters.map((character) => this.ensureRuntimeManifest(character)));
   }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const character = await this.characterService.findOne(id);
     if (!character) throw new NotFoundException('Character not found');
-    return character;
+    return this.ensureRuntimeManifest(character);
   }
 
   @Get(':id/avatar')
