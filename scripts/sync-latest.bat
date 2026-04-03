@@ -29,6 +29,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
+REM refuse to run on dirty working tree (avoid autostash surprises)
+for /f %%A in ('git status --porcelain') do set "DIRTY=1"
+if defined DIRTY (
+  echo error: working tree is dirty; please commit or stash changes before syncing
+  popd >nul
+  exit /b 1
+)
+
 REM verify remote branch exists
 git show-ref --verify --quiet refs/remotes/origin/%TARGET_BRANCH%
 if errorlevel 1 (
