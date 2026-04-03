@@ -217,6 +217,7 @@ export function ChatPanel() {
                 onOpenUiAction={handleOpenUiAction}
                 onStructuredAction={handleStructuredAction}
                 onStructuredCommandAction={runSlashCommand}
+                onWidgetSlashCommand={runSlashCommand}
                 onRegenerate={isLastAssistant && !isGenerating ? handleGenerateSwipe : undefined}
               />
             );
@@ -236,6 +237,7 @@ export function ChatPanel() {
                 structuredContent={streamingStructured}
                 onStructuredAction={handleStructuredAction}
                 onStructuredCommandAction={runSlashCommand}
+                onWidgetSlashCommand={runSlashCommand}
               />
             )}
 

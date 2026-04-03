@@ -4,27 +4,15 @@
  */
 
 import { defaultSchema, type Options as SanitizeOptions } from "rehype-sanitize";
-
-const extraTagNames = [
-  "div",
-  "span",
-  "br",
-  "hr",
-  "em",
-  "strong",
-  "details",
-  "summary",
-  "p",
-] as const;
-
-const baseTags = defaultSchema.tagNames ?? [];
+import { stCompatAllowedTagNames } from "@/lib/compat/html-tags";
 
 export const stCompatSanitizeSchema: SanitizeOptions = {
   ...defaultSchema,
-  tagNames: [...new Set([...baseTags, ...extraTagNames])],
+  tagNames: stCompatAllowedTagNames,
   attributes: {
     ...defaultSchema.attributes,
     "*": [...new Set([...(defaultSchema.attributes?.["*"] ?? []), "style", "class"])],
     details: [...new Set([...(defaultSchema.attributes?.details ?? []), "open"])],
+    font: ["color", "face", "size"],
   },
 };

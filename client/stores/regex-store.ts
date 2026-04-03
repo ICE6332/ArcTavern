@@ -11,6 +11,7 @@ interface RegexState {
   characterScripts: RegexScriptData[];
   scope: RegexScope;
   loading: boolean;
+  loadedGlobalScripts: boolean;
 
   setScope: (scope: RegexScope) => void;
   fetchGlobalScripts: () => Promise<void>;
@@ -35,6 +36,7 @@ export const useRegexStore = create<RegexState>()((set, get) => ({
   characterScripts: [],
   scope: "global" as RegexScope,
   loading: false,
+  loadedGlobalScripts: false,
 
   setScope: (scope) => set({ scope }),
 
@@ -43,9 +45,9 @@ export const useRegexStore = create<RegexState>()((set, get) => ({
     try {
       const raw = await settingsApi.get(SETTINGS_KEY);
       const scripts = Array.isArray(raw) ? ensureIds(raw as RegexScriptData[]) : [];
-      set({ globalScripts: scripts });
+      set({ globalScripts: scripts, loadedGlobalScripts: true });
     } catch {
-      set({ globalScripts: [] });
+      set({ globalScripts: [], loadedGlobalScripts: true });
     } finally {
       set({ loading: false });
     }

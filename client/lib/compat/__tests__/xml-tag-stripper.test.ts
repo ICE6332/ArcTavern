@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { stripXmlTags } from "../xml-tag-stripper";
 
 describe("stripXmlTags", () => {
@@ -24,6 +24,19 @@ describe("stripXmlTags", () => {
     );
   });
 
+  it("removes compat data blocks whose contents should never be displayed", () => {
+    const raw = [
+      "before",
+      "<VariableInsert>{\"player\":{\"name\":\"Alice\"}}</VariableInsert>",
+      "<VariableEdit>{\"player\":{\"hp\":5}}</VariableEdit>",
+      "<VariableDelete>{\"player\":{\"status\":true}}</VariableDelete>",
+      "<era_data>{\"era\":1}</era_data>",
+      "after",
+    ].join("\n");
+
+    expect(stripXmlTags(raw)).toBe("before\n\nafter");
+  });
+
   it("handles mixed tags", () => {
     const input = `<customized>
 你想要什么样的自定义开局？都满足你
@@ -42,7 +55,21 @@ describe("stripXmlTags", () => {
   });
 
   it("preserves standard HTML tags", () => {
-    expect(stripXmlTags("<b>bold</b> and <em>italic</em>")).toBe("<b>bold</b> and <em>italic</em>");
+    expect(stripXmlTags("<b>bold</b> and <em>italic</em>")).toBe(
+      "<b>bold</b> and <em>italic</em>",
+    );
+  });
+
+  it("preserves allowed style tags", () => {
+    expect(stripXmlTags('<style>.app{color:red;}</style><div>Hello</div>')).toBe(
+      '<style>.app{color:red;}</style><div>Hello</div>',
+    );
+  });
+
+  it("keeps supported HTML tags while stripping unknown compat wrappers", () => {
+    expect(stripXmlTags("<scroll><div><strong>Hello</strong></div></scroll>")).toBe(
+      "<div><strong>Hello</strong></div>",
+    );
   });
 
   it("strips orphaned opening tags", () => {

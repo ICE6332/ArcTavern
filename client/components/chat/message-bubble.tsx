@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/i18n";
 import { StreamingText } from "./streaming-text";
 import { OpenUiMessage } from "./openui-message";
 import { StructuredMessage } from "./structured-message";
+import { CompatWidgetMessage } from "./compat-widget-message";
 import { isOpenUiLang } from "@/lib/openui";
 import { type PartialStructuredResponse } from "@/lib/openui/structured-types";
 import type { ActionEvent } from "@openuidev/react-lang";
@@ -13,6 +14,7 @@ import { DotsLoader } from "@/components/ui/loader";
 import { useContentPreprocessor } from "@/hooks/use-content-preprocessor";
 import { useMessageScriptRuntime } from "@/hooks/use-message-script-runtime";
 import { CompatMarkdown } from "@/lib/compat/markdown-pipeline";
+import { prepareMessageViewModel } from "@/lib/compat/message-view-model";
 import {
   ChainOfThought,
   ChainOfThoughtHeader,
@@ -49,6 +51,7 @@ interface MessageBubbleProps {
   structuredContent?: PartialStructuredResponse | null;
   onStructuredAction?: (label: string, value: string) => void;
   onStructuredCommandAction?: (command: string) => void;
+  onWidgetSlashCommand?: (command: string) => Promise<void> | void;
 }
 
 function ActionButton({
@@ -102,21 +105,20 @@ export function MessageBubble({
   structuredContent,
   onStructuredAction,
   onStructuredCommandAction,
+  onWidgetSlashCommand,
 }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { formatAssistantForDisplay, preprocess } = useContentPreprocessor();
   const isUser = role === "user";
 
-  const { display, scripts, thinking } =
-    role === "assistant"
-      ? formatAssistantForDisplay(content)
-      : { display: preprocess(content, role), scripts: [], thinking: "" };
-
-  const combinedReasoning = [reasoning, thinking].filter(Boolean).join("\n\n") || undefined;
-  const reasoningDisplay =
-    combinedReasoning && role === "assistant"
-      ? formatAssistantForDisplay(combinedReasoning).display
-      : combinedReasoning;
+  const { display, scripts, segments, compatData, reasoningDisplay, hasWidgets } =
+    prepareMessageViewModel({
+      role,
+      content,
+      reasoning,
+      formatAssistantForDisplay,
+      preprocess,
+    });
 
   const hasStructured = Boolean(structuredContent && structuredContent.blocks?.length);
 
@@ -170,6 +172,15 @@ export function MessageBubble({
           />
         ) : isStreaming && !content && !structuredContent ? (
           <DotsLoader size="md" className="text-muted-foreground" />
+        ) : !isStreaming && hasWidgets ? (
+          <CompatWidgetMessage
+            messageId={messageId}
+            swipeId={swipeId}
+            segments={segments}
+            compatData={compatData}
+            markdownClassName={markdownStyles}
+            onWidgetSlashCommand={onWidgetSlashCommand}
+          />
         ) : openUiEnabled && isOpenUiLang(display) ? (
           <OpenUiMessage content={display} isStreaming={isStreaming} onAction={onOpenUiAction} />
         ) : isStreaming ? (

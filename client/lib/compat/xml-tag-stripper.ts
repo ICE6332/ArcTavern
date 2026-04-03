@@ -9,8 +9,17 @@
  * - "remove": remove tags AND inner content (for update/variable blocks)
  */
 
+import { stCompatAllowedTagNameSet } from "@/lib/compat/html-tags";
+
 /** Tags whose content should be completely removed (not displayed) */
-const REMOVE_TAGS_DEFAULT = ["update", "updatevariable"];
+const REMOVE_TAGS_DEFAULT = [
+  "update",
+  "updatevariable",
+  "variableinsert",
+  "variableedit",
+  "variabledelete",
+  "era_data",
+];
 
 /**
  * Strip custom XML-like tags from content.
@@ -44,69 +53,14 @@ export function stripXmlTags(
   }
 
   // Phase 2: Strip remaining custom XML tags, keeping inner content.
-  // Match paired tags like <gametxt>...</gametxt>, <opening>...</opening>, etc.
-  // Excludes standard HTML tags that react-markdown handles.
-  // Uses a conservative approach: only strip tags that look like custom identifiers.
-  const HTML_TAGS = new Set([
-    "a",
-    "abbr",
-    "b",
-    "blockquote",
-    "br",
-    "code",
-    "dd",
-    "del",
-    "details",
-    "div",
-    "dl",
-    "dt",
-    "em",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "hr",
-    "i",
-    "img",
-    "ins",
-    "kbd",
-    "li",
-    "mark",
-    "ol",
-    "p",
-    "pre",
-    "q",
-    "rp",
-    "rt",
-    "ruby",
-    "s",
-    "samp",
-    "small",
-    "span",
-    "strong",
-    "sub",
-    "summary",
-    "sup",
-    "table",
-    "tbody",
-    "td",
-    "tfoot",
-    "th",
-    "thead",
-    "tr",
-    "u",
-    "ul",
-    "var",
-    "wbr",
-  ]);
+  // Allowed HTML tags are preserved intact so the downstream markdown/rehype pipeline
+  // can sanitize and render them consistently.
 
   // Strip paired custom tags: <tag>content</tag> → content
   result = result.replace(
     /<([a-zA-Z][\w-]*)(?:\s[^>]*)?>[\s\S]*?<\/\1>/g,
     (match, tagName: string) => {
-      if (HTML_TAGS.has(tagName.toLowerCase())) return match;
+      if (stCompatAllowedTagNameSet.has(tagName.toLowerCase())) return match;
       // Strip the opening and closing tags, keep content
       const openEnd = match.indexOf(">") + 1;
       const closeStart = match.lastIndexOf("</");
@@ -116,13 +70,13 @@ export function stripXmlTags(
 
   // Strip orphaned opening tags (no matching close): <tag> → ""
   result = result.replace(/<([a-zA-Z][\w-]*)(?:\s[^>]*)?>/g, (match, tagName: string) => {
-    if (HTML_TAGS.has(tagName.toLowerCase())) return match;
+    if (stCompatAllowedTagNameSet.has(tagName.toLowerCase())) return match;
     return "";
   });
 
   // Strip orphaned closing tags: </tag> → ""
   result = result.replace(/<\/([a-zA-Z][\w-]*)>/g, (match, tagName: string) => {
-    if (HTML_TAGS.has(tagName.toLowerCase())) return match;
+    if (stCompatAllowedTagNameSet.has(tagName.toLowerCase())) return match;
     return "";
   });
 
