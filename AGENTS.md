@@ -9,6 +9,10 @@ ArcTavern is a pnpm workspace monorepo with two packages:
 - `client/` — Vite 8 + React 19 SPA on port **5000**
 - `server/` — NestJS 11 API on port **5001** (embedded SQLite + LanceDB, no external DB)
 
+### Pull requests
+
+- When creating pull requests, write the PR title and description in Chinese.
+
 ### Running dev servers
 
 The root `pnpm dev` script uses PowerShell (`kill-dev-ports.ps1`) which does not work on Linux. Use these instead:
