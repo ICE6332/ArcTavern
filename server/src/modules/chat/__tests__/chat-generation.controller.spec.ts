@@ -9,6 +9,7 @@ import type { WorldInfoScannerService } from '../../world-info/world-info-scanne
 import type { WorldInfoVectorService } from '../../world-info/world-info-vector.service';
 import type { PersonaService } from '../../persona/persona.service';
 import type { RagService } from '../../rag/rag.service';
+import type { CompatPromptRuntimeService } from '../compat-prompt-runtime.service';
 
 function makeController() {
   const chatService = {
@@ -25,6 +26,23 @@ function makeController() {
     {} as WorldInfoVectorService,
     {} as PersonaService,
     {} as RagService,
+    {
+      prepare: vi.fn().mockResolvedValue({
+        manifest: null,
+        adapter: null,
+        namespaces: {
+          global: {},
+          chat: {},
+          character: {},
+          session: {},
+        },
+        sessionState: {},
+        eraData: null,
+        messageCompat: {},
+      }),
+      renderCharacter: vi.fn(async (character) => character),
+      renderEntries: vi.fn(async (entries) => entries),
+    } as unknown as CompatPromptRuntimeService,
   );
   return { controller, chatService };
 }
