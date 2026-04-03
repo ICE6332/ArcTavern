@@ -1,16 +1,29 @@
-/**
- * RPC handlers: AI generation control.
- */
+"use client";
 
+import { buildGenerationConfig } from "@/hooks/use-generation-config";
+import { useCharacterStore } from "@/stores/character-store";
 import { useChatStore } from "@/stores/chat-store";
+import { useConnectionStore } from "@/stores/connection-store";
+import { usePromptManagerStore } from "@/stores/prompt-manager-store";
+import { useWorldInfoStore } from "@/stores/world-info-store";
 import type { RpcHandler } from "../rpc-registry";
 
-/** isGenerating() */
+function getCurrentGenerationConfig() {
+  const { selectedId, characters } = useCharacterStore.getState();
+  const selectedChar = characters.find((character) => character.id === selectedId);
+
+  return buildGenerationConfig({
+    connection: useConnectionStore.getState(),
+    promptComponents: usePromptManagerStore.getState().components,
+    activeBookIds: useWorldInfoStore.getState().activeBookIds,
+    selectedChar,
+  }).generationConfig;
+}
+
 export const isGenerating: RpcHandler = () => {
   return useChatStore.getState().isGenerating;
 };
 
-/** stopGeneration() */
 export const stopGeneration: RpcHandler = async () => {
   await useChatStore.getState().stopGeneration();
   return true;
@@ -19,12 +32,8 @@ export const stopGeneration: RpcHandler = async () => {
 /**
  * generate({ type?, message? })
  *
- * Triggers a generation through the native chat store. The generation config
- * is not passed from the script — it uses whatever the user has configured
- * in the connection settings. Scripts can only control the type and message.
- *
- * This is intentionally limited: we don't expose the full GenerationConfig
- * to prevent scripts from overriding the user's provider/model settings.
+ * Triggers generation through the host chat store using the current
+ * connection, prompt, and world-info state from Zustand.
  */
 export const generate: RpcHandler = async (params) => {
   const type = typeof params.type === "string" ? params.type : "normal";
@@ -35,26 +44,38 @@ export const generate: RpcHandler = async (params) => {
     throw new Error("Generation already in progress");
   }
 
-  // Delegate to the store's sendMessage for normal type, which handles
-  // the full config internally. For other types we'd need the config
-  // which is only available in the React component layer.
-  // For now, only "normal" is supported from scripts.
-  if (type === "normal" && message) {
-    // We can't call sendMessage directly because it requires GenerationConfig.
-    // Instead, signal that we want generation by returning the intent —
-    // the host component will handle it.
-    return { intent: "generate", type, message };
-  }
+  const generationConfig = getCurrentGenerationConfig();
 
-  return { intent: "generate", type, message };
+  switch (type) {
+    case "normal": {
+      const trimmedMessage = message?.trim();
+      if (!trimmedMessage) {
+        throw new Error("Generation message is required");
+      }
+      await store.sendMessage(trimmedMessage, generationConfig);
+      return true;
+    }
+    case "continue":
+      await store.continueMessage(generationConfig);
+      return true;
+    case "impersonate":
+      await store.impersonate(generationConfig);
+      return true;
+    case "swipe":
+      await store.generateSwipe(generationConfig);
+      return true;
+    case "regenerate":
+      await store.regenerate(generationConfig);
+      return true;
+    default:
+      throw new Error(`Unsupported generation type: ${type}`);
+  }
 };
 
-/** getGenerationType() */
 export const getGenerationType: RpcHandler = () => {
   return useChatStore.getState().generationType;
 };
 
-/** getStreamingContent() */
 export const getStreamingContent: RpcHandler = () => {
   const store = useChatStore.getState();
   return {

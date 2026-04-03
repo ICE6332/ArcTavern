@@ -30,4 +30,5 @@ export interface CompletionRequest {
   jsonSchema?: { name: string; description?: string; value: object };
   reasoningEffort?: string;
   reverseProxy?: string;
+  customApiFormat?: "openai-compatible" | "google" | "openai" | "anthropic";
 }

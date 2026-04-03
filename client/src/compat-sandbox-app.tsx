@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import type { Message } from "@/lib/api/chat";
-import { MessageBubble } from "@/components/chat/message-bubble";
+import { CompatSandboxMessageView } from "@/components/chat/compat-sandbox-message-view";
+import { DotsLoader } from "@/components/ui/loader";
 import { useBridgeClient } from "@/lib/compat-sandbox/bridge-client";
 import { useCharacterStore } from "@/stores/character-store";
 import { useChatStore } from "@/stores/chat-store";
@@ -13,9 +14,20 @@ export function CompatSandboxApp() {
   useEffect(() => {
     if (!state.session) return;
 
+    const char = state.session.character;
+    if (import.meta.env.DEV) {
+      console.log("[compat-sandbox] session:init character", char.name, {
+        hasExtensions: !!char.extensions,
+        regexScriptCount: Array.isArray(char.extensions?.regex_scripts)
+          ? char.extensions.regex_scripts.length
+          : 0,
+        extensionKeys: char.extensions ? Object.keys(char.extensions) : [],
+      });
+    }
+
     useCharacterStore.setState({
-      selectedId: state.session.character.id,
-      characters: [state.session.character],
+      selectedId: char.id,
+      characters: [char],
     });
     useChatStore.setState({
       currentChatId: state.session.chatId,
@@ -45,10 +57,14 @@ export function CompatSandboxApp() {
   }, [state.session]);
 
   if (!state.session) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading compat runtime…</div>;
+    return null;
   }
 
   const session = state.session;
+
+  const isSwipeGenerating =
+    session.isGenerating &&
+    (session.generationType === "swipe" || session.generationType === "regenerate");
 
   const runSlashCommand = async (command: string) => {
     await call("runSlashCommand", { command });
@@ -62,7 +78,7 @@ export function CompatSandboxApp() {
             state.streamingMessageId === message.id && message.id === latestAssistantMessageId;
 
           return (
-            <MessageBubble
+            <CompatSandboxMessageView
               key={message.id}
               messageId={message.id}
               role={message.role}
@@ -91,9 +107,10 @@ export function CompatSandboxApp() {
           );
         })}
 
-        {state.streamingMessageId === -1 &&
+        {session.isGenerating &&
+          !isSwipeGenerating &&
           (state.streamingContent || state.streamingReasoning || state.streamingStructured) && (
-            <MessageBubble
+            <CompatSandboxMessageView
               role="assistant"
               name={state.session.character.name}
               content={state.streamingContent}
@@ -105,6 +122,19 @@ export function CompatSandboxApp() {
               onStructuredCommandAction={() => undefined}
               onWidgetSlashCommand={runSlashCommand}
             />
+          )}
+
+        {session.isGenerating &&
+          !isSwipeGenerating &&
+          !state.streamingContent &&
+          !state.streamingReasoning &&
+          !state.streamingStructured && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                {state.session.character.name ?? "Assistant"}
+              </p>
+              <DotsLoader size="md" className="text-muted-foreground" />
+            </div>
           )}
       </div>
     </main>

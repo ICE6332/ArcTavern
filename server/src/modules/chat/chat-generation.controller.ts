@@ -256,6 +256,9 @@ export class ChatGenerationController {
     let structuredResult: unknown = null;
     try {
       if (body.structuredOutput) {
+        this.logger.log(
+          `[generate] structured stream start chatId=${chatId} provider=${body.provider} model=${body.model} type=${generationType}`,
+        );
         // --- Structured output path: text stream + incremental JSON parsing ---
         promptMessages.push({
           role: 'system',
@@ -320,6 +323,9 @@ export class ChatGenerationController {
         }
       } else {
         // --- Text streaming path (existing behavior) ---
+        this.logger.log(
+          `[generate] stream start chatId=${chatId} provider=${body.provider} model=${body.model} type=${generationType}`,
+        );
         for await (const chunk of this.aiProviderService.streamComplete(
           completionRequest,
           abortController.signal,
@@ -353,6 +359,12 @@ export class ChatGenerationController {
           }
         }
       } // end else (text streaming path)
+
+      if (!abortController.signal.aborted && chunkCount === 0 && reasoningChunkCount === 0) {
+        this.logger.warn(
+          `[generate] stream produced no text or reasoning chunks (chatId=${chatId} provider=${body.provider} model=${body.model} structured=${Boolean(body.structuredOutput)}) — check API key, model id, and provider logs`,
+        );
+      }
 
       if (!abortController.signal.aborted) {
         await this.persistGenerationResult(

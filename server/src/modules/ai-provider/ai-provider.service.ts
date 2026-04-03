@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { SecretService } from '../secret/secret.service';
 import { LocalEmbeddingService } from './local-embedding.service';
 import {
@@ -60,11 +60,24 @@ const MODEL_CATALOG: Record<string, Array<{ id: string; contextWindow: number }>
 type ProviderOptions = Record<string, NonNullable<CompletionRequest['generationConfig']>>;
 type EffectiveProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'custom';
 const THINKING_TAG_RE = /<(think|thinking)(?:\s[^>]*)?>(?<inner>[\s\S]*?)<\/\1>/gi;
+type StreamTextPart = {
+  type?: string;
+  text?: string;
+  textDelta?: string;
+  delta?: string;
+  finishReason?: string;
+  rawFinishReason?: string;
+  error?: unknown;
+};
 
 @Injectable()
 export class AiProviderService {
+  private readonly logger = new Logger(AiProviderService.name);
   private modelCache = new Map<string, { models: ModelInfo[]; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly streamDebugEnabled = ['1', 'true', 'yes', 'on'].includes(
+    (process.env.CHAT_DEBUG ?? '').toLowerCase(),
+  );
 
   constructor(
     private readonly secretService: SecretService,
@@ -155,6 +168,9 @@ export class AiProviderService {
     const nextConfig = this.toConfigObject(req.generationConfig) as NonNullable<
       CompletionRequest['generationConfig']
     >;
+    if (effectiveProvider === 'google' && 'topK' in nextConfig) {
+      delete nextConfig.topK;
+    }
     let changed = Object.keys(nextConfig).length > 0;
 
     if (req.reasoningEffort && nextConfig.reasoningEffort === undefined) {
@@ -250,7 +266,77 @@ export class AiProviderService {
     textDelta?: string;
     text?: string;
   }): string | undefined {
-    return part.delta ?? part.textDelta ?? part.text;
+    return part.text ?? part.textDelta ?? part.delta;
+  }
+
+  private getStreamPartText(part: StreamTextPart): string | undefined {
+    return part.text ?? part.textDelta ?? part.delta;
+  }
+
+  private logStreamEvent(kind: 'streamComplete' | 'streamStructured', part: StreamTextPart): void {
+    if (!this.streamDebugEnabled) return;
+
+    const type = part.type ?? 'unknown';
+    if (
+      ![
+        'start-step',
+        'finish-step',
+        'finish',
+        'error',
+        'raw',
+        'source',
+        'tool-call',
+        'tool-result',
+      ].includes(type)
+    ) {
+      return;
+    }
+
+    this.logger.debug(
+      `[${kind}] stream event ${JSON.stringify({
+        type,
+        hasText: Boolean(this.getStreamPartText(part)),
+        finishReason: part.finishReason ?? part.rawFinishReason,
+        hasError: part.error !== undefined,
+      })}`,
+    );
+  }
+
+  /**
+   * Boundary adaptation for @ai-sdk/google: the UI and request body may still carry `topK`
+   * (presets, user tuning, switching providers) — we only strip it at the SDK boundary so
+   * Gemini never receives unsupported options; this is not "disabling" user preference in
+   * storage, only omitting fields the Google API does not accept.
+   */
+  private usesGoogleGenerativeLanguageModel(req: CompletionRequest): boolean {
+    return this.resolveEffectiveProvider(req.provider, req.customApiFormat) === 'google';
+  }
+
+  /** Sampling fields passed to generateText / streamText (provider-specific omissions). */
+  private buildLanguageModelSampling(req: CompletionRequest): {
+    temperature?: number;
+    maxOutputTokens?: number;
+    topP?: number;
+    topK?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    stopSequences?: string[];
+  } {
+    const base = {
+      temperature: req.temperature,
+      maxOutputTokens: req.maxTokens,
+      topP: req.topP,
+      frequencyPenalty: req.frequencyPenalty ?? undefined,
+      presencePenalty: req.presencePenalty ?? undefined,
+      stopSequences: req.stop,
+    };
+    if (this.usesGoogleGenerativeLanguageModel(req)) {
+      return base;
+    }
+    return {
+      ...base,
+      topK: req.topK ?? undefined,
+    };
   }
 
   private createLanguageModel(
@@ -362,8 +448,17 @@ export class AiProviderService {
       return undefined;
     }
 
+    const payload = { ...(nextConfig as Record<string, unknown>) };
+    if (this.usesGoogleGenerativeLanguageModel(req)) {
+      delete payload.topK;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return undefined;
+    }
+
     return {
-      [providerKey]: nextConfig,
+      [providerKey]: payload as NonNullable<CompletionRequest['generationConfig']>,
     };
   }
 
@@ -380,13 +475,7 @@ export class AiProviderService {
     const result = await generateText({
       model,
       messages: this.convertMessages(req.messages, req.assistantPrefill),
-      temperature: req.temperature,
-      maxOutputTokens: req.maxTokens,
-      topP: req.topP,
-      topK: req.topK ?? undefined,
-      frequencyPenalty: req.frequencyPenalty ?? undefined,
-      presencePenalty: req.presencePenalty ?? undefined,
-      stopSequences: req.stop,
+      ...this.buildLanguageModelSampling(req),
       providerOptions: this.getProviderOptions(req),
     });
 
@@ -423,46 +512,56 @@ export class AiProviderService {
     const result = streamText({
       model,
       messages: this.convertMessages(req.messages, req.assistantPrefill),
-      temperature: req.temperature,
-      maxOutputTokens: req.maxTokens,
-      topP: req.topP,
-      topK: req.topK ?? undefined,
-      frequencyPenalty: req.frequencyPenalty ?? undefined,
-      presencePenalty: req.presencePenalty ?? undefined,
-      stopSequences: req.stop,
+      ...this.buildLanguageModelSampling(req),
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
     });
 
+    const seenTypes = new Set<string>();
+    let emittedContent = false;
     for await (const part of result.fullStream) {
-      const chunk = part as {
-        type?: string;
-        textDelta?: string;
-        delta?: string;
-        text?: string;
-      };
+      const chunk = part as StreamTextPart;
+      const chunkType = chunk.type ?? 'unknown';
+      seenTypes.add(chunkType);
+      this.logStreamEvent('streamComplete', chunk);
 
-      if (chunk.type === 'text-delta' && chunk.textDelta) {
-        yield { content: chunk.textDelta };
+      if (chunkType === 'text-delta') {
+        const content = this.getStreamPartText(chunk);
+        if (content) {
+          emittedContent = true;
+          yield { content };
+        }
         continue;
       }
-      if (chunk.type === 'reasoning-delta') {
+      if (chunkType === 'reasoning-delta') {
         const reasoningText = this.getReasoningText(chunk);
         if (reasoningText) {
+          emittedContent = true;
           yield { reasoning: reasoningText };
         }
         continue;
       }
-      if (chunk.type === 'text' && chunk.text) {
-        yield { content: chunk.text };
+      if (chunkType === 'text') {
+        const content = this.getStreamPartText(chunk);
+        if (content) {
+          emittedContent = true;
+          yield { content };
+        }
         continue;
       }
-      if (chunk.type === 'reasoning') {
+      if (chunkType === 'reasoning') {
         const reasoningText = this.getReasoningText(chunk);
         if (reasoningText) {
+          emittedContent = true;
           yield { reasoning: reasoningText };
         }
       }
+    }
+
+    if (!emittedContent && seenTypes.size > 0) {
+      this.logger.warn(
+        `[streamComplete] stream emitted no text or reasoning; seen chunk types=${[...seenTypes].join(',')}`,
+      );
     }
   }
 
@@ -489,53 +588,50 @@ export class AiProviderService {
     const result = streamText({
       model,
       messages: this.convertMessages(req.messages, req.assistantPrefill),
-      temperature: req.temperature,
-      maxOutputTokens: req.maxTokens,
-      topP: req.topP,
-      topK: req.topK ?? undefined,
-      frequencyPenalty: req.frequencyPenalty ?? undefined,
-      presencePenalty: req.presencePenalty ?? undefined,
-      stopSequences: req.stop,
+      ...this.buildLanguageModelSampling(req),
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
     });
 
     let fullText = '';
     let hasNativeReasoning = false;
+    let emittedContent = false;
+    const seenTypes = new Set<string>();
     for await (const part of result.fullStream) {
-      const chunk = part as {
-        type?: string;
-        textDelta?: string;
-        delta?: string;
-        text?: string;
-      };
+      const chunk = part as StreamTextPart;
+      const chunkType = chunk.type ?? 'unknown';
+      seenTypes.add(chunkType);
+      this.logStreamEvent('streamStructured', chunk);
 
       // Reasoning chunks — pass through for the controller to handle
-      if (chunk.type === 'reasoning-delta') {
+      if (chunkType === 'reasoning-delta') {
         const reasoningText = this.getReasoningText(chunk);
         if (reasoningText) {
           hasNativeReasoning = true;
+          emittedContent = true;
           yield { reasoning: reasoningText };
         }
         continue;
       }
-      if (chunk.type === 'reasoning') {
+      if (chunkType === 'reasoning') {
         const reasoningText = this.getReasoningText(chunk);
         if (reasoningText) {
           hasNativeReasoning = true;
+          emittedContent = true;
           yield { reasoning: reasoningText };
         }
         continue;
       }
 
       // Text chunks — extract <think>/<thinking> blocks, then parse remaining as JSON
-      const deltaText = chunk.textDelta ?? chunk.text;
-      if ((chunk.type === 'text-delta' || chunk.type === 'text') && deltaText) {
+      const deltaText = this.getStreamPartText(chunk);
+      if ((chunkType === 'text-delta' || chunkType === 'text') && deltaText) {
         fullText += deltaText;
         const extracted = this.extractThinkingBlocks(fullText);
         if (extracted.reasoning.length > 0) {
           if (!hasNativeReasoning) {
             for (const thinkContent of extracted.reasoning) {
+              emittedContent = true;
               yield { reasoning: thinkContent };
             }
           }
@@ -544,9 +640,16 @@ export class AiProviderService {
 
         const parsed = tryParsePartialJson(fullText);
         if (parsed) {
+          emittedContent = true;
           yield { partial: parsed };
         }
       }
+    }
+
+    if (!emittedContent && seenTypes.size > 0) {
+      this.logger.warn(
+        `[streamStructured] stream emitted no partials or reasoning; seen chunk types=${[...seenTypes].join(',')}`,
+      );
     }
   }
 

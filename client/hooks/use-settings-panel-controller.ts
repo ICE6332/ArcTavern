@@ -26,6 +26,7 @@ export function useSettingsPanelController(t: (key: string) => string) {
     model,
     reverseProxy,
     customModels,
+    customApiFormat,
     topK,
     frequencyPenalty,
     presencePenalty,
@@ -36,6 +37,7 @@ export function useSettingsPanelController(t: (key: string) => string) {
       model: s.model,
       reverseProxy: s.reverseProxy,
       customModels: s.customModels,
+      customApiFormat: s.customApiFormat,
       topK: s.topK,
       frequencyPenalty: s.frequencyPenalty,
       presencePenalty: s.presencePenalty,
@@ -103,10 +105,14 @@ export function useSettingsPanelController(t: (key: string) => string) {
         temperature: 0.1,
         maxTokens: 16,
         topP: 1,
-        topK,
+        topK:
+          provider === "google" || (provider === "custom" && customApiFormat === "google")
+            ? undefined
+            : topK,
         frequencyPenalty,
         presencePenalty,
         reverseProxy: reverseProxy || undefined,
+        customApiFormat: provider === "custom" ? customApiFormat : undefined,
       });
       setConnectionStatus("ok", t("settings.connectionSuccess"));
       toast.success({ title: t("settings.connectionSuccess") });
@@ -120,6 +126,7 @@ export function useSettingsPanelController(t: (key: string) => string) {
     model,
     reverseProxy,
     customModels,
+    customApiFormat,
     topK,
     frequencyPenalty,
     presencePenalty,

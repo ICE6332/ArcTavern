@@ -1,5 +1,6 @@
 import type { Character } from "@/lib/api/character";
 import type { Message } from "@/lib/api/chat";
+import type { GenerationType } from "@/lib/api/types";
 import type { RegexScriptData } from "@/lib/compat/regex-engine";
 import type { PartialStructuredResponse } from "@/lib/openui/structured-types";
 
@@ -11,6 +12,9 @@ export interface CompatSandboxSession {
   globalVariables: Record<string, string>;
   chatVariables: Record<string, string>;
   openUiEnabled: boolean;
+  /** Mirrors host chat-store so the iframe can show loading/streaming UI. */
+  isGenerating: boolean;
+  generationType: GenerationType | null;
 }
 
 export interface CompatStreamingDelta {
@@ -44,7 +48,13 @@ export type HostToSandboxMessage =
       payload: Partial<
         Pick<
           CompatSandboxSession,
-          "character" | "globalScripts" | "globalVariables" | "chatVariables" | "openUiEnabled"
+          | "character"
+          | "globalScripts"
+          | "globalVariables"
+          | "chatVariables"
+          | "openUiEnabled"
+          | "isGenerating"
+          | "generationType"
         >
       >;
     };

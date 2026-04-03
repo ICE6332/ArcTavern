@@ -36,8 +36,16 @@ export function useBridgeClient() {
 
   useEffect(() => {
     const handleWindowMessage = (event: MessageEvent) => {
+      if (import.meta.env.DEV) {
+        console.log("[bridge-client] window message:", event.data?.type, {
+          hasPorts: !!event.ports?.[0],
+        });
+      }
       if (event.data?.type !== "compat:port-transfer" || !event.ports?.[0]) return;
 
+      if (import.meta.env.DEV) {
+        console.log("[bridge-client] port-transfer received, setting up port");
+      }
       const port = event.ports[0];
       portRef.current = port;
       port.onmessage = (portEvent: MessageEvent<HostToSandboxMessage | SandboxToHostMessage>) => {
@@ -46,6 +54,12 @@ export function useBridgeClient() {
 
         switch (data.type) {
           case "session:init":
+            if (import.meta.env.DEV) {
+              console.log("[bridge-client] session:init received", {
+                chatId: data.payload.chatId,
+                messageCount: data.payload.messages?.length,
+              });
+            }
             setState({
               session: data.payload,
               streamingMessageId: -1,
@@ -82,30 +96,41 @@ export function useBridgeClient() {
             });
             break;
           case "message:append":
-            setState((current) => ({
-              ...current,
-              streamingMessageId: data.payload.messageId,
-              streamingContent:
-                data.payload.delta.content !== undefined &&
-                current.streamingMessageId === data.payload.messageId &&
-                current.streamingContent &&
-                data.payload.delta.content &&
-                !data.payload.delta.content.startsWith(current.streamingContent)
-                  ? `${current.streamingContent}${data.payload.delta.content}`
-                  : (data.payload.delta.content ?? current.streamingContent),
-              streamingReasoning:
-                data.payload.delta.reasoning !== undefined &&
-                current.streamingMessageId === data.payload.messageId &&
-                current.streamingReasoning &&
-                data.payload.delta.reasoning &&
-                !data.payload.delta.reasoning.startsWith(current.streamingReasoning)
-                  ? `${current.streamingReasoning}${data.payload.delta.reasoning}`
-                  : (data.payload.delta.reasoning ?? current.streamingReasoning),
-              streamingStructured:
-                data.payload.delta.structured !== undefined
-                  ? data.payload.delta.structured
-                  : current.streamingStructured,
-            }));
+            setState((current) => {
+              const mid = data.payload.messageId;
+              if (current.streamingMessageId !== mid) {
+                return {
+                  ...current,
+                  streamingMessageId: mid,
+                  streamingContent: data.payload.delta.content ?? "",
+                  streamingReasoning: data.payload.delta.reasoning ?? "",
+                  streamingStructured:
+                    data.payload.delta.structured !== undefined
+                      ? data.payload.delta.structured
+                      : current.streamingStructured,
+                };
+              }
+              const prevC = current.streamingContent;
+              const prevR = current.streamingReasoning;
+              const dC = data.payload.delta.content;
+              const dR = data.payload.delta.reasoning;
+              return {
+                ...current,
+                streamingMessageId: mid,
+                streamingContent:
+                  dC !== undefined && prevC.length > 0 && dC && !dC.startsWith(prevC)
+                    ? `${prevC}${dC}`
+                    : (dC ?? prevC),
+                streamingReasoning:
+                  dR !== undefined && prevR.length > 0 && dR && !dR.startsWith(prevR)
+                    ? `${prevR}${dR}`
+                    : (dR ?? prevR),
+                streamingStructured:
+                  data.payload.delta.structured !== undefined
+                    ? data.payload.delta.structured
+                    : current.streamingStructured,
+              };
+            });
             break;
           case "message:finalize":
             setState((current) =>
@@ -134,6 +159,11 @@ export function useBridgeClient() {
                         data.payload.globalVariables ?? current.session.globalVariables,
                       chatVariables: data.payload.chatVariables ?? current.session.chatVariables,
                       openUiEnabled: data.payload.openUiEnabled ?? current.session.openUiEnabled,
+                      isGenerating: data.payload.isGenerating ?? current.session.isGenerating,
+                      generationType:
+                        data.payload.generationType !== undefined
+                          ? data.payload.generationType
+                          : current.session.generationType,
                     },
                   }
                 : current,
@@ -156,6 +186,10 @@ export function useBridgeClient() {
     };
 
     window.addEventListener("message", handleWindowMessage);
+
+    // Notify the host that the bridge client is ready to receive the port.
+    window.parent.postMessage({ type: "compat:ready" }, "*");
+
     return () => {
       window.removeEventListener("message", handleWindowMessage);
       portRef.current?.close();

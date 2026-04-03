@@ -274,6 +274,34 @@ describe('AiProviderService', () => {
     ]);
   });
 
+  it('extracts content from text chunks with text, textDelta, and delta fields', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([
+        { type: 'text-delta', text: 'alpha' },
+        { type: 'text-delta', textDelta: 'beta' },
+        { type: 'text-delta', delta: 'gamma' },
+        { type: 'text', text: 'delta' },
+      ]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamComplete({
+      provider: 'openai',
+      model: 'gpt-5.2',
+      messages: [{ role: 'user', content: 'hello' }],
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      { content: 'alpha' },
+      { content: 'beta' },
+      { content: 'gamma' },
+      { content: 'delta' },
+    ]);
+  });
+
   it('preserves explicit zero-valued sampling settings', async () => {
     const service = createServiceWithKey('sk-test');
 
@@ -295,6 +323,60 @@ describe('AiProviderService', () => {
     );
   });
 
+  it('omits topK for Google native SDK (custom + google format)', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'custom',
+      customApiFormat: 'google',
+      reverseProxy: 'https://generativelanguage.googleapis.com',
+      model: 'gemini-3-flash-preview',
+      messages: [{ role: 'user', content: 'hello' }],
+      topK: 40,
+      topP: 0.9,
+    });
+
+    const args = generateTextMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(args).not.toHaveProperty('topK');
+    expect(args.topP).toBe(0.9);
+  });
+
+  it('omits topK for google provider', async () => {
+    const service = createServiceWithKey('sk-test');
+
+    await service.complete({
+      provider: 'google',
+      model: 'gemini-3-flash-preview',
+      messages: [{ role: 'user', content: 'hello' }],
+      topK: 40,
+    });
+
+    const args = generateTextMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(args).not.toHaveProperty('topK');
+  });
+
+  it('streamComplete omits topK from call and providerOptions when generationConfig carries topK', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue({ fullStream: (async function* () {})() });
+
+    const chunks: unknown[] = [];
+    for await (const chunk of service.streamComplete({
+      provider: 'google',
+      model: 'gemini-3-flash-preview',
+      messages: [{ role: 'user', content: 'hello' }],
+      topK: 40,
+      generationConfig: { topK: 99 },
+    })) {
+      chunks.push(chunk);
+    }
+
+    const args = streamTextMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(args).not.toHaveProperty('topK');
+    const po = args.providerOptions as { google?: Record<string, unknown> } | undefined;
+    expect(po?.google).toBeDefined();
+    expect(po?.google).not.toHaveProperty('topK');
+  });
+
   it('extracts think-tag reasoning in structured streams when no native reasoning exists', async () => {
     const service = createServiceWithKey('sk-test');
     streamTextMock.mockReturnValue(
@@ -314,6 +396,27 @@ describe('AiProviderService', () => {
     }
 
     expect(chunks).toEqual([{ reasoning: 'fallback' }, { partial: { blocks: [] } }]);
+  });
+
+  it('parses structured streams from text-delta text chunks', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(
+      makeStream([{ type: 'text-delta', text: '{"blocks":[]}' }]),
+    );
+
+    const chunks = [];
+    for await (const chunk of service.streamStructured(
+      {
+        provider: 'openai',
+        model: 'gpt-5.2',
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+      z.any(),
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([{ partial: { blocks: [] } }]);
   });
 
   it('does not duplicate think-tag reasoning when native reasoning chunks are present', async () => {
