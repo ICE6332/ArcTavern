@@ -302,6 +302,41 @@ describe('AiProviderService', () => {
     ]);
   });
 
+  it('streamComplete throws provider Error chunks', async () => {
+    const service = createServiceWithKey('sk-test');
+    const providerError = new Error('provider failed');
+    streamTextMock.mockReturnValue(makeStream([{ type: 'error', error: providerError }]));
+
+    await expect(
+      (async () => {
+        for await (const _chunk of service.streamComplete({
+          provider: 'openai',
+          model: 'gpt-5.2',
+          messages: [{ role: 'user', content: 'hello' }],
+        })) {
+          // no-op
+        }
+      })(),
+    ).rejects.toThrow('provider failed');
+  });
+
+  it('streamComplete wraps non-Error provider chunks into Errors', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(makeStream([{ type: 'error', error: { code: 'boom' } }]));
+
+    await expect(
+      (async () => {
+        for await (const _chunk of service.streamComplete({
+          provider: 'openai',
+          model: 'gpt-5.2',
+          messages: [{ role: 'user', content: 'hello' }],
+        })) {
+          // no-op
+        }
+      })(),
+    ).rejects.toThrow('{"code":"boom"}');
+  });
+
   it('preserves explicit zero-valued sampling settings', async () => {
     const service = createServiceWithKey('sk-test');
 
@@ -471,6 +506,47 @@ describe('AiProviderService', () => {
       { reasoning: 'second' },
       { partial: { blocks: [] } },
     ]);
+  });
+
+  it('streamStructured throws provider Error chunks', async () => {
+    const service = createServiceWithKey('sk-test');
+    const providerError = new Error('structured provider failed');
+    streamTextMock.mockReturnValue(makeStream([{ type: 'error', error: providerError }]));
+
+    await expect(
+      (async () => {
+        for await (const _chunk of service.streamStructured(
+          {
+            provider: 'openai',
+            model: 'gpt-5.2',
+            messages: [{ role: 'user', content: 'hello' }],
+          },
+          z.any(),
+        )) {
+          // no-op
+        }
+      })(),
+    ).rejects.toThrow('structured provider failed');
+  });
+
+  it('streamStructured wraps non-Error provider chunks into Errors', async () => {
+    const service = createServiceWithKey('sk-test');
+    streamTextMock.mockReturnValue(makeStream([{ type: 'error', error: { code: 'structured-boom' } }]));
+
+    await expect(
+      (async () => {
+        for await (const _chunk of service.streamStructured(
+          {
+            provider: 'openai',
+            model: 'gpt-5.2',
+            messages: [{ role: 'user', content: 'hello' }],
+          },
+          z.any(),
+        )) {
+          // no-op
+        }
+      })(),
+    ).rejects.toThrow('{"code":"structured-boom"}');
   });
 
   it('does not duplicate /v1 for health-check models endpoint', async () => {

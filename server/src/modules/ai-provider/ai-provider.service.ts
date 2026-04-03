@@ -266,7 +266,7 @@ export class AiProviderService {
     textDelta?: string;
     text?: string;
   }): string | undefined {
-    return part.text ?? part.textDelta ?? part.delta;
+    return part.delta ?? part.textDelta ?? part.text;
   }
 
   private getStreamPartText(part: StreamTextPart): string | undefined {
@@ -525,6 +525,13 @@ export class AiProviderService {
       seenTypes.add(chunkType);
       this.logStreamEvent('streamComplete', chunk);
 
+      if (chunkType === 'error') {
+        const errMsg =
+          chunk.error instanceof Error ? chunk.error.message : JSON.stringify(chunk.error);
+        this.logger.error(`[streamComplete] provider stream error: ${errMsg}`);
+        throw chunk.error instanceof Error ? chunk.error : new Error(errMsg);
+      }
+
       if (chunkType === 'text-delta') {
         const content = this.getStreamPartText(chunk);
         if (content) {
@@ -602,6 +609,13 @@ export class AiProviderService {
       const chunkType = chunk.type ?? 'unknown';
       seenTypes.add(chunkType);
       this.logStreamEvent('streamStructured', chunk);
+
+      if (chunkType === 'error') {
+        const errMsg =
+          chunk.error instanceof Error ? chunk.error.message : JSON.stringify(chunk.error);
+        this.logger.error(`[streamStructured] provider stream error: ${errMsg}`);
+        throw chunk.error instanceof Error ? chunk.error : new Error(errMsg);
+      }
 
       // Reasoning chunks — pass through for the controller to handle
       if (chunkType === 'reasoning-delta') {
