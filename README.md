@@ -88,21 +88,64 @@ cd ArcTavern
 # 安装依赖
 pnpm install
 
-# 启动开发服务器
-pnpm dev
+# Linux/macOS 启动（推荐）
+./scripts/dev.sh
+
+# 仅启动后端（:5001）
+./scripts/dev-server.sh
+
+# 仅启动前端（:5000，代理 /api → :5001）
+./scripts/dev-client.sh
+```
+
+- Windows 启动（推荐）：
+
+```bat
+REM 同时启动前后端（会清理 5000/5001 端口）
+scripts\dev.bat
+
+REM 仅启动后端（:5001）
+scripts\dev-server.bat
+
+REM 仅启动前端（:5000，代理 /api → :5001）
+scripts\dev-client.bat
 ```
 
 - 前端：`http://localhost:5000`
 - 后端：`http://localhost:5001`
+
+### 同步远端最新进度
+
+```bash
+# 拉取最新代码 + 重新安装依赖
+./scripts/sync-latest.sh
+
+# 或指定要同步的分支（例如 main）
+./scripts/sync-latest.sh main
+```
+
+- Windows：
+
+```bat
+REM 拉取最新代码 + 重新安装依赖（默认 main）
+scripts\sync-latest.bat
+
+REM 或指定分支
+scripts\sync-latest.bat main
+```
 
 ---
 
 ## 开发命令
 
 ```bash
-pnpm dev              # 同时启动前端（:5000）和后端（:5001）
+pnpm dev              # 同时启动前端（:5000）和后端（:5001）（Windows；Linux/macOS 请用脚本或 dev:server/dev:client）
 pnpm dev:client       # 仅 Vite 前端
 pnpm dev:server       # 仅 NestJS 后端
+pnpm dev:sh           # Linux/macOS：清理端口并同时启动前后端
+pnpm dev:bat          # Windows：清理端口并同时启动前后端
+pnpm sync             # 同步远端最新代码（默认 main）并安装依赖
+pnpm sync:bat         # Windows：同步远端最新代码（默认 main）并安装依赖
 pnpm check            # 格式检查 + lint + 类型检查（全 workspace）
 pnpm test             # 运行所有测试
 pnpm build            # 构建全部
