@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/stores/chat-store";
 import { useCharacterStore } from "@/stores/character-store";
@@ -34,6 +34,11 @@ export function CompatSandboxPanel() {
     chatVariables: {} as Record<string, string>,
   });
   const [iframeLoaded, setIframeLoaded] = useState(false);
+
+  /** Ask iframe to emit compat:ready again (fixes StrictMode remount + listener race). */
+  const pingSandboxHandshake = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage({ type: "compat:request-ready" }, "*");
+  }, []);
 
   const {
     messages,
@@ -178,35 +183,63 @@ export function CompatSandboxPanel() {
     selectedChar?.name,
   ]);
 
-  useEffect(() => {
-    if (!iframeLoaded || !iframeRef.current) return;
+  const bridgeActive = Boolean(selectedId && currentChatId && selectedChar);
+
+  useLayoutEffect(() => {
+    if (!bridgeActive || !iframeRef.current) return;
 
     registerBuiltinHandlers();
-    managerRef.current?.dispose();
-    managerRef.current = new BridgeManager(iframeRef.current, async (rpc) => {
-      const ctx: RpcContext = {
-        chatId: rpcContextRef.current.currentChatId,
-        characterId: rpcContextRef.current.selectedCharId,
-        extras: {},
-      };
-      try {
-        const result = await dispatchRpc(rpc.method, rpc.params ?? {}, ctx);
-        managerRef.current?.reply(rpc.id, result);
-      } catch (error) {
-        managerRef.current?.reply(
-          rpc.id,
-          undefined,
-          error instanceof Error ? error.message : String(error),
-        );
+
+    if (import.meta.env.DEV) {
+      console.log("[compat-host] useEffect mounted, listening for compat:ready");
+    }
+
+    function handleReady(event: MessageEvent) {
+      if (import.meta.env.DEV) {
+        console.log("[compat-host] window message:", event.data?.type, {
+          matchesReady: event.data?.type === "compat:ready",
+          sourceMatch: event.source === iframeRef.current?.contentWindow,
+          hasIframe: !!iframeRef.current,
+          hasContentWindow: !!iframeRef.current?.contentWindow,
+        });
       }
-    });
-    managerRef.current.connect();
+      if (event.data?.type !== "compat:ready" || event.source !== iframeRef.current?.contentWindow)
+        return;
+
+      if (import.meta.env.DEV) {
+        console.log("[compat-host] compat:ready received, connecting bridge");
+      }
+      managerRef.current?.dispose();
+      managerRef.current = new BridgeManager(iframeRef.current!, async (rpc) => {
+        const ctx: RpcContext = {
+          chatId: rpcContextRef.current.currentChatId,
+          characterId: rpcContextRef.current.selectedCharId,
+          extras: {},
+        };
+        try {
+          const result = await dispatchRpc(rpc.method, rpc.params ?? {}, ctx);
+          managerRef.current?.reply(rpc.id, result);
+        } catch (error) {
+          managerRef.current?.reply(
+            rpc.id,
+            undefined,
+            error instanceof Error ? error.message : String(error),
+          );
+        }
+      });
+      managerRef.current.connect();
+      setIframeLoaded(true);
+    }
+
+    window.addEventListener("message", handleReady);
+    pingSandboxHandshake();
 
     return () => {
+      window.removeEventListener("message", handleReady);
       managerRef.current?.dispose();
       managerRef.current = null;
     };
-  }, [iframeLoaded, runSlashCommand]);
+  }, [bridgeActive, pingSandboxHandshake]);
 
   const snapshot = useMemo<CompatSandboxSnapshot | null>(() => {
     if (!currentChatId || !selectedChar) return null;
@@ -226,6 +259,8 @@ export function CompatSandboxPanel() {
       globalVariables,
       chatVariables,
       openUiEnabled: connection.openUiEnabled,
+      isGenerating,
+      generationType,
       streamingMessageId,
       streamingContent,
       streamingReasoning,
@@ -249,7 +284,7 @@ export function CompatSandboxPanel() {
   useEffect(() => {
     if (!snapshot || !managerRef.current) return;
     managerRef.current.sync(snapshot);
-  }, [snapshot]);
+  }, [snapshot, iframeLoaded]);
 
   if (!selectedId || !currentChatId || !selectedChar) {
     return <ChatWelcomeScreen />;
@@ -267,10 +302,10 @@ export function CompatSandboxPanel() {
         <iframe
           ref={iframeRef}
           title="Compat Sandbox"
-          sandbox="allow-scripts allow-forms allow-modals allow-popups"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
           className="h-full w-full border-0"
           src="/compat-sandbox.html"
-          onLoad={() => setIframeLoaded(true)}
+          onLoad={pingSandboxHandshake}
         />
       </div>
 

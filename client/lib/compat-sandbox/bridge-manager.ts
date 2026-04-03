@@ -18,6 +18,15 @@ function sameMessage(a: Message, b: Message): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+/** Same ordered message ids — if false, iframe list cannot be repaired by upserts alone. */
+function sameMessageIdOrder(prev: Message[], next: Message[]): boolean {
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i += 1) {
+    if (prev[i].id !== next[i].id) return false;
+  }
+  return true;
+}
+
 function diffStreaming(
   previous: CompatSandboxSnapshot | null,
   next: CompatSandboxSnapshot,
@@ -62,6 +71,9 @@ export class BridgeManager {
 
   connect() {
     const contentWindow = this.iframe.contentWindow;
+    if (import.meta.env.DEV) {
+      console.log("[bridge-manager] connect() called", { hasContentWindow: !!contentWindow });
+    }
     if (!contentWindow) return;
 
     const channel = new MessageChannel();
@@ -75,6 +87,9 @@ export class BridgeManager {
     this.port.start();
 
     contentWindow.postMessage({ type: "compat:port-transfer" }, "*", [channel.port2]);
+    if (import.meta.env.DEV) {
+      console.log("[bridge-manager] port-transfer sent to sandbox");
+    }
   }
 
   dispose() {
@@ -96,7 +111,19 @@ export class BridgeManager {
   sync(next: CompatSandboxSnapshot) {
     if (!this.port) return;
 
+    if (this.snapshot && this.snapshot.chatId !== next.chatId) {
+      this.snapshot = null;
+      this.sync(next);
+      return;
+    }
+
     if (!this.snapshot) {
+      if (import.meta.env.DEV) {
+        console.log("[bridge-manager] sending session:init", {
+          chatId: next.chatId,
+          messageCount: next.messages.length,
+        });
+      }
       this.port.postMessage({
         type: "session:init",
         payload: {
@@ -107,6 +134,8 @@ export class BridgeManager {
           globalVariables: next.globalVariables,
           chatVariables: next.chatVariables,
           openUiEnabled: next.openUiEnabled,
+          isGenerating: next.isGenerating,
+          generationType: next.generationType,
         },
       } satisfies HostToSandboxMessage);
       this.snapshot = next;
@@ -124,7 +153,9 @@ export class BridgeManager {
       JSON.stringify(this.snapshot.globalVariables) !== JSON.stringify(next.globalVariables) ||
       JSON.stringify(this.snapshot.chatVariables) !== JSON.stringify(next.chatVariables) ||
       this.snapshot.openUiEnabled !== next.openUiEnabled ||
-      JSON.stringify(this.snapshot.character) !== JSON.stringify(next.character)
+      JSON.stringify(this.snapshot.character) !== JSON.stringify(next.character) ||
+      this.snapshot.isGenerating !== next.isGenerating ||
+      this.snapshot.generationType !== next.generationType
     ) {
       this.port.postMessage({
         type: "vars:patch",
@@ -134,6 +165,8 @@ export class BridgeManager {
           globalVariables: next.globalVariables,
           chatVariables: next.chatVariables,
           openUiEnabled: next.openUiEnabled,
+          isGenerating: next.isGenerating,
+          generationType: next.generationType,
         },
       } satisfies HostToSandboxMessage);
     }
@@ -141,7 +174,9 @@ export class BridgeManager {
     const previousMessages = new Map(
       this.snapshot.messages.map((message) => [message.id, message]),
     );
-    let requiresFullReset = next.messages.length < this.snapshot.messages.length;
+    let requiresFullReset =
+      next.messages.length < this.snapshot.messages.length ||
+      !sameMessageIdOrder(this.snapshot.messages, next.messages);
 
     if (!requiresFullReset) {
       for (const message of next.messages) {

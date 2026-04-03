@@ -1,4 +1,60 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../rpc-handlers/context", () => ({
+  getContext: vi.fn(),
+  getVariables: vi.fn(),
+  requestWriteDone: vi.fn(),
+  getVariable: vi.fn(),
+  setVariable: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/commands", () => ({
+  runSlashCommand: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/messages", () => ({
+  getChatMessages: vi.fn(),
+  getLastMessage: vi.fn(),
+  getMessage: vi.fn(),
+  getLastMessageId: vi.fn(),
+  editMessage: vi.fn(),
+  deleteMessageHandler: vi.fn(),
+  addMessage: vi.fn(),
+  getMessageCount: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/characters", () => ({
+  getCharacter: vi.fn(),
+  getCharacterList: vi.fn(),
+  getCurrentCharacterName: vi.fn(),
+  getCharacterAvatarUrl: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/generation", () => ({
+  isGenerating: vi.fn(),
+  stopGeneration: vi.fn(),
+  generate: vi.fn(),
+  getGenerationType: vi.fn(),
+  getStreamingContent: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/connection", () => ({
+  getConnectionSettings: vi.fn(),
+  getProvider: vi.fn(),
+  getModel: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/worldinfo", () => ({
+  getWorldInfoBooks: vi.fn(),
+  getWorldInfoEntries: vi.fn(),
+  getActiveWorldInfoBookIds: vi.fn(),
+}));
+
+vi.mock("../rpc-handlers/globals", () => ({
+  initializeGlobal: vi.fn(),
+  waitGlobalInitialized: vi.fn(),
+  getGlobal: vi.fn(),
+}));
 import {
   clearRpcRegistryForTests,
   registerRpcHandler,
@@ -10,6 +66,7 @@ import {
   type RpcContext,
 } from "../rpc-registry";
 import {
+  builtinRpcAliasEntries,
   builtinRpcHandlerEntries,
   registerBuiltinHandlers,
   resetBuiltinHandlersForTests,
@@ -76,17 +133,19 @@ describe("rpc-registry", () => {
       expect(methods).toContain(method);
     }
 
-    expect(methods).toHaveLength(builtinRpcHandlerEntries.length);
+    for (const [alias] of builtinRpcAliasEntries) {
+      expect(methods).toContain(alias);
+    }
+
+    expect(methods).toHaveLength(builtinRpcHandlerEntries.length + builtinRpcAliasEntries.length);
   });
 
-  it("dispatches builtins after registration", async () => {
+  it("registers representative compat aliases", async () => {
     registerBuiltinHandlers();
 
-    await expect(dispatchRpc("getContext", {}, stubCtx)).resolves.toEqual(
-      expect.objectContaining({
-        chatId: stubCtx.chatId,
-        characterId: stubCtx.characterId,
-      }),
-    );
+    expect(getRpcHandler("triggerSlash")).toBe(getRpcHandler("runSlashCommand"));
+    expect(getRpcHandler("getCharacterNames")).toBe(getRpcHandler("getCharacterList"));
+    expect(getRpcHandler("getCharData")).toBe(getRpcHandler("getCharacter"));
+    expect(getRpcHandler("stopAllGeneration")).toBe(getRpcHandler("stopGeneration"));
   });
 });
