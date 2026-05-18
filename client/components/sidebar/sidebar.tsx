@@ -7,7 +7,7 @@ import { useConnectionStore } from "@/stores/connection-store";
 import { Button } from "@/components/ui/button";
 import { CharacterList } from "@/components/character/character-list";
 import { CharacterImport } from "@/components/character/character-import";
-import { CharacterEditor } from "@/components/character/character-editor";
+import { CharacterEditorLauncher } from "@/components/character/character-editor-launcher";
 import { CharacterExport } from "@/components/character/character-export";
 import { TagFilter } from "@/components/tags/tag-filter";
 import { useTranslation } from "@/lib/i18n";
@@ -190,7 +190,7 @@ export function Sidebar() {
                 }}
                 onExport={(id) => void exportCharacter(id, "png")}
               />
-              <CharacterEditor character={selectedCharacter} />
+              <CharacterEditorLauncher character={selectedCharacter} />
             </div>
           ) : (
             <div className="flex flex-col gap-1">
