@@ -61,7 +61,7 @@ ArcTavern 是 [SillyTavern](https://github.com/SillyTavern/SillyTavern) v1.15.0 
 | 前端 | [Vite 8](https://vitejs.dev) + [React 19](https://react.dev) + [TypeScript 6](https://www.typescriptlang.org) |
 | UI | [shadcn/ui](https://ui.shadcn.com) (`base-mira`) + [Tailwind CSS 4](https://tailwindcss.com) + [Hugeicons](https://hugeicons.com) |
 | 后端 | [NestJS 11](https://nestjs.com) + TypeScript 6 |
-| AI 集成 | [Vercel AI SDK v6](https://sdk.vercel.ai) (`ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
+| AI 集成 | [Vercel AI SDK v7](https://sdk.vercel.ai) (`ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
 | 数据库 | [SQLite via sql.js](https://sql.js.org) (Pure WASM，无 native bindings) |
 | 向量数据库 | [LanceDB](https://lancedb.com) (embedded，Rust core) |
 | 状态管理 | [Zustand](https://zustand-demo.pmnd.rs) (persisted) |

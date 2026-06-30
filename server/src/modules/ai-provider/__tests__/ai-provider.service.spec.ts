@@ -50,7 +50,7 @@ function createServiceWithKey(key: string) {
 
 function makeStream(parts: unknown[]) {
   return {
-    fullStream: (async function* () {
+    stream: (async function* () {
       for (const part of parts) {
         yield part;
       }
@@ -108,6 +108,7 @@ describe('AiProviderService', () => {
 
     expect(generateTextMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        allowSystemInMessages: true,
         providerOptions: {
           openai: {
             reasoningSummary: 'detailed',
@@ -148,6 +149,7 @@ describe('AiProviderService', () => {
 
     expect(generateTextMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        allowSystemInMessages: true,
         providerOptions: {
           google: {
             thinkingConfig: {
@@ -173,6 +175,7 @@ describe('AiProviderService', () => {
 
     expect(generateTextMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        allowSystemInMessages: true,
         providerOptions: {
           openai: {
             reasoningEffort: 'medium',
@@ -214,6 +217,7 @@ describe('AiProviderService', () => {
 
     expect(generateTextMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        allowSystemInMessages: true,
         providerOptions: {
           custom: {
             reasoningEffort: 'medium',
@@ -234,6 +238,7 @@ describe('AiProviderService', () => {
 
     expect(generateTextMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        allowSystemInMessages: true,
         providerOptions: {
           openai: {
             reasoningEffort: 'medium',
@@ -392,7 +397,7 @@ describe('AiProviderService', () => {
 
   it('streamComplete omits topK from call and providerOptions when generationConfig carries topK', async () => {
     const service = createServiceWithKey('sk-test');
-    streamTextMock.mockReturnValue({ fullStream: (async function* () {})() });
+    streamTextMock.mockReturnValue({ stream: (async function* () {})() });
 
     const chunks: unknown[] = [];
     for await (const chunk of service.streamComplete({
@@ -435,9 +440,7 @@ describe('AiProviderService', () => {
 
   it('parses structured streams from text-delta text chunks', async () => {
     const service = createServiceWithKey('sk-test');
-    streamTextMock.mockReturnValue(
-      makeStream([{ type: 'text-delta', text: '{"blocks":[]}' }]),
-    );
+    streamTextMock.mockReturnValue(makeStream([{ type: 'text-delta', text: '{"blocks":[]}' }]));
 
     const chunks = [];
     for await (const chunk of service.streamStructured(
@@ -531,7 +534,9 @@ describe('AiProviderService', () => {
 
   it('streamStructured wraps non-Error provider chunks into Errors', async () => {
     const service = createServiceWithKey('sk-test');
-    streamTextMock.mockReturnValue(makeStream([{ type: 'error', error: { code: 'structured-boom' } }]));
+    streamTextMock.mockReturnValue(
+      makeStream([{ type: 'error', error: { code: 'structured-boom' } }]),
+    );
 
     await expect(
       (async () => {

@@ -19,7 +19,7 @@ import { generateText, streamText, embedMany, type ModelMessage } from 'ai';
 import type { ZodType } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogle } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { tryParsePartialJson } from './json-stream-parser';
@@ -356,7 +356,7 @@ export class AiProviderService {
         if (googleBase && !googleBase.endsWith('/v1beta')) {
           googleBase = `${googleBase.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
         }
-        return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
+        return createGoogle({ apiKey, baseURL: googleBase })(model);
       }
       case 'openrouter':
         return createOpenAI({
@@ -378,7 +378,7 @@ export class AiProviderService {
             const googleBase = baseURL.endsWith('/v1beta')
               ? baseURL
               : `${baseURL.replace(/\/v1\/?$|\/+$/, '')}/v1beta`;
-            return createGoogleGenerativeAI({ apiKey, baseURL: googleBase })(model);
+            return createGoogle({ apiKey, baseURL: googleBase })(model);
           }
           case 'openai':
             return createOpenAI({ apiKey, baseURL })(model);
@@ -405,9 +405,7 @@ export class AiProviderService {
           model || 'text-embedding-3-small',
         );
       case 'google':
-        return createGoogleGenerativeAI({ apiKey }).textEmbeddingModel(
-          model || 'text-embedding-004',
-        );
+        return createGoogle({ apiKey }).textEmbeddingModel(model || 'text-embedding-004');
       case 'mistral':
         return createMistral({ apiKey }).textEmbeddingModel(model || 'mistral-embed');
       case 'openrouter':
@@ -475,6 +473,7 @@ export class AiProviderService {
     const result = await generateText({
       model,
       messages: this.convertMessages(req.messages, req.assistantPrefill),
+      allowSystemInMessages: true,
       ...this.buildLanguageModelSampling(req),
       providerOptions: this.getProviderOptions(req),
     });
@@ -512,6 +511,7 @@ export class AiProviderService {
     const result = streamText({
       model,
       messages: this.convertMessages(req.messages, req.assistantPrefill),
+      allowSystemInMessages: true,
       ...this.buildLanguageModelSampling(req),
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
@@ -519,7 +519,7 @@ export class AiProviderService {
 
     const seenTypes = new Set<string>();
     let emittedContent = false;
-    for await (const part of result.fullStream) {
+    for await (const part of result.stream) {
       const chunk = part as StreamTextPart;
       const chunkType = chunk.type ?? 'unknown';
       seenTypes.add(chunkType);
@@ -595,6 +595,7 @@ export class AiProviderService {
     const result = streamText({
       model,
       messages: this.convertMessages(req.messages, req.assistantPrefill),
+      allowSystemInMessages: true,
       ...this.buildLanguageModelSampling(req),
       abortSignal: signal,
       providerOptions: this.getProviderOptions(req),
@@ -604,7 +605,7 @@ export class AiProviderService {
     let hasNativeReasoning = false;
     let emittedContent = false;
     const seenTypes = new Set<string>();
-    for await (const part of result.fullStream) {
+    for await (const part of result.stream) {
       const chunk = part as StreamTextPart;
       const chunkType = chunk.type ?? 'unknown';
       seenTypes.add(chunkType);
