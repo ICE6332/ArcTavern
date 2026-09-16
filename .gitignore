@@ -65,3 +65,12 @@ specs/
 DISCORD*.md
 *可待*
 test_card/
+
+# Private content samples and dedicated import helpers (local only)
+/.grok/skills/mother-pig-lewd-prose/
+/scripts/direct-inject-meat-toilet.mjs
+/scripts/direct-inject-private-meat-toilet.mjs
+/scripts/direct-inject-school-jk-slut.mjs
+/scripts/seed-meat-toilet.mjs
+/test-cards/
+/母猪文风-Skill/
